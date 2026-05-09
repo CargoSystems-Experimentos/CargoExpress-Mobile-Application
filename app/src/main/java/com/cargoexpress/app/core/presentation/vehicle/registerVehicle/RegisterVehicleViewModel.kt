@@ -2,13 +2,11 @@ package com.cargoexpress.app.core.presentation.vehicle.registerVehicle
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cargoexpress.app.core.data.repository.DriverRepository
 import com.cargoexpress.app.core.data.repository.VehicleRepository
-import com.cargoexpress.app.core.domain.Driver
 import com.cargoexpress.app.core.domain.Vehicle
 import kotlinx.coroutines.launch
-import pe.edu.upc.appturismo.common.Constants
-import pe.edu.upc.appturismo.common.Resource
+import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.common.Resource
 import kotlin.String
 
 class RegisterVehicleViewModel(

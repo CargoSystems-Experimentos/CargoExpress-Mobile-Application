@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cargoexpress.app.core.domain.Expense
 import kotlinx.coroutines.launch
-import pe.edu.upc.appturismo.common.Resource
+import com.cargoexpress.app.core.common.Resource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)

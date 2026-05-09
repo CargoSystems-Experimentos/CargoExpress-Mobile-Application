@@ -7,9 +7,9 @@ import com.cargoexpress.app.core.domain.Alert
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import pe.edu.upc.appturismo.common.Constants
-import pe.edu.upc.appturismo.common.Resource
-import pe.edu.upc.appturismo.common.UIState
+import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.common.Resource
+import com.cargoexpress.app.core.common.UIState
 
 class AlertViewModel(private val alertRepository: AlertRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(UIState<List<Alert>>(isLoading = true))

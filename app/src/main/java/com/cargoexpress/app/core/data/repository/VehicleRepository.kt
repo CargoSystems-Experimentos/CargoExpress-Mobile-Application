@@ -2,17 +2,14 @@ package com.cargoexpress.app.core.data.repository
 
 
 
-import com.cargoexpress.app.core.data.remote.driver.toDriver
-import com.cargoexpress.app.core.data.remote.driver.toDriverDto
 import com.cargoexpress.app.core.data.remote.vehicle.VehicleService
 import com.cargoexpress.app.core.data.remote.vehicle.toVehicle
 import com.cargoexpress.app.core.data.remote.vehicle.toVehicleDto
-import com.cargoexpress.app.core.domain.Driver
 import com.cargoexpress.app.core.domain.Vehicle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import pe.edu.upc.appturismo.common.Constants
-import pe.edu.upc.appturismo.common.Resource
+import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.common.Resource
 
 class VehicleRepository(private val vehicleService: VehicleService) {
 

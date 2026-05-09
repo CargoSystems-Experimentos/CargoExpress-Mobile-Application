@@ -1,6 +1,5 @@
 package com.cargoexpress.app.core.presentation.profile
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
@@ -20,10 +19,8 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.cargoexpress.app.R
 import com.cargoexpress.app.core.data.remote.user.EntrepreneurDto
-import pe.edu.upc.appturismo.common.Constants
+import com.cargoexpress.app.core.common.Constants
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.cargoexpress.app.core.presentation.ImagePicker

@@ -1,16 +1,5 @@
 package com.cargoexpress.app.core.presentation.record.registerExpense
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import com.cargoexpress.app.core.domain.Expense
-import pe.edu.upc.appturismo.common.Resource
-import kotlinx.coroutines.launch
-
 /*@Composable
 fun RegisterExpenseScreen(
     viewModel: RegisterExpenseViewModel = viewModel(),

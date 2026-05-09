@@ -9,12 +9,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Routes
-import com.cargoexpress.app.core.data.remote.user.EntrepreneurRequestDto
 import com.cargoexpress.app.core.data.repository.LoginRepository
 import com.cargoexpress.app.core.data.repository.EntrepreneurRepository
 import kotlinx.coroutines.launch
-import pe.edu.upc.appturismo.common.Constants
-import pe.edu.upc.appturismo.common.UIState
+import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.common.UIState
 
 class LoginViewModel(
     private val navController: NavController,

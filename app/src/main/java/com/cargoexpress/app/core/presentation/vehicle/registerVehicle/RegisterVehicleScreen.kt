@@ -12,7 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cargoexpress.app.core.domain.Vehicle
-import pe.edu.upc.appturismo.common.Resource
+import com.cargoexpress.app.core.common.Resource
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 

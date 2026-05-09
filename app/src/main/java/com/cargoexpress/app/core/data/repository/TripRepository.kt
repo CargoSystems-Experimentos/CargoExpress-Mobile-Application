@@ -6,7 +6,6 @@ import androidx.annotation.RequiresApi
 import com.cargoexpress.app.core.data.remote.expense.ExpenseService
 import com.cargoexpress.app.core.data.remote.expense.toExpense
 import com.cargoexpress.app.core.data.remote.expense.toExpenseDto
-import com.cargoexpress.app.core.data.remote.trip.TripDtoPost
 import com.cargoexpress.app.core.data.remote.trip.TripService
 import com.cargoexpress.app.core.data.remote.trip.toTrip
 import com.cargoexpress.app.core.data.remote.trip.toTripDto
@@ -15,8 +14,8 @@ import com.cargoexpress.app.core.domain.Expense
 import com.cargoexpress.app.core.domain.Trip
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import pe.edu.upc.appturismo.common.Constants
-import pe.edu.upc.appturismo.common.Resource
+import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.common.Resource
 
 class TripRepository(private val tripService: TripService, private val expenseService: ExpenseService) {
 

@@ -5,7 +5,7 @@ import com.cargoexpress.app.core.data.remote.alert.toAlert
 import com.cargoexpress.app.core.domain.Alert
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import pe.edu.upc.appturismo.common.Resource
+import com.cargoexpress.app.core.common.Resource
 
 class AlertRepository(private val alertService: AlertService) {
     suspend fun getAlerts(token: String): Resource<List<Alert>> = withContext(Dispatchers.IO) {

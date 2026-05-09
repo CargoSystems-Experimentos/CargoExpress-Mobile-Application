@@ -1,6 +1,4 @@
 package com.cargoexpress.app.core.presentation.trip
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,7 +21,7 @@ import androidx.navigation.NavController
 import com.cargoexpress.app.core.data.repository.OngoingTripRepository
 import com.cargoexpress.app.core.data.repository.TripRepository
 import com.cargoexpress.app.core.domain.Trip
-import pe.edu.upc.appturismo.common.Constants
+import com.cargoexpress.app.core.common.Constants
 
 @Composable
 fun TripManagementScreen(

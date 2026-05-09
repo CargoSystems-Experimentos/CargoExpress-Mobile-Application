@@ -5,8 +5,7 @@ import com.cargoexpress.app.core.data.remote.ongoingtrip.toOngoingTrip
 import com.cargoexpress.app.core.domain.OngoingTrip
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import pe.edu.upc.appturismo.common.Constants
-import pe.edu.upc.appturismo.common.Resource
+import com.cargoexpress.app.core.common.Resource
 
 class OngoingTripRepository(private val ongoingTripService: OngoingTripService) {
 

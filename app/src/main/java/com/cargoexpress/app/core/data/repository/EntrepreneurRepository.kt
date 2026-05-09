@@ -1,13 +1,12 @@
 package com.cargoexpress.app.core.data.repository
 
+import android.util.Log
 import com.cargoexpress.app.core.data.remote.user.EntrepreneurDto
 import com.cargoexpress.app.core.data.remote.user.EntrepreneurRequestDto
 import com.cargoexpress.app.core.data.remote.user.EntrepreneurService
 import com.cargoexpress.app.core.data.remote.vehicle.VehicleDto
 import com.cargoexpress.app.core.data.remote.driver.DriverDto
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import pe.edu.upc.appturismo.common.Resource
+import com.cargoexpress.app.core.common.Resource
 
 class EntrepreneurRepository(private val entrepreneurService: EntrepreneurService) {
 
@@ -21,9 +20,16 @@ class EntrepreneurRepository(private val entrepreneurService: EntrepreneurServic
                     Result.success(entrepreneurId)
                 } ?: Result.failure(Exception("Error: No se pudo obtener el entrepreneurId"))
             } else {
-                Result.failure(Exception("Error creando entrepreneur: ${response.code()}"))
+                val errorBody = response.errorBody()?.string()
+                Log.e("EntrepreneurRepository", "Error creando entrepreneur: code=${response.code()}, body=$errorBody")
+                Result.failure(
+                    Exception(
+                        "Error creando entrepreneur: ${response.code()}${if (!errorBody.isNullOrBlank()) " - $errorBody" else ""}"
+                    )
+                )
             }
         } catch (e: Exception) {
+            Log.e("EntrepreneurRepository", "Excepción creando entrepreneur", e)
             Result.failure(e)
         }
     }

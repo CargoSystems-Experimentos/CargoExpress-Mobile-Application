@@ -8,9 +8,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.cargoexpress.app.core.data.repository.TripRepository
-import com.cargoexpress.app.core.domain.Trip
 import kotlinx.coroutines.launch
-import pe.edu.upc.appturismo.common.Resource
+import com.cargoexpress.app.core.common.Resource
 
 @Composable
 fun TripEditScreen(

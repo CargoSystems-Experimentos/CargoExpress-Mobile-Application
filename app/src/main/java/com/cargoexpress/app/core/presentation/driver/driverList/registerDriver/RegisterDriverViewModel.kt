@@ -4,8 +4,8 @@ import androidx.lifecycle.viewModelScope
 import com.cargoexpress.app.core.data.repository.DriverRepository
 import com.cargoexpress.app.core.domain.Driver
 import kotlinx.coroutines.launch
-import pe.edu.upc.appturismo.common.Constants
-import pe.edu.upc.appturismo.common.Resource
+import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.common.Resource
 
 
 class RegisterDriverViewModel(

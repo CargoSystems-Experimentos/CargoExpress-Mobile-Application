@@ -5,10 +5,7 @@ import com.cargoexpress.app.core.data.remote.expense.ExpenseService
 import com.cargoexpress.app.core.data.remote.expense.toExpense
 import com.cargoexpress.app.core.data.remote.expense.toExpenseDto
 import com.cargoexpress.app.core.domain.Expense
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import pe.edu.upc.appturismo.common.Constants
-import pe.edu.upc.appturismo.common.Resource
+import com.cargoexpress.app.core.common.Resource
 
 class ExpenseRepository(private val expenseService: ExpenseService) {
 

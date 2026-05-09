@@ -6,8 +6,8 @@ import com.cargoexpress.app.core.data.remote.driver.toDriverDto
 import com.cargoexpress.app.core.domain.Driver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import pe.edu.upc.appturismo.common.Constants
-import pe.edu.upc.appturismo.common.Resource
+import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.common.Resource
 
 class DriverRepository(private val driverService: DriverService) {
 

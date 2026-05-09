@@ -15,8 +15,7 @@ import com.cargoexpress.app.core.data.repository.EntrepreneurRepository
 import com.cargoexpress.app.core.data.repository.LoginRepository
 import com.cargoexpress.app.core.data.repository.RegisterRepository
 import kotlinx.coroutines.launch
-import pe.edu.upc.appturismo.common.Constants
-import pe.edu.upc.appturismo.common.UIState
+import com.cargoexpress.app.core.common.UIState
 
 class RegisterViewModel(
     private val navController: NavController,
@@ -71,7 +70,14 @@ class RegisterViewModel(
                     val token = loginResponse.token
 
                     if (isEntrepreneur) {
-                        createEntrepreneur(userId, token, name, phone, ruc, address, logoImage!!)
+                        if (logoImage.isNullOrBlank()) {
+                            _state.value = UIState(
+                                isLoading = false,
+                                message = "Debes seleccionar un logo para registrar un empresario"
+                            )
+                            return@onSuccess
+                        }
+                        createEntrepreneur(userId, token, name, phone, ruc, address, logoImage)
                     } else {
                         createClient(userId, token, name, phone, ruc, address)
                     }
@@ -116,6 +122,10 @@ class RegisterViewModel(
         logoImage: String
     ) {
         viewModelScope.launch {
+            android.util.Log.d(
+                "RegisterViewModel",
+                "Creating entrepreneur with userId=$userId, logoImage=$logoImage"
+            )
             val entrepreneurRequest = EntrepreneurRequestDto(
                 name = name,
                 phone = phone,

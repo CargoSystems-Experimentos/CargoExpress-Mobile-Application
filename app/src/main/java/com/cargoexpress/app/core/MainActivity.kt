@@ -1,11 +1,8 @@
 package com.cargoexpress.app.core
 
-import android.app.Activity
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.widget.ImageView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -37,21 +34,15 @@ import com.cargoexpress.app.core.presentation.login.LoginViewModel
 import com.cargoexpress.app.core.presentation.register.RegisterScreen
 import com.cargoexpress.app.core.presentation.register.RegisterViewModel
 import com.cargoexpress.app.core.presentation.vehicle.VehicleListScreen
-import com.cargoexpress.app.core.presentation.record.RecordScreen
-import com.cargoexpress.app.core.presentation.fleet.FleetScreen
 import com.cargoexpress.app.core.presentation.trip.TripManagementScreen
 import com.cargoexpress.app.core.ui.theme.CargoexpressTheme
-import pe.edu.upc.appturismo.common.Constants
+import com.cargoexpress.app.core.common.Constants
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.DirectionsBusFilled
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.twotone.AppRegistration
 import androidx.compose.material.icons.twotone.LocalShipping
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -64,7 +55,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.cargoexpress.app.R
 import com.cargoexpress.app.core.data.remote.alert.AlertService

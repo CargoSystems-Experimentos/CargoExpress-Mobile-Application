@@ -11,9 +11,9 @@ import com.cargoexpress.app.core.data.remote.user.EntrepreneurDto
 import com.cargoexpress.app.core.data.remote.vehicle.VehicleDto
 import com.cargoexpress.app.core.data.repository.EntrepreneurRepository
 import kotlinx.coroutines.launch
-import pe.edu.upc.appturismo.common.Constants
-import pe.edu.upc.appturismo.common.Resource
-import pe.edu.upc.appturismo.common.UIState
+import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.common.Resource
+import com.cargoexpress.app.core.common.UIState
 
 class ProfileViewModel(
     private val navController: NavController,

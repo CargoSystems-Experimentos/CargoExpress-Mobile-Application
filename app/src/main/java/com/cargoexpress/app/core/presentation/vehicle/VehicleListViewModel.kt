@@ -5,12 +5,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
-import com.cargoexpress.app.core.data.repository.EntrepreneurRepository
 import com.cargoexpress.app.core.data.repository.VehicleRepository
 import com.cargoexpress.app.core.domain.Vehicle
 import kotlinx.coroutines.launch
-import pe.edu.upc.appturismo.common.Resource
-import pe.edu.upc.appturismo.common.UIState
+import com.cargoexpress.app.core.common.Resource
+import com.cargoexpress.app.core.common.UIState
 
 class VehicleListViewModel(
     private val navController: NavHostController,

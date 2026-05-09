@@ -8,9 +8,9 @@ import androidx.navigation.NavController
 import com.cargoexpress.app.core.data.remote.driver.DriverDto
 import com.cargoexpress.app.core.data.repository.DriverRepository
 import kotlinx.coroutines.launch
-import pe.edu.upc.appturismo.common.Constants
-import pe.edu.upc.appturismo.common.Resource
-import pe.edu.upc.appturismo.common.UIState
+import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.common.Resource
+import com.cargoexpress.app.core.common.UIState
 
 class DriverListViewModel(private val navController: NavController, private val driverRepository: DriverRepository)
     : ViewModel() {
