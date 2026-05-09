@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.ksp)
-
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -85,4 +85,10 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.maps.ktx)
     implementation (libs.android.maps.utils)
+
+    implementation(platform("com.google.firebase:firebase-bom:34.13.0"))
+    implementation(libs.firebase.storage.ktx)
+    implementation("com.google.firebase:firebase-storage")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.11.0")
+    implementation(libs.kotlinx.coroutines.play.services)
 }

@@ -1,7 +1,5 @@
 package com.cargoexpress.app.core.presentation.register
 
-
-
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -36,7 +34,7 @@ class RegisterViewModel(
         ruc: String,
         address: String,
         isEntrepreneur: Boolean = false,
-        logoImage: String? = null
+        logoImage: String
     ) {
         _state.value = UIState(isLoading = true)
 
@@ -61,7 +59,7 @@ class RegisterViewModel(
         ruc: String,
         address: String,
         isEntrepreneur: Boolean,
-        logoImage: String?
+        logoImage: String
     ) {
         viewModelScope.launch {
             loginRepository.signIn(username, password) { result ->
@@ -70,13 +68,6 @@ class RegisterViewModel(
                     val token = loginResponse.token
 
                     if (isEntrepreneur) {
-                        if (logoImage.isNullOrBlank()) {
-                            _state.value = UIState(
-                                isLoading = false,
-                                message = "Debes seleccionar un logo para registrar un empresario"
-                            )
-                            return@onSuccess
-                        }
                         createEntrepreneur(userId, token, name, phone, ruc, address, logoImage)
                     } else {
                         createClient(userId, token, name, phone, ruc, address)

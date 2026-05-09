@@ -1,19 +1,21 @@
     package com.cargoexpress.app.core.presentation.register
 
     import android.net.Uri
+    import android.util.Patterns
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.layout.*
     import androidx.compose.foundation.rememberScrollState
+    import androidx.compose.foundation.shape.RoundedCornerShape
     import androidx.compose.foundation.verticalScroll
     import androidx.compose.material.icons.Icons
-    import androidx.compose.material.icons.filled.Visibility
-    import androidx.compose.material.icons.filled.VisibilityOff
+    import androidx.compose.material.icons.filled.*
     import androidx.compose.material3.Button
     import androidx.compose.material3.ButtonDefaults
     import androidx.compose.material3.CircularProgressIndicator
     import androidx.compose.material3.Icon
     import androidx.compose.material3.IconButton
     import androidx.compose.material3.MaterialTheme
+    import androidx.compose.material3.OutlinedTextField
     import androidx.compose.material3.Scaffold
     import androidx.compose.material3.SnackbarHost
     import androidx.compose.material3.SnackbarHostState
@@ -28,7 +30,10 @@
     import androidx.navigation.NavController
     import com.cargoexpress.app.core.common.UIState
     import androidx.compose.ui.graphics.Color
+    import androidx.compose.ui.text.font.*
     import androidx.compose.ui.text.input.VisualTransformation
+    import androidx.compose.ui.text.style.TextDecoration
+    import androidx.compose.ui.unit.sp
     import com.cargoexpress.app.core.common.Routes
     import com.cargoexpress.app.core.presentation.ImagePicker
 
@@ -69,64 +74,149 @@
                         .fillMaxSize()
                         .padding(16.dp)
                         .verticalScroll(scrollState),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.Top
                 ) {
-                    Text(
-                        text = "Regístrate",
-                        style = MaterialTheme.typography.headlineLarge,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
+                    // Encabezado
+                    Column(){
+                        Text(
+                            text = "CARGOEXPRESS",
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                letterSpacing = 1.5.sp,
+                                fontSize = 17.sp
+                            ),
+                            color = Color.Yellow,
+                            fontWeight = FontWeight.Bold
 
-                    Text(
-                        text = "Bienvenid@ a CargoExpress! Estamos felices de que decidas unirte a nosotros",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
+                        )
+                        Text(
+                            text = "Crea tu cuenta",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.Bold
+                        )
 
-                    Text(
-                        text = "Por favor, selecciona tu rol:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    // Botón para seleccionar Cliente
-                    Button(
-                        onClick = { isClient = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = if (isClient) Color.Yellow else Color.LightGray),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                    ) {
-                        Text("Cliente", color = Color.Black)
+                        Text(
+                            text = "Únete a nuestra red logística",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Botón para seleccionar Empresario
-                    Button(
-                        onClick = { isClient = false },
-                        colors = ButtonDefaults.buttonColors(containerColor = if (!isClient) Color.Yellow else Color.LightGray),
+                    // Selección de rol
+                    Text(
+                        text = "¿Que función desempeñarás en CargoExpress?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .padding(bottom = 16.dp)
                     ) {
-                        Text("Empresario", color = Color.Black)
+                        Button(
+                            onClick = { isClient = true },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isClient) Color.Yellow else Color.LightGray
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Person,
+                                    contentDescription = "Cliente",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Color.Black
+
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Cliente", color = if (isClient) Color.Black else Color.DarkGray, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        Button(
+                            onClick = { isClient = false },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (!isClient) Color.Yellow else Color.LightGray
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.AccountCircle,
+                                    contentDescription = "Empresario",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Color.Black
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Empresario", color = if (!isClient) Color.Black else Color.DarkGray, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    TextField(
+                    val isEmailValid = username.isBlank() || Patterns.EMAIL_ADDRESS.matcher(username).matches()
+                    val hasUppercase = password.any { it.isUpperCase() }
+                    val hasNumber = password.any { it.isDigit() }
+                    val hasSpecialChar = password.any { !it.isLetterOrDigit() }
+                    val hasMinLength = password.length >= 8
+                    val isPasswordValid = password.isBlank() || (hasUppercase && hasNumber && hasSpecialChar && hasMinLength)
+                    val showPasswordError = password.isNotBlank() && !isPasswordValid
+                    val showEmailError = username.isNotBlank() && !isEmailValid
+                    val isFormValid = username.isNotBlank() &&
+                            password.isNotBlank() &&
+                            name.isNotBlank() &&
+                            phone.isNotBlank() &&
+                            isEmailValid &&
+                            isPasswordValid
+                    OutlinedTextField(
                         value = username,
                         onValueChange = { username = it },
-                        label = { Text("Usuario") },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                        label = { Text("Correo electrónico") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.Email,
+                                contentDescription = "Correo electrónico"
+                            )
+                        },
+                        isError = showEmailError,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 4.dp)
                     )
 
-                    TextField(
+                    if (showEmailError) {
+                        Text(
+                            text = "El correo electrónico no es válido",
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(start = 12.dp, bottom = 12.dp)
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
                         label = { Text("Contraseña") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.Lock,
+                                contentDescription = "Contraseña"
+                            )
+                        },
+                        isError = showPasswordError,
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
                             IconButton(onClick = { showPassword = !showPassword }) {
@@ -136,52 +226,72 @@
                                 )
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                        supportingText = {
+                            if (showPasswordError) {
+                                Text(
+                                    text = "La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial",
+                                    color = Color.Red,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
                     )
 
-                    TextField(
+                    OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Nombre") },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                        label = { Text(if (isClient) "Nombre completo" else "Nombre de la empresa") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.Person,
+                                contentDescription = "Nombre completo"
+                            )
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
                     )
 
-                    TextField(
-                        value = phone,
-                        onValueChange = { phone = it },
-                        label = { Text("Teléfono") },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-                    )
+                    var rawPhone by remember { mutableStateOf("") }
 
-                    TextField(
-                        value = ruc,
-                        onValueChange = { ruc = it },
-                        label = { Text("RUC") },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-                    )
-
-                    TextField(
-                        value = address,
-                        onValueChange = { address = it },
-                        label = { Text("Dirección") },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-                    )
-
-                    if (!isClient) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = "Selecciona el logo de tu empresa:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            text = "Peru",
+                            modifier = Modifier
+                                .padding(end = 8.dp),
+                            color = Color.Gray
                         )
 
-                        // Selector de imagen para Empresario
-                        ImagePicker(onImageSelected = { uri ->
-                            logoUri = uri // Guardar URI seleccionada
-                        })
+                        OutlinedTextField(
+                            value = formatPhone(rawPhone),
+                            onValueChange = { input ->
+                                rawPhone = input.filter { it.isDigit() }.take(9)
+                                phone = rawPhone
+                            },
+                            label = { Text("Número de celular") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Filled.Phone,
+                                    contentDescription = "Número de celular"
+                                )
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.weight(1f)
+                        )
                     }
-
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Boton Crear Cuenta
                     Button(
                         onClick = {
                             viewModel.signUp(
@@ -189,25 +299,37 @@
                                 password = password,
                                 name = name,
                                 phone = phone,
-                                ruc = ruc,
-                                address = address,
+                                ruc = "12345678911",
+                                address = "Address",
                                 isEntrepreneur = !isClient,
-                                logoImage = logoUri?.toString() // Convertir URI a String para enviarla al servidor
+                                logoImage = ""
                             )
                         },
+                        enabled = isFormValid,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Yellow),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
                     ) {
-                        Text("Crear Cuenta", color = Color.Black)
+                        Text(
+                            "Crear Cuenta",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "¿Tienes una cuenta? Accede desde aquí",
-                        color = Color.Gray,
-                        modifier = Modifier.clickable { navController.navigate(Routes.Login.routes) }
+                        color = Color(0xFF2196F3),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            textDecoration = TextDecoration.Underline
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { navController.navigate(Routes.Login.routes) },
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
 
@@ -221,4 +343,8 @@
                 }
             }
         }
+    }
+
+    private fun formatPhone(phone: String): String {
+        return phone.chunked(3).joinToString("-")
     }

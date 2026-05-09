@@ -13,8 +13,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.res.painterResource
@@ -22,6 +21,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.cargoexpress.app.R
@@ -64,20 +64,25 @@ fun LoginScreen(viewModel: LoginViewModel, navController: NavController) {
                 )
 
                 Text(
-                    text = "Bienvenid@ a CargoExpress!",
+                    text = "Bienvenido a CargoExpress",
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                TextField(
+                OutlinedTextField(
                     value = emailState,
                     onValueChange = { emailState = it },
                     label = { Text("Correo electrónico") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.Email,
+                            contentDescription = "Correo electrónico"
+                        )
+                    },
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                        .padding(bottom = 4.dp)
                 )
 
                 PasswordTextField(password = passwordState, onPasswordChange = { passwordState = it })
@@ -90,21 +95,24 @@ fun LoginScreen(viewModel: LoginViewModel, navController: NavController) {
                     colors = ButtonDefaults.buttonColors(Color(0xFFE4D911)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(text = "Iniciar Sesión", color = Color.Black)
+                    Text(text = "Iniciar Sesión", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
 
                 Text(
                     text = "¿Olvidaste tu contraseña?",
                     modifier = Modifier.clickable {
                     },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Black
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        textDecoration = TextDecoration.Underline
+                    ),
+                    color = Color(0xFF2196F3)
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 ClickableText(
                     text = buildAnnotatedString {
+                        pushStyle(SpanStyle(color = Color.White))
                         append("¿No tienes una cuenta? ")
                         pushStyle(SpanStyle(color = Color(0xFFE4D911), fontWeight = FontWeight.Bold))
                         append("Crear una cuenta")
@@ -134,10 +142,16 @@ fun LoginScreen(viewModel: LoginViewModel, navController: NavController) {
 fun PasswordTextField(password: String, onPasswordChange: (String) -> Unit) {
     var showPassword by remember { mutableStateOf(false) }
 
-    TextField(
+    OutlinedTextField(
         value = password,
         onValueChange = { onPasswordChange(it) },
         label = { Text("Contraseña") },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Lock,
+                contentDescription = "Contraseña"
+            )
+        },
         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
             val image = if (showPassword)
