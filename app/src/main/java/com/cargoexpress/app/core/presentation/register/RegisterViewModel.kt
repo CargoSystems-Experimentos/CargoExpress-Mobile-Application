@@ -26,23 +26,20 @@ class RegisterViewModel(
     private val _state = MutableLiveData<UIState<Unit>>(UIState())
     val state: LiveData<UIState<Unit>> get() = _state
 
-    fun signUp(
+    // Para cliente
+    fun signUpClient(
         username: String,
         password: String,
         name: String,
         phone: String,
-        ruc: String,
-        address: String,
-        isEntrepreneur: Boolean = false,
-        logoImage: String
+        dni: String
     ) {
         _state.value = UIState(isLoading = true)
 
         viewModelScope.launch {
             registerRepository.registerUser(username, password) { result ->
                 result.onSuccess { message ->
-                    loginAfterRegister(username, password, name, phone, ruc, address, isEntrepreneur, logoImage)
-
+                    loginAfterRegisterClient(username, password, name, phone, dni)
                 }.onFailure { exception ->
                     val message = exception.message ?: "Error desconocido"
                     _state.value = UIState(isLoading = false, message = "Error en el registro de usuario: $message")
@@ -51,28 +48,42 @@ class RegisterViewModel(
         }
     }
 
-    private fun loginAfterRegister(
+    // Para entrepreneur
+    fun signUpEntrepreneur(
         username: String,
         password: String,
         name: String,
         phone: String,
         ruc: String,
-        address: String,
-        isEntrepreneur: Boolean,
         logoImage: String
+    ) {
+        _state.value = UIState(isLoading = true)
+
+        viewModelScope.launch {
+            registerRepository.registerUser(username, password) { result ->
+                result.onSuccess { message ->
+                    loginAfterRegisterEntrepreneur(username, password, name, phone, ruc, logoImage)
+                }.onFailure { exception ->
+                    val message = exception.message ?: "Error desconocido"
+                    _state.value = UIState(isLoading = false, message = "Error en el registro de usuario: $message")
+                }
+            }
+        }
+    }
+
+    private fun loginAfterRegisterClient(
+        username: String,
+        password: String,
+        name: String,
+        phone: String,
+        dni: String
     ) {
         viewModelScope.launch {
             loginRepository.signIn(username, password) { result ->
                 result.onSuccess { loginResponse ->
                     val userId = loginResponse.id
                     val token = loginResponse.token
-
-                    if (isEntrepreneur) {
-                        createEntrepreneur(userId, token, name, phone, ruc, address, logoImage)
-                    } else {
-                        createClient(userId, token, name, phone, ruc, address)
-                    }
-
+                    createClient(userId, token, name, phone, dni)
                 }.onFailure { exception ->
                     val message = exception.message ?: "Error desconocido"
                     _state.value = UIState(isLoading = false, message = "Error al iniciar sesión después del registro: $message")
@@ -81,13 +92,34 @@ class RegisterViewModel(
         }
     }
 
-    private fun createClient(userId: Int, token: String, name: String, phone: String, ruc: String, address: String) {
+    private fun loginAfterRegisterEntrepreneur(
+        username: String,
+        password: String,
+        name: String,
+        phone: String,
+        ruc: String,
+        logoImage: String
+    ) {
+        viewModelScope.launch {
+            loginRepository.signIn(username, password) { result ->
+                result.onSuccess { loginResponse ->
+                    val userId = loginResponse.id
+                    val token = loginResponse.token
+                    createEntrepreneur(userId, token, name, phone, ruc, logoImage)
+                }.onFailure { exception ->
+                    val message = exception.message ?: "Error desconocido"
+                    _state.value = UIState(isLoading = false, message = "Error al iniciar sesión después del registro: $message")
+                }
+            }
+        }
+    }
+
+    private fun createClient(userId: Int, token: String, name: String, phone: String, dni: String) {
         viewModelScope.launch {
             val clientRequest = ClientRequestDto(
                 name = name,
                 phone = phone,
-                ruc = ruc,
-                address = address,
+                dni = dni,
                 userId = userId
             )
 
@@ -109,7 +141,6 @@ class RegisterViewModel(
         name: String,
         phone: String,
         ruc: String,
-        address: String,
         logoImage: String
     ) {
         viewModelScope.launch {
@@ -121,14 +152,12 @@ class RegisterViewModel(
                 name = name,
                 phone = phone,
                 ruc = ruc,
-                address = address,
-                userId = userId,
-                logoImage = logoImage
+                logoImage = logoImage,
+                userId = userId
             )
 
             entrepreneurRepository.createEntrepreneur(entrepreneurRequest, token)
                 .onSuccess {
-
                     _state.value = UIState(isLoading = false, message = "Usuario y entrepreneur creados exitosamente")
                     navController.navigate(Routes.Login.routes)
                 }

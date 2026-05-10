@@ -28,8 +28,8 @@ fun TripEditScreen(
         viewModel.loadTrip(tripId)
     }
 
-    var tripName by remember { mutableStateOf("") }
-    var cargoType by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf("") }
     var weight by remember { mutableStateOf(0) }
     var loadLocation by remember { mutableStateOf("") }
     var loadDate by remember { mutableStateOf("") }
@@ -38,11 +38,12 @@ fun TripEditScreen(
     var driverId by remember { mutableStateOf(0) }
     var vehicleId by remember { mutableStateOf(0) }
     var clientId by remember { mutableStateOf(0) }
+    var evidenceImg by remember { mutableStateOf("") }
 
     LaunchedEffect(uiState.trip) {
         uiState.trip?.let { trip ->
-            tripName = trip.tripName
-            cargoType = trip.cargoType
+            name = trip.name
+            type = trip.type
             weight = trip.weight
             loadLocation = trip.loadLocation
             loadDate = trip.loadDate
@@ -51,19 +52,20 @@ fun TripEditScreen(
             driverId = trip.driverId
             vehicleId = trip.vehicleId
             clientId = trip.clientId
+            evidenceImg = trip.evidenceImg
         }
     }
 
     Column(modifier = Modifier.padding(16.dp)) {
         TextField(
-            value = tripName,
-            onValueChange = { tripName = it },
+            value = name,
+            onValueChange = { name = it },
             label = { Text("Trip Name") },
             modifier = Modifier.fillMaxWidth()
         )
         TextField(
-            value = cargoType,
-            onValueChange = { cargoType = it },
+            value = type,
+            onValueChange = { type = it },
             label = { Text("Cargo Type") },
             modifier = Modifier.fillMaxWidth()
         )
@@ -115,6 +117,12 @@ fun TripEditScreen(
             label = { Text("Client ID") },
             modifier = Modifier.fillMaxWidth()
         )
+        TextField(
+            value = evidenceImg,
+            onValueChange = { evidenceImg = it },
+            label = { Text("Evidence Image URL") },
+            modifier = Modifier.fillMaxWidth()
+        )
         Spacer(modifier = Modifier.height(16.dp))
 
         val trip = uiState.trip
@@ -135,8 +143,8 @@ fun TripEditScreen(
                 }
             },
             enabled = !loading && trip != null && (
-                    tripName != trip.tripName ||
-                            cargoType != trip.cargoType ||
+                    name != trip.name ||
+                            type != trip.type ||
                             weight != trip.weight ||
                             loadLocation != trip.loadLocation ||
                             loadDate != trip.loadDate ||
@@ -144,7 +152,8 @@ fun TripEditScreen(
                             unloadDate != trip.unloadDate ||
                             driverId != trip.driverId ||
                             vehicleId != trip.vehicleId ||
-                            clientId != trip.clientId
+                            clientId != trip.clientId ||
+                            evidenceImg != trip.evidenceImg
                     )
         ) {
             if (loading) {

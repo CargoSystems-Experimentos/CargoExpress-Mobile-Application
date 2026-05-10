@@ -6,22 +6,28 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Routes
-import com.cargoexpress.app.core.data.remote.driver.DriverDto
-import com.cargoexpress.app.core.data.remote.user.EntrepreneurDto
-import com.cargoexpress.app.core.data.remote.vehicle.VehicleDto
-import com.cargoexpress.app.core.data.repository.EntrepreneurRepository
-import kotlinx.coroutines.launch
 import com.cargoexpress.app.core.common.Constants
 import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.common.UIState
+import com.cargoexpress.app.core.data.remote.driver.DriverDto
+import com.cargoexpress.app.core.data.remote.user.ClientDto
+import com.cargoexpress.app.core.data.remote.user.EntrepreneurDto
+import com.cargoexpress.app.core.data.remote.vehicle.VehicleDto
+import com.cargoexpress.app.core.data.repository.ClientRepository
+import com.cargoexpress.app.core.data.repository.EntrepreneurRepository
+import kotlinx.coroutines.launch
 
 class ProfileViewModel(
     private val navController: NavController,
-    private val entrepreneurRepository: EntrepreneurRepository
+    private val entrepreneurRepository: EntrepreneurRepository,
+    private val clientRepository: ClientRepository
 ) : ViewModel() {
 
     private val _entrepreneurState = mutableStateOf(UIState<EntrepreneurDto>())
     val entrepreneurState: State<UIState<EntrepreneurDto>> get() = _entrepreneurState
+
+    private val _clientState = mutableStateOf(UIState<ClientDto>())
+    val clientState: State<UIState<ClientDto>> get() = _clientState
 
     private val _vehiclesState = mutableStateOf(UIState<List<VehicleDto>>())
     val vehiclesState: State<UIState<List<VehicleDto>>> get() = _vehiclesState
@@ -38,6 +44,18 @@ class ProfileViewModel(
                 loadVehiclesAndDrivers(result.getOrNull()?.id ?: 0)
             } else {
                 _entrepreneurState.value = UIState(message = "Error retrieving profile")
+            }
+        }
+    }
+
+    fun getClientProfile(userId: Int) {
+        _clientState.value = UIState(isLoading = true)
+        viewModelScope.launch {
+            val result = clientRepository.getClientByUserId(userId, Constants.TOKEN)
+            if (result.isSuccess) {
+                _clientState.value = UIState(data = result.getOrNull())
+            } else {
+                _clientState.value = UIState(message = "Error retrieving client profile")
             }
         }
     }
@@ -72,19 +90,15 @@ class ProfileViewModel(
     }
 
     fun logOut() {
-        // Limpiar los datos de sesión
         Constants.TOKEN = ""
         Constants.USER_ID = 0
         Constants.USER_NAME = ""
         Constants.ENTREPRENEUR_ID = 0
-
-        // Navegar al inicio de sesión
+        Constants.USER_ROLE = ""
         goToLoginScreen()
     }
 
-    private fun goToLoginScreen(){
+    private fun goToLoginScreen() {
         navController.navigate(Routes.Login.routes)
     }
-
-
 }

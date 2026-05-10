@@ -21,14 +21,16 @@ runtimeLivedata = "1.7.3"
 constraintlayoutCompose = "1.0.1"
 materialIconsExtended = "1.7.2"
 playServicesCastFramework = "22.0.0"
-coroutinesPlayServices = "1.11.0"
+coroutinesPlayServices = "1.9.0"
+firebaseBom = "32.7.4"
+googleServices = "4.4.0"
 
 [libraries]
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutinesPlayServices" }
 android-maps-utils = { module = "com.google.maps.android:android-maps-utils", version.ref = "androidMapsUtils" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
-firebase-storage-ktx = { module = "com.google.firebase:firebase-storage-ktx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -55,8 +57,12 @@ androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtim
 androidx-constraintlayout-compose = { group = "androidx.constraintlayout", name = "constraintlayout-compose", version.ref = "constraintlayoutCompose" }
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
 play-services-cast-framework = { group = "com.google.android.gms", name = "play-services-cast-framework", version.ref = "playServicesCastFramework" }
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-storage = { group = "com.google.firebase", name = "firebase-storage" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 ksp = {id = "com.google.devtools.ksp", version.ref = "ksp"}
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

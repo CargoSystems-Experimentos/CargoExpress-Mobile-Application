@@ -13,8 +13,8 @@ import com.cargoexpress.app.core.common.Resource
 class RegisterTripViewModel(
     private val tripRepository: TripRepository,
 ) : ViewModel() {
-    var tripName: String = ""
-    var cargoType: String = ""
+    var name: String = ""
+    var type: String = ""
     var weight: Int = 0
     var loadLocation: String = ""
     var loadDate: String = ""
@@ -23,14 +23,15 @@ class RegisterTripViewModel(
     var driverId: Int = 0
     var vehicleId: Int = 0
     var clientId: Int = 0
+    var evidenceImg: String = ""
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun registerTrip(onResult: (Resource<Trip>) -> Unit) {
         viewModelScope.launch {
             val trip = Trip(
                 id = 0,
-                tripName = tripName,
-                cargoType = cargoType,
+                name = name,
+                type = type,
                 weight = weight,
                 loadLocation = loadLocation,
                 loadDate = loadDate,
@@ -39,7 +40,8 @@ class RegisterTripViewModel(
                 driverId = driverId,
                 vehicleId = vehicleId,
                 clientId = clientId,
-                entrepreneurId = Constants.ENTREPRENEUR_ID
+                entrepreneurId = Constants.ENTREPRENEUR_ID,
+                evidenceImg = evidenceImg
             )
             val result = tripRepository.addTrip(trip)
             onResult(result)

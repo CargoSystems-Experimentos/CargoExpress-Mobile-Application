@@ -4,7 +4,6 @@ data class EntrepreneurRequestDto (
     val name: String,
     val phone: String,
     val ruc: String,
-    val address: String,
-    val userId: Int,
-    val logoImage: String
+    val logoImage: String,
+    val userId: Int
 )

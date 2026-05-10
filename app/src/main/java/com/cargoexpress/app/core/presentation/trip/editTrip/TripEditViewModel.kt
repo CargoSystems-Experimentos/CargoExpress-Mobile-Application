@@ -14,8 +14,8 @@ import kotlinx.coroutines.flow.StateFlow
 class TripEditViewModel(
     private val tripRepository: TripRepository,
 ) : ViewModel() {
-    var tripName: String = ""
-    var cargoType: String = ""
+    var name: String = ""
+    var type: String = ""
     var weight: Int = 0
     var loadLocation: String = ""
     var loadDate: String = ""
@@ -24,6 +24,7 @@ class TripEditViewModel(
     var driverId: Int = 0
     var vehicleId: Int = 0
     var clientId: Int = 0
+    var evidenceImg: String = ""
 
     private val _uiState = MutableStateFlow(TripEditUiState())
     val uiState: StateFlow<TripEditUiState> = _uiState
@@ -34,8 +35,8 @@ class TripEditViewModel(
             val resource = tripRepository.getTripById(tripId)
             if (resource is Resource.Success) {
                 val trip = resource.data
-                tripName = trip?.tripName ?: ""
-                cargoType = trip?.cargoType ?: ""
+                name = trip?.name ?: ""
+                type = trip?.type ?: ""
                 weight = trip?.weight ?: 0
                 loadLocation = trip?.loadLocation ?: ""
                 loadDate = trip?.loadDate ?: ""
@@ -44,6 +45,7 @@ class TripEditViewModel(
                 driverId = trip?.driverId ?: 0
                 vehicleId = trip?.vehicleId ?: 0
                 clientId = trip?.clientId ?: 0
+                evidenceImg = trip?.evidenceImg ?: ""
                 _uiState.value = _uiState.value.copy(trip = trip, isLoading = false)
             } else {
                 _uiState.value = _uiState.value.copy(isLoading = false)
@@ -57,8 +59,8 @@ class TripEditViewModel(
         viewModelScope.launch {
             val trip = Trip(
                 id = _uiState.value.trip?.id ?: 0,
-                tripName = tripName,
-                cargoType = cargoType,
+                name = name,
+                type = type,
                 weight = weight,
                 loadLocation = loadLocation,
                 loadDate = loadDate,
@@ -67,7 +69,8 @@ class TripEditViewModel(
                 driverId = driverId,
                 vehicleId = vehicleId,
                 clientId = clientId,
-                entrepreneurId = _uiState.value.trip?.entrepreneurId ?: 0
+                entrepreneurId = _uiState.value.trip?.entrepreneurId ?: 0,
+                evidenceImg = evidenceImg
             )
             val result = tripRepository.updateTrip(trip)
             onResult(result)

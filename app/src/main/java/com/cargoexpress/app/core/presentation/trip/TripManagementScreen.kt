@@ -182,7 +182,7 @@ fun TripCard(trip: Trip, navController: NavController, viewModel: TripManagement
         ) {
             Column {
                 Text(
-                    text = "Viaje ${trip.tripName} #${trip.id}",
+                    text = "Viaje ${trip.name} #${trip.id}",
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF999900)
                 )

@@ -32,4 +32,17 @@ class ClientRepository(private val clientService: ClientService) {
             Result.failure(e)
         }
     }
+
+    suspend fun getClientByUserId(userId: Int, token: String): Result<ClientDto> {
+        return try {
+            val response = clientService.getClientByUserId(userId, "Bearer $token")
+            if (response.isSuccessful) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Error obteniendo cliente: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

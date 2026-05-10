@@ -18,4 +18,10 @@ interface ClientService {
 
     @GET("clients")
     suspend fun getClients(@Header("Authorization") token: String): Response<List<ClientDto>>
+
+    @GET("users/{userId}/clients")
+    suspend fun getClientByUserId(
+        @Path("userId") userId: Int,
+        @Header("Authorization") token: String
+    ): Response<ClientDto>
 }

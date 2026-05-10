@@ -2,8 +2,8 @@ package com.cargoexpress.app.core.domain
 
 data class Trip(
     val id: Int,
-    val tripName: String,
-    val cargoType: String,
+    val name: String,
+    val type: String,
     val weight: Int,
     val loadLocation: String,
     val loadDate: String,
@@ -12,5 +12,6 @@ data class Trip(
     val driverId: Int,
     val vehicleId: Int,
     val clientId: Int,
-    val entrepreneurId: Int
+    val entrepreneurId: Int,
+    val evidenceImg: String
 )

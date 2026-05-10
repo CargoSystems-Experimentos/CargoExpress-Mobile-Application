@@ -4,7 +4,6 @@ data class ClientDto(
     val id: Int,
     val name: String,
     val phone: String,
-    val ruc: String,
-    val address: String,
+    val dni: String,
     val userId: Int
 )

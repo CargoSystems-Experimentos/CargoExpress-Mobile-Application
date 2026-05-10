@@ -102,8 +102,8 @@ fun TripDetailScreen(
                     )
                     Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFCCCCCC))
 
-                    DetailRow(label = "Nombre Vehículo", value = it.tripName)
-                    DetailRow(label = "Tipo de carga", value = it.cargoType)
+                    DetailRow(label = "Nombre Viaje", value = it.name)
+                    DetailRow(label = "Tipo de carga", value = it.type)
                     DetailRow(label = "Peso", value = "${it.weight} kg")
                     DetailRow(label = "Lugar de carga", value = it.loadLocation)
                     DetailRow(label = "Fecha de carga", value = it.loadDate)
@@ -112,6 +112,7 @@ fun TripDetailScreen(
                     DetailRow(label = "Driver ID", value = it.driverId.toString())
                     DetailRow(label = "Vehicle ID", value = it.vehicleId.toString())
                     DetailRow(label = "Client ID", value = it.clientId.toString())
+                    DetailRow(label = "Evidencia", value = it.evidenceImg)
                 }
             }
         }

@@ -33,8 +33,8 @@ fun RegisterTripScreen(
     viewModel: RegisterTripViewModel = viewModel(),
     onTripRegistered: (Trip) -> Unit
 ) {
-    var tripName by remember { mutableStateOf("") }
-    var cargoType by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf("") }
     var weight by remember { mutableStateOf("") }
     var loadLocation by remember { mutableStateOf("") }
     var loadDate by remember { mutableStateOf("") }
@@ -45,11 +45,12 @@ fun RegisterTripScreen(
     var driverId by remember { mutableStateOf("") }
     var vehicleId by remember { mutableStateOf("") }
     var clientId by remember { mutableStateOf("") }
+    var evidenceImg by remember { mutableStateOf("") }
     var entrepreneurId by remember { mutableStateOf(Constants.ENTREPRENEUR_ID.toString()) }
     var isLoading by remember { mutableStateOf(false) }
 
-    var tripNameError by remember { mutableStateOf<String?>(null) }
-    var cargoTypeError by remember { mutableStateOf<String?>(null) }
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var typeError by remember { mutableStateOf<String?>(null) }
     var weightError by remember { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
@@ -95,16 +96,16 @@ fun RegisterTripScreen(
         bottomBar = {
             Button(
                 onClick = {
-                    tripNameError = if (tripName.isBlank()) "Trip name is required" else null
-                    cargoTypeError = if (cargoType.isBlank()) "Cargo type is required" else null
+                    nameError = if (name.isBlank()) "Trip name is required" else null
+                    typeError = if (type.isBlank()) "Cargo type is required" else null
                     weightError = if (weight.isBlank() || weight.toFloatOrNull() == null) "Weight must be a number" else null
 
-                    val isValid = listOf(tripNameError, cargoTypeError, weightError).all { it == null }
+                    val isValid = listOf(nameError, typeError, weightError).all { it == null }
 
                     if (isValid) {
                         isLoading = true
-                        viewModel.tripName = tripName
-                        viewModel.cargoType = cargoType
+                        viewModel.name = name
+                        viewModel.type = type
                         viewModel.weight = weight.toIntOrNull() ?: 0
                         viewModel.loadLocation = loadLocation
                         viewModel.loadDate = isoFormatter.format(dateFormatter.parse(loadDate)!!).substring(0, 10) + "T" + loadTime + ":00"
@@ -113,13 +114,14 @@ fun RegisterTripScreen(
                         viewModel.driverId = driverId.toIntOrNull() ?: 0
                         viewModel.vehicleId = vehicleId.toIntOrNull() ?: 0
                         viewModel.clientId = clientId.toIntOrNull() ?: 0
+                        viewModel.evidenceImg = evidenceImg
 
                         viewModel.registerTrip { result ->
                             isLoading = false
                             val message = if (result is Resource.Success && result.data != null) {
                                 onTripRegistered(result.data)
-                                tripName = ""
-                                cargoType = ""
+                                name = ""
+                                type = ""
                                 weight = ""
                                 loadLocation = ""
                                 loadDate = ""
@@ -130,6 +132,7 @@ fun RegisterTripScreen(
                                 driverId = ""
                                 vehicleId = ""
                                 clientId = ""
+                                evidenceImg = ""
                                 entrepreneurId = Constants.ENTREPRENEUR_ID.toString()
                                 "Trip registered successfully"
                             } else {
@@ -165,22 +168,22 @@ fun RegisterTripScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             InputField(
-                value = tripName,
+                value = name,
                 label = "Trip Name",
                 onValueChange = {
-                    tripName = it
-                    tripNameError = if (it.isBlank()) "Trip name is required" else null
+                    name = it
+                    nameError = if (it.isBlank()) "Trip name is required" else null
                 },
-                error = tripNameError
+                error = nameError
             )
             InputField(
-                value = cargoType,
+                value = type,
                 label = "Cargo Type",
                 onValueChange = {
-                    cargoType = it
-                    cargoTypeError = if (it.isBlank()) "Cargo type is required" else null
+                    type = it
+                    typeError = if (it.isBlank()) "Cargo type is required" else null
                 },
-                error = cargoTypeError
+                error = typeError
             )
             InputField(
                 value = weight,
@@ -226,6 +229,7 @@ fun RegisterTripScreen(
             InputField(value = driverId, label = "Driver ID", onValueChange = { driverId = it }, error = null)
             InputField(value = vehicleId, label = "Vehicle ID", onValueChange = { vehicleId = it }, error = null)
             InputField(value = clientId, label = "Client ID", onValueChange = { clientId = it }, error = null)
+            InputField(value = evidenceImg, label = "Evidence Image URL", onValueChange = { evidenceImg = it }, error = null)
             InputField(value = entrepreneurId, label = "Entrepreneur ID", onValueChange = { entrepreneurId = it }, error = null)
 
             if (isLoading) {

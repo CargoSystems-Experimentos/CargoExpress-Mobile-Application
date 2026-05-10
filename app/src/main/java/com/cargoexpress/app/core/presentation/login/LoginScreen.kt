@@ -73,13 +73,10 @@ fun LoginScreen(viewModel: LoginViewModel, navController: NavController) {
                     value = emailState,
                     onValueChange = { emailState = it },
                     label = { Text("Correo electrónico") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.Email,
-                            contentDescription = "Correo electrónico"
-                        )
-                    },
+                    leadingIcon = { Icon(imageVector = Icons.Filled.Email, contentDescription = "Correo electrónico") },
                     shape = RoundedCornerShape(16.dp),
+                    singleLine = true,
+                    maxLines = 1,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 4.dp)
