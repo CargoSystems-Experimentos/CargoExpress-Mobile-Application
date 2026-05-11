@@ -14,6 +14,12 @@ interface DriverService {
         @Path("entrepreneurId") entrepreneurId: Int
     ): Response<List<DriverDto>>
 
+    @GET("entrepreneur/{entrepreneurId}/drivers")
+    suspend fun getDriversDirectByEntrepreneur(
+        @Header("Authorization") token: String,
+        @Path("entrepreneurId") entrepreneurId: Int
+    ): Response<List<DriverDto>>
+
     @POST("drivers")
     suspend fun addDriver(
         @Header("Authorization") token: String,
