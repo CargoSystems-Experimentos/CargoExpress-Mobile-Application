@@ -7,4 +7,7 @@ import retrofit2.http.POST
 interface LoginService {
     @POST("authentication/sign-in")
     fun signIn(@Body request: LoginRequestDto): Call<LoginResponseDto>
+
+    @POST("authentication/google-sign-in")
+    fun googleSignIn(@Body request: GoogleSignInRequestDto): Call<LoginResponseDto>
 }

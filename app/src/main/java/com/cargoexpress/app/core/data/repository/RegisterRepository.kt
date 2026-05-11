@@ -21,7 +21,7 @@ class RegisterRepository(private val registerService: RegisterService) {
                             callback(Result.success(it.message))
                         } ?: callback(Result.failure(Exception("Response body is null")))
                     } else {
-                        callback(Result.failure(Exception("Error: ${response.code()}")))
+                        callback(Result.failure(Exception(ApiErrorParser.parse(response))))
                     }
                 } catch (e: Exception) {
                     callback(Result.failure(e))

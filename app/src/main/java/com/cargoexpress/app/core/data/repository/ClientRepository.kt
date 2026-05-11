@@ -13,7 +13,7 @@ class ClientRepository(private val clientService: ClientService) {
             if (response.isSuccessful) {
                 Result.success(response.body()!!)
             } else {
-                Result.failure(Exception("Error creando cliente: ${response.code()}"))
+                Result.failure(Exception("Error creando cliente: ${ApiErrorParser.parse(response)}"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -26,7 +26,7 @@ class ClientRepository(private val clientService: ClientService) {
             if (response.isSuccessful) {
                 Result.success(response.body()!!)
             } else {
-                Result.failure(Exception("Error obteniendo cliente: ${response.code()}"))
+                Result.failure(Exception("Error obteniendo cliente: ${ApiErrorParser.parse(response)}"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -39,7 +39,7 @@ class ClientRepository(private val clientService: ClientService) {
             if (response.isSuccessful) {
                 Result.success(response.body()!!)
             } else {
-                Result.failure(Exception("Error obteniendo cliente: ${response.code()}"))
+                Result.failure(Exception("Error obteniendo cliente: ${ApiErrorParser.parse(response)}"))
             }
         } catch (e: Exception) {
             Result.failure(e)

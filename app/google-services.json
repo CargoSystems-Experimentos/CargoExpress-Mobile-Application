@@ -1,26 +1,36 @@
 {
   "project_info": {
-    "project_number": "191550859891",
-    "project_id": "cargosystems-f1df2",
-    "storage_bucket": "cargosystems-f1df2.firebasestorage.app"
+    "project_number": "410880308264",
+    "project_id": "aniverse-platform",
+    "storage_bucket": "aniverse-platform.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:191550859891:android:d218a966592f22bc52d806",
+        "mobilesdk_app_id": "1:410880308264:android:039a5624b9fabe5268311d",
         "android_client_info": {
           "package_name": "com.cargoexpress.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "410880308264-ro0384lnmqfm5vh7ojte2a2l5m3oacf6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDk5IVB6oYmWIRu86K_aZNf-i-9frMN2JA"
+          "current_key": "AIzaSyBggsAb2Nq3ogkKK1tBxYshhWU2DosdkZc"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "410880308264-ro0384lnmqfm5vh7ojte2a2l5m3oacf6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

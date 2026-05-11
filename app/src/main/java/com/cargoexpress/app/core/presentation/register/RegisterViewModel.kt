@@ -13,6 +13,7 @@ import com.cargoexpress.app.core.data.repository.EntrepreneurRepository
 import com.cargoexpress.app.core.data.repository.LoginRepository
 import com.cargoexpress.app.core.data.repository.RegisterRepository
 import kotlinx.coroutines.launch
+import com.cargoexpress.app.core.common.Constants
 import com.cargoexpress.app.core.common.UIState
 
 class RegisterViewModel(
@@ -36,6 +37,15 @@ class RegisterViewModel(
     ) {
         _state.value = UIState(isLoading = true)
 
+        val isGoogleOnboarding = Constants.TOKEN.isNotBlank() &&
+                Constants.USER_ID > 0 &&
+                Constants.USER_NAME.equals(username, ignoreCase = true)
+
+        if (isGoogleOnboarding) {
+            createClient(Constants.USER_ID, Constants.TOKEN, name, phone, dni, navigateToLogin = false)
+            return
+        }
+
         viewModelScope.launch {
             registerRepository.registerUser(username, password) { result ->
                 result.onSuccess { message ->
@@ -58,6 +68,15 @@ class RegisterViewModel(
         logoImage: String
     ) {
         _state.value = UIState(isLoading = true)
+
+        val isGoogleOnboarding = Constants.TOKEN.isNotBlank() &&
+                Constants.USER_ID > 0 &&
+                Constants.USER_NAME.equals(username, ignoreCase = true)
+
+        if (isGoogleOnboarding) {
+            createEntrepreneur(Constants.USER_ID, Constants.TOKEN, name, phone, ruc, logoImage, navigateToLogin = false)
+            return
+        }
 
         viewModelScope.launch {
             registerRepository.registerUser(username, password) { result ->
@@ -114,7 +133,7 @@ class RegisterViewModel(
         }
     }
 
-    private fun createClient(userId: Int, token: String, name: String, phone: String, dni: String) {
+    private fun createClient(userId: Int, token: String, name: String, phone: String, dni: String, navigateToLogin: Boolean = true) {
         viewModelScope.launch {
             val clientRequest = ClientRequestDto(
                 name = name,
@@ -126,7 +145,13 @@ class RegisterViewModel(
             clientRepository.createClient(clientRequest, token)
                 .onSuccess {
                     _state.value = UIState(isLoading = false, message = "Usuario y cliente creados exitosamente")
-                    navController.navigate(Routes.Login.routes)
+                    Constants.USER_ROLE = "CLIENT"
+                    Constants.ENTREPRENEUR_ID = 0
+                    if (navigateToLogin) {
+                        navController.navigate(Routes.Login.routes)
+                    } else {
+                        navController.navigate(Routes.TripList.routes)
+                    }
                 }
                 .onFailure { exception ->
                     val message = exception.message ?: "Error desconocido"
@@ -141,7 +166,8 @@ class RegisterViewModel(
         name: String,
         phone: String,
         ruc: String,
-        logoImage: String
+        logoImage: String,
+        navigateToLogin: Boolean = true
     ) {
         viewModelScope.launch {
             android.util.Log.d(
@@ -157,9 +183,15 @@ class RegisterViewModel(
             )
 
             entrepreneurRepository.createEntrepreneur(entrepreneurRequest, token)
-                .onSuccess {
+                .onSuccess { entrepreneurId ->
                     _state.value = UIState(isLoading = false, message = "Usuario y entrepreneur creados exitosamente")
-                    navController.navigate(Routes.Login.routes)
+                    Constants.USER_ROLE = "ENTREPRENEUR"
+                    Constants.ENTREPRENEUR_ID = entrepreneurId
+                    if (navigateToLogin) {
+                        navController.navigate(Routes.Login.routes)
+                    } else {
+                        navController.navigate(Routes.TripList.routes)
+                    }
                 }
                 .onFailure { exception: Throwable ->
                     val message = exception.message ?: "Error desconocido"

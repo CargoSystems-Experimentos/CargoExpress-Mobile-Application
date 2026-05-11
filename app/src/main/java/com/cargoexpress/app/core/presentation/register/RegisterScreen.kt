@@ -30,18 +30,23 @@ import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.UIState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.*
+import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.sp
 import com.cargoexpress.app.core.common.Routes
+import com.cargoexpress.app.core.common.Constants
 import com.cargoexpress.app.core.presentation.ImagePicker
 
 @Composable
 fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
     val state by viewModel.state.observeAsState(UIState())
     val snackbarHostState = remember { SnackbarHostState() }
+    val isGoogleOnboarding = Constants.TOKEN.isNotBlank() && Constants.USER_ID > 0 && Constants.USER_NAME.isNotBlank()
 
-    var username by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf(if (isGoogleOnboarding) Constants.USER_NAME else "") }
     var password by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
@@ -87,13 +92,13 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Crea tu cuenta",
+                        text = if (isGoogleOnboarding) "Completa tu perfil" else "Crea tu cuenta",
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        text = "Únete a nuestra red logística",
+                        text = if (isGoogleOnboarding) "Elige tu tipo de perfil para continuar" else "Únete a nuestra red logística",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray,
                         modifier = Modifier.padding(bottom = 16.dp)
@@ -185,54 +190,59 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                 val idFieldValid = if (isClient) (dni.isNotBlank() && isDniValid) else (ruc.isNotBlank() && isRucValid)
 
                 // Validación general del formulario:
-                val isFormValid = username.isNotBlank() &&
-                        password.isNotBlank() &&
-                        name.isNotBlank() &&
-                        isPhoneValid &&
-                        isEmailValid &&
-                        isPasswordValid &&
-                        idFieldValid
-
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    label = { Text("Correo electrónico") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.Email, contentDescription = "Correo electrónico") },
-                    isError = showEmailError,
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    maxLines = 1,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 4.dp)
-                )
-
-                if (showEmailError) {
-                    Text(
-                        text = "El correo electrónico no es válido",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 12.dp, bottom = 12.dp)
-                    )
+                val credentialsValid = if (isGoogleOnboarding) {
+                    true
                 } else {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    username.isNotBlank() && password.isNotBlank() && isEmailValid && isPasswordValid
                 }
 
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Contraseña") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.Lock, contentDescription = "Contraseña") },
-                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = { IconButton(onClick = { showPassword = !showPassword }) { Icon(imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, contentDescription = null) } },
-                    supportingText = { if (showPasswordError) Text(text = "La contraseña debe tener mínimo 8 caracteres, una letra mayuscula, un caracter especial y un número", color = Color.Red) },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    maxLines = 1,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp)
-                )
+                val isFormValid = credentialsValid &&
+                        name.isNotBlank() &&
+                        isPhoneValid &&
+                        idFieldValid
+
+                if (!isGoogleOnboarding) {
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = { username = it },
+                        label = { Text("Correo electrónico") },
+                        leadingIcon = { Icon(imageVector = Icons.Filled.Email, contentDescription = "Correo electrónico") },
+                        isError = showEmailError,
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 4.dp)
+                    )
+
+                    if (showEmailError) {
+                        Text(
+                            text = "El correo electrónico no es válido",
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(start = 12.dp, bottom = 12.dp)
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Contraseña") },
+                        leadingIcon = { Icon(imageVector = Icons.Filled.Lock, contentDescription = "Contraseña") },
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = { IconButton(onClick = { showPassword = !showPassword }) { Icon(imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, contentDescription = null) } },
+                        supportingText = { if (showPasswordError) Text(text = "La contraseña debe tener mínimo 8 caracteres, una letra mayuscula, un caracter especial y un número", color = Color.Red) },
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                    )
+                }
 
                 OutlinedTextField(
                     value = name,
@@ -263,13 +273,14 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                     )
 
                     OutlinedTextField(
-                        value = formatPhone(rawPhone),
+                        value = rawPhone,
                         onValueChange = { input ->
                             rawPhone = input.filter { it.isDigit() }.take(9)
                             phone = rawPhone
                         },
                         label = { Text("Número de celular") },
                         leadingIcon = { Icon(imageVector = Icons.Filled.Phone, contentDescription = "Número de celular") },
+                        visualTransformation = PhoneVisualTransformation(),
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         maxLines = 1,
@@ -367,25 +378,27 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                         .height(50.dp)
                 ) {
                     Text(
-                        "Crear Cuenta",
+                        if (isGoogleOnboarding) "Completar Perfil" else "Crear Cuenta",
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.Black,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "¿Tienes una cuenta? Accede desde aquí",
-                    color = Color(0xFF2196F3),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        textDecoration = TextDecoration.Underline
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { navController.navigate(Routes.Login.routes) },
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
+                if (!isGoogleOnboarding) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "¿Tienes una cuenta? Accede desde aquí",
+                        color = Color(0xFF2196F3),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            textDecoration = TextDecoration.Underline
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { navController.navigate(Routes.Login.routes) },
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
             }
 
             if (state.isLoading) {
@@ -400,6 +413,36 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
     }
 }
 
-private fun formatPhone(phone: String): String {
-    return phone.chunked(3).joinToString("-")
+private class PhoneVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val trimmed = text.text.take(9)
+        val transformed = buildString {
+            trimmed.forEachIndexed { index, c ->
+                append(c)
+                if ((index == 2 || index == 5) && index != trimmed.lastIndex) {
+                    append('-')
+                }
+            }
+        }
+
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                return when {
+                    offset <= 3 -> offset
+                    offset <= 6 -> offset + 1
+                    else -> offset + 2
+                }
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                return when {
+                    offset <= 3 -> offset
+                    offset <= 7 -> offset - 1
+                    else -> offset - 2
+                }.coerceAtLeast(0)
+            }
+        }
+
+        return TransformedText(AnnotatedString(transformed), offsetMapping)
+    }
 }

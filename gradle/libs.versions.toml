@@ -24,6 +24,7 @@ playServicesCastFramework = "22.0.0"
 coroutinesPlayServices = "1.9.0"
 firebaseBom = "32.7.4"
 googleServices = "4.4.0"
+playServicesAuth = "21.2.0"
 
 [libraries]
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
@@ -60,6 +61,7 @@ play-services-cast-framework = { group = "com.google.android.gms", name = "play-
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

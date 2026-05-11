@@ -1,5 +1,8 @@
 package com.cargoexpress.app.core.presentation.login
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,15 +28,58 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.cargoexpress.app.BuildConfig
 import com.cargoexpress.app.R
 import com.cargoexpress.app.core.common.Routes
 import com.cargoexpress.app.core.common.UIState
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import android.util.Log
+
 @Composable
 fun LoginScreen(viewModel: LoginViewModel, navController: NavController) {
+    val tag = "LoginScreen"
     val state by viewModel.state.observeAsState(UIState())
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
     var emailState by rememberSaveable { mutableStateOf("") }
     var passwordState by rememberSaveable { mutableStateOf("") }
+
+    val googleSignInClient = remember {
+        val options = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+            .build()
+        GoogleSignIn.getClient(context, options)
+    }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        Log.d(tag, "Google launcher resultCode=${result.resultCode}")
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val idToken = account.idToken
+            if (!idToken.isNullOrBlank()) {
+                Log.d(tag, "Google account received email=${account.email}")
+                viewModel.signInWithGoogle(idToken)
+            } else {
+                viewModel.onGoogleSignInClientError("Google no devolvio idToken")
+            }
+        } catch (e: ApiException) {
+            Log.e(tag, "Google client ApiException code=${e.statusCode}", e)
+            if (result.resultCode == Activity.RESULT_CANCELED) {
+                viewModel.onGoogleSignInClientError("Google Sign-In cancelado o bloqueado (code=${e.statusCode})")
+            } else {
+                viewModel.onGoogleSignInClientError("Error de Google Sign-In: ${e.statusCode}")
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Google client unexpected exception", e)
+            viewModel.onGoogleSignInClientError("Error inesperado en Google Sign-In")
+        }
+    }
 
     LaunchedEffect(state.message) {
         if (state.message.isNotEmpty()) {
@@ -93,6 +140,25 @@ fun LoginScreen(viewModel: LoginViewModel, navController: NavController) {
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(text = "Iniciar Sesión", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        if (BuildConfig.GOOGLE_WEB_CLIENT_ID.isBlank()) {
+                            viewModel.onGoogleSignInClientError("GOOGLE_WEB_CLIENT_ID no configurado")
+                            return@OutlinedButton
+                        }
+                        Log.d(tag, "Launching Google Sign-In")
+                        googleSignInClient.signOut().addOnCompleteListener {
+                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text(text = "Continuar con Google", fontWeight = FontWeight.SemiBold)
                 }
 
                 Text(

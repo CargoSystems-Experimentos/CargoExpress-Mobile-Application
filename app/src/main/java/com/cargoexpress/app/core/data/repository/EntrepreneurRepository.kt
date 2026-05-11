@@ -20,13 +20,9 @@ class EntrepreneurRepository(private val entrepreneurService: EntrepreneurServic
                     Result.success(entrepreneurId)
                 } ?: Result.failure(Exception("Error: No se pudo obtener el entrepreneurId"))
             } else {
-                val errorBody = response.errorBody()?.string()
-                Log.e("EntrepreneurRepository", "Error creando entrepreneur: code=${response.code()}, body=$errorBody")
-                Result.failure(
-                    Exception(
-                        "Error creando entrepreneur: ${response.code()}${if (!errorBody.isNullOrBlank()) " - $errorBody" else ""}"
-                    )
-                )
+                val errorMessage = ApiErrorParser.parse(response)
+                Log.e("EntrepreneurRepository", "Error creando entrepreneur: code=${response.code()}, msg=$errorMessage")
+                Result.failure(Exception("Error creando entrepreneur: $errorMessage"))
             }
         } catch (e: Exception) {
             Log.e("EntrepreneurRepository", "Excepción creando entrepreneur", e)
@@ -42,7 +38,7 @@ class EntrepreneurRepository(private val entrepreneurService: EntrepreneurServic
                     Result.success(it)
                 } ?: Result.failure(Exception("Error: No se pudo obtener el empresario"))
             } else {
-                Result.failure(Exception("Error obteniendo empresario: ${response.code()}"))
+                Result.failure(Exception("Error obteniendo empresario: ${ApiErrorParser.parse(response)}"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -57,7 +53,7 @@ class EntrepreneurRepository(private val entrepreneurService: EntrepreneurServic
                     Result.success(it)
                 } ?: Result.failure(Exception("Error: No se pudo obtener el empresario"))
             } else {
-                Result.failure(Exception("Error obteniendo empresario: ${response.code()}"))
+                Result.failure(Exception("Error obteniendo empresario: ${ApiErrorParser.parse(response)}"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -72,7 +68,7 @@ class EntrepreneurRepository(private val entrepreneurService: EntrepreneurServic
                     Result.success(it)
                 } ?: Result.failure(Exception("Cuerpo de la respuesta vacío"))
             } else {
-                Result.failure(Exception("Error: ${response.code()}"))
+                Result.failure(Exception(ApiErrorParser.parse(response)))
             }
         } catch (e: Exception) {
             Result.failure(e)
