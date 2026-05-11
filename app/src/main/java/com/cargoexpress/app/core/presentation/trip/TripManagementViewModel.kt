@@ -66,10 +66,10 @@ class TripManagementViewModel(
     private fun filterTrips(query: String, selectedFilter: String) {
         val filteredTrips = allTrips.filter { trip ->
             when (selectedFilter) {
-                "ID" -> trip.id.toString().contains(query, ignoreCase = true)
-                "Nombre" -> trip.name.contains(query, ignoreCase = true)  // CAMBIO: tripName → name
-                "Fecha" -> trip.loadDate.toString().contains(query, ignoreCase = true) ||
-                        trip.unloadDate.toString().contains(query, ignoreCase = true)
+                "Nombre" -> trip.name.contains(query, ignoreCase = true)
+                "Tipo" -> trip.type.contains(query, ignoreCase = true)
+                "Fecha" -> trip.loadDate.contains(query, ignoreCase = true) ||
+                        trip.unloadDate.contains(query, ignoreCase = true)
                 else -> false
             }
         }

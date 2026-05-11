@@ -55,6 +55,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.cargoexpress.app.R
 import com.cargoexpress.app.core.data.remote.alert.AlertService
@@ -79,6 +80,7 @@ import com.cargoexpress.app.core.presentation.trip.registerExpense.RegisterExpen
 //import com.cargoexpress.app.core.presentation.record.registerExpense.RegisterExpenseScreen
 import com.cargoexpress.app.core.presentation.trip.registerTrip.RegisterTripScreen
 import com.cargoexpress.app.core.presentation.trip.registerTrip.RegisterTripViewModel
+import com.cargoexpress.app.core.presentation.trip.registerTrip.RegisterTripViewModelFactory
 import com.cargoexpress.app.core.presentation.vehicle.registerVehicle.RegisterVehicleScreen
 import com.cargoexpress.app.core.presentation.vehicle.registerVehicle.RegisterVehicleViewModel
 
@@ -163,6 +165,7 @@ class MainActivity : ComponentActivity() {
             .create(AlertService::class.java)
 
         val tripRepository = TripRepository(tripService, expenseService)
+        val clientRepository = ClientRepository(clientService)
 
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -311,7 +314,10 @@ class MainActivity : ComponentActivity() {
                                 tripId = tripId,
                                 navController = navController,
                                 tripRepository = tripRepository,
-                                expenseRepository = expenseRepository
+                                expenseRepository = expenseRepository,
+                                driverRepository = driverRepository,
+                                vehicleRepository = vehicleRepository,
+                                clientRepository = clientRepository
                             )
                         }
 
@@ -341,8 +347,15 @@ class MainActivity : ComponentActivity() {
 
                         composable(route = "register_trip") { backStackEntry ->
                             val token = backStackEntry.arguments?.getString("token") ?: ""
-                            val registerTripViewModel = RegisterTripViewModel(tripRepository)
-                            RegisterTripScreen (viewModel = registerTripViewModel) { trip ->
+                            val registerTripViewModel: RegisterTripViewModel = viewModel(
+                                factory = RegisterTripViewModelFactory(
+                                    tripRepository = tripRepository,
+                                    driverRepository = driverRepository,
+                                    vehicleRepository = vehicleRepository,
+                                    entrepreneurRepository = entrepreneurRepository
+                                )
+                            )
+                            RegisterTripScreen(viewModel = registerTripViewModel) { trip ->
 
                             }
                         }
