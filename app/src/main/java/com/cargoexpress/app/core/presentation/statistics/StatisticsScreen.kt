@@ -14,18 +14,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.cargoexpress.app.core.data.repository.ExpenseRepository
 import com.cargoexpress.app.core.data.repository.TripRepository
+import com.cargoexpress.app.core.domain.Expense
 import com.cargoexpress.app.core.domain.Trip
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
-fun StatisticsScreen(tripRepository: TripRepository) {
-    val viewModel: StatisticsViewModel = viewModel(factory = StatisticsViewModelFactory(tripRepository))
+fun StatisticsScreen(tripRepository: TripRepository, expenseRepository: ExpenseRepository) {
+    val viewModel: StatisticsViewModel = viewModel(
+        factory = StatisticsViewModelFactory(tripRepository, expenseRepository)
+    )
     val uiState by viewModel.uiState.collectAsState()
     val trips by viewModel.trips.collectAsState()
+    val expenses by viewModel.expenses.collectAsState()
 
     val totalTrips = trips.size
     val origins = trips.groupBy { it.loadLocation }
@@ -33,6 +41,22 @@ fun StatisticsScreen(tripRepository: TripRepository) {
     val topOrigin = origins.maxByOrNull { it.value.size }
     val topDestination = destinations.maxByOrNull { it.value.size }
     val recentTrips = trips.sortedByDescending { it.loadDate }.take(5)
+
+    val totalFuel = expenses.sumOf { it.fuelAmount }
+    val totalViatics = expenses.sumOf { it.viaticsAmount }
+    val totalTolls = expenses.sumOf { it.tollsAmount }
+    val totalExpenses = totalFuel + totalViatics + totalTolls
+
+    val expensesByTrip = expenses
+        .groupBy { it.tripId }
+        .map { (tripId, exps) ->
+            val trip = trips.find { it.id == tripId }
+            val tripName = trip?.name ?: "Viaje #$tripId"
+            val total = exps.sumOf { it.fuelAmount + it.viaticsAmount + it.tollsAmount }
+            tripName to total
+        }
+        .sortedByDescending { it.second }
+        .take(5)
 
     Column(
         modifier = Modifier
@@ -88,6 +112,17 @@ fun StatisticsScreen(tripRepository: TripRepository) {
                     }
 
                     item {
+                        StatSummaryCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            icon = Icons.Default.AttachMoney,
+                            iconBg = Color(0xFFE8F5E9),
+                            iconTint = Color(0xFF2E7D32),
+                            label = "Total gastos",
+                            value = "S/. ${"%,d".format(totalExpenses)}"
+                        )
+                    }
+
+                    item {
                         RouteCard(
                             title = "Origen más frecuente",
                             icon = Icons.Default.LocationOn,
@@ -109,6 +144,22 @@ fun StatisticsScreen(tripRepository: TripRepository) {
                         )
                     }
 
+                    if (totalExpenses > 0) {
+                        item {
+                            ExpenseCategoryBarChart(
+                                fuelTotal = totalFuel,
+                                viaticsTotal = totalViatics,
+                                tollsTotal = totalTolls
+                            )
+                        }
+                    }
+
+                    if (expensesByTrip.isNotEmpty()) {
+                        item {
+                            ExpensePerTripBarChart(entries = expensesByTrip)
+                        }
+                    }
+
                     if (recentTrips.isNotEmpty()) {
                         item {
                             Text(
@@ -118,8 +169,135 @@ fun StatisticsScreen(tripRepository: TripRepository) {
                             )
                         }
                         items(recentTrips) { trip ->
-                            RecentTripCard(trip = trip)
+                            RecentTripCard(trip = trip, expenses = expenses.filter { it.tripId == trip.id })
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExpenseCategoryBarChart(
+    fuelTotal: Int,
+    viaticsTotal: Int,
+    tollsTotal: Int
+) {
+    val entries = listOf(
+        Triple("Combustible", fuelTotal, Color(0xFFF9A825)),
+        Triple("Viáticos", viaticsTotal, Color(0xFF1565C0)),
+        Triple("Peajes", tollsTotal, Color(0xFF2E7D32))
+    )
+    val maxValue = entries.maxOf { it.second }.toFloat().coerceAtLeast(1f)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "Gastos por categoría",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                entries.forEach { (label, value, color) ->
+                    val fraction = value.toFloat() / maxValue
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        Text(
+                            text = "S/.${"%,d".format(value)}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.55f)
+                                .height((120 * fraction).dp.coerceAtLeast(4.dp))
+                                .background(color, RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExpensePerTripBarChart(entries: List<Pair<String, Int>>) {
+    val maxValue = entries.maxOf { it.second }.toFloat().coerceAtLeast(1f)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "Top gastos por viaje",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                entries.forEach { (label, value) ->
+                    val fraction = value.toFloat() / maxValue
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        Text(
+                            text = "S/.${"%,d".format(value)}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.55f)
+                                .height((120 * fraction).dp.coerceAtLeast(4.dp))
+                                .background(Color(0xFF1565C0), RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
@@ -232,7 +410,8 @@ private fun RouteCard(
 }
 
 @Composable
-private fun RecentTripCard(trip: Trip) {
+private fun RecentTripCard(trip: Trip, expenses: List<Expense>) {
+    val tripTotal = expenses.sumOf { it.fuelAmount + it.viaticsAmount + it.tollsAmount }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
@@ -272,6 +451,13 @@ private fun RecentTripCard(trip: Trip) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (tripTotal > 0) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Gastos: S/. ${"%,d".format(tripTotal)}",
+                        style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF2E7D32), fontWeight = FontWeight.SemiBold)
+                    )
+                }
             }
             Text(
                 text = formatDate(trip.loadDate),

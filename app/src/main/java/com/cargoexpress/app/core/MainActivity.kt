@@ -392,7 +392,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable(route = "statistics") {
-                            StatisticsScreen(tripRepository = tripRepository)
+                            StatisticsScreen(tripRepository = tripRepository, expenseRepository = expenseRepository)
                         }
 
                         composable(route = "profile") {
