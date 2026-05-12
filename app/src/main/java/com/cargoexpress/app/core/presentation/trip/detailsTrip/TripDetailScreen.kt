@@ -176,11 +176,13 @@ fun TripDetailScreen(
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         if (expenses.isNullOrEmpty()) {
                             Text("No se han registrado gastos para este viaje.", style = MaterialTheme.typography.bodyMedium)
-                            Button(onClick = { navController.navigate("register_expense/${t.id}") }) {
-                                Icon(Icons.Default.Add, contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Agregar gasto")
-                                Constants.TRIP_ID = t.id
+                            if (Constants.USER_ROLE != "CLIENT") {
+                                Button(onClick = { navController.navigate("register_expense/${t.id}") }) {
+                                    Icon(Icons.Default.Add, contentDescription = null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Agregar gasto")
+                                    Constants.TRIP_ID = t.id
+                                }
                             }
                         } else {
                             // Lista de gastos

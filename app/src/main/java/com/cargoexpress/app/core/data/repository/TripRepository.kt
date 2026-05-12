@@ -135,6 +135,23 @@ class TripRepository(private val tripService: TripService, private val expenseSe
 
 
 
+    suspend fun getTripsByClientId(token: String, clientId: Int): Resource<List<Trip>> = withContext(Dispatchers.IO) {
+        if (token.isBlank()) return@withContext Resource.Error(message = "Token is required")
+        return@withContext try {
+            val response = tripService.getTrips("Bearer $token")
+            if (response.isSuccessful) {
+                val trips = response.body()?.map { tripDto ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) tripDto.toTrip() else tripDto.toTripLegacy()
+                }?.filter { it.clientId == clientId } ?: emptyList()
+                Resource.Success(data = trips)
+            } else {
+                Resource.Error(message = "Failed to fetch trips")
+            }
+        } catch (e: Exception) {
+            Resource.Error(message = e.message ?: "An unknown error occurred")
+        }
+    }
+
     suspend fun addExpense(expense: Expense): Resource<Expense> = withContext(Dispatchers.IO) {
         if (Constants.TOKEN.isBlank()) {
             return@withContext Resource.Error<Expense>(message = "Token is required")

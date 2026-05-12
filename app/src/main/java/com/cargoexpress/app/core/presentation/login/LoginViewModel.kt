@@ -51,6 +51,7 @@ class LoginViewModel(
             }.onFailure {
                 clientRepository.getClientByUserId(userId, token).onSuccess { client ->
                     Constants.USER_ROLE = "CLIENT"
+                    Constants.CLIENT_ID = client.id
                     Constants.ENTREPRENEUR_ID = 0
                     _state.value = UIState(isLoading = false)
                     goToClientHomeScreen()

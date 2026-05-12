@@ -83,6 +83,8 @@ import com.cargoexpress.app.core.presentation.trip.registerTrip.RegisterTripView
 import com.cargoexpress.app.core.presentation.trip.registerTrip.RegisterTripViewModelFactory
 import com.cargoexpress.app.core.presentation.vehicle.registerVehicle.RegisterVehicleScreen
 import com.cargoexpress.app.core.presentation.vehicle.registerVehicle.RegisterVehicleViewModel
+import com.cargoexpress.app.core.presentation.statistics.StatisticsScreen
+import androidx.compose.material.icons.filled.BarChart
 
 class MainActivity : ComponentActivity() {
 
@@ -254,28 +256,42 @@ class MainActivity : ComponentActivity() {
                                     },
                                     label = { Text("Viajes") }
                                 )
-                                NavigationBarItem(
-                                    selected = currentDestination == "vehicles",
-                                    onClick = { navController.navigate("vehicles") },
-                                    icon = {
-                                        Icon(
-                                            Icons.Filled.DirectionsBusFilled,
-                                            contentDescription = "Vehiculos"
-                                        )
-                                    },
-                                    label = { Text("Vehiculos") }
-                                )
-                                NavigationBarItem(
-                                    selected = currentDestination == "drivers",
-                                    onClick = { navController.navigate("drivers") },
-                                    icon = {
-                                        Icon(
-                                            Icons.Filled.Groups,
-                                            contentDescription = "Conductores"
-                                        )
-                                    },
-                                    label = { Text("Conductores") }
-                                )
+                                if (Constants.USER_ROLE == "CLIENT") {
+                                    NavigationBarItem(
+                                        selected = currentDestination == "statistics",
+                                        onClick = { navController.navigate("statistics") },
+                                        icon = {
+                                            Icon(
+                                                Icons.Filled.BarChart,
+                                                contentDescription = "Estadísticas"
+                                            )
+                                        },
+                                        label = { Text("Estadísticas") }
+                                    )
+                                } else {
+                                    NavigationBarItem(
+                                        selected = currentDestination == "vehicles",
+                                        onClick = { navController.navigate("vehicles") },
+                                        icon = {
+                                            Icon(
+                                                Icons.Filled.DirectionsBusFilled,
+                                                contentDescription = "Vehiculos"
+                                            )
+                                        },
+                                        label = { Text("Vehiculos") }
+                                    )
+                                    NavigationBarItem(
+                                        selected = currentDestination == "drivers",
+                                        onClick = { navController.navigate("drivers") },
+                                        icon = {
+                                            Icon(
+                                                Icons.Filled.Groups,
+                                                contentDescription = "Conductores"
+                                            )
+                                        },
+                                        label = { Text("Conductores") }
+                                    )
+                                }
                             }
                         }
                     }
@@ -375,9 +391,12 @@ class MainActivity : ComponentActivity() {
                             AlertScreen(tripId = tripId, tripRepository = tripRepository, navController = navController, alertRepository = alertRepository)
                         }
 
+                        composable(route = "statistics") {
+                            StatisticsScreen(tripRepository = tripRepository)
+                        }
+
                         composable(route = "profile") {
                             ProfileScreen(viewModel = profileViewModel, navController)
-                            // TripManagementScreen(tripRepository = tripRepository)
                         }
                     }
                 }

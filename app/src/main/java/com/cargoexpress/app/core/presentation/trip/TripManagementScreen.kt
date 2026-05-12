@@ -1,5 +1,6 @@
 package com.cargoexpress.app.core.presentation.trip
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -162,14 +163,16 @@ fun TripManagementScreen(
             }
         }
 
-        FloatingActionButton(
-            onClick = { navController.navigate("register_trip") },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
-            containerColor = Color(0xFFFFEB3B)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Agregar viaje", tint = Color.Black)
+        if (Constants.USER_ROLE != "CLIENT") {
+            FloatingActionButton(
+                onClick = { navController.navigate("register_trip") },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp),
+                containerColor = Color(0xFFFFEB3B)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Agregar viaje", tint = Color.Black)
+            }
         }
     }
 }
@@ -224,12 +227,10 @@ fun TripCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        elevation = CardDefaults.cardElevation(4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -239,58 +240,59 @@ fun TripCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                    .padding(bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Filled.LocalShipping,
-                    contentDescription = null,
-                    tint = Color(0xFFFFEB3B),
-                    modifier = Modifier.size(24.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color(0xFFFFF8E1), RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.LocalShipping,
+                        contentDescription = null,
+                        tint = Color(0xFFF9A825),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
                 Spacer(modifier = Modifier.width(12.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = trip.name,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = trip.type,
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = trip.type.ifBlank { "-" },
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                thickness = 1.dp,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-
-            TripInfoItem(
-                icon = Icons.Filled.DateRange,
-                label = "Carga",
-                value = formatDateTimeReadable(trip.loadDate)
-            )
-
-            TripInfoItem(
-                icon = Icons.Filled.DateRange,
-                label = "Descarga",
-                value = formatDateTimeReadable(trip.unloadDate)
-            )
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(modifier = Modifier.height(12.dp))
 
             TripInfoItem(
                 icon = Icons.Filled.LocationOn,
                 label = "Origen",
                 value = trip.loadLocation
             )
-
             TripInfoItem(
                 icon = Icons.Filled.Place,
                 label = "Destino",
                 value = trip.unloadLocation
+            )
+            TripInfoItem(
+                icon = Icons.Filled.DateRange,
+                label = "Fecha carga",
+                value = formatDateTimeReadable(trip.loadDate)
+            )
+            TripInfoItem(
+                icon = Icons.Filled.DateRange,
+                label = "Fecha descarga",
+                value = formatDateTimeReadable(trip.unloadDate)
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -331,7 +333,7 @@ fun TripInfoItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -341,17 +343,19 @@ fun TripInfoItem(
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(70.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
 

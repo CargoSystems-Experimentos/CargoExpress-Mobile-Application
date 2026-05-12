@@ -33,7 +33,11 @@ class TripManagementViewModel(
     private fun loadTrips() {
         viewModelScope.launch {
             _uiState.value = UIState(isLoading = true)
-            val result = tripRepository.getTrips(Constants.TOKEN, Constants.ENTREPRENEUR_ID)
+            val result = if (Constants.USER_ROLE == "CLIENT") {
+                tripRepository.getTripsByClientId(Constants.TOKEN, Constants.CLIENT_ID)
+            } else {
+                tripRepository.getTrips(Constants.TOKEN, Constants.ENTREPRENEUR_ID)
+            }
             _uiState.value = when (result) {
                 is Resource.Success -> {
                     allTrips = result.data ?: emptyList()
