@@ -2,21 +2,32 @@ package com.cargoexpress.app.core.presentation.alert
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.common.Resource
+import com.cargoexpress.app.core.common.UIState
 import com.cargoexpress.app.core.data.repository.AlertRepository
+import com.cargoexpress.app.core.data.repository.TripRepository
 import com.cargoexpress.app.core.domain.Alert
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import com.cargoexpress.app.core.common.Constants
-import com.cargoexpress.app.core.common.Resource
-import com.cargoexpress.app.core.common.UIState
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-class AlertViewModel(private val alertRepository: AlertRepository) : ViewModel() {
-    private val _uiState = MutableStateFlow(UIState<List<Alert>>(isLoading = true))
-    val uiState: StateFlow<UIState<List<Alert>>> = _uiState
+class AlertViewModel(
+    private val alertRepository: AlertRepository,
+    private val tripRepository: TripRepository
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(UIState<Alert>())
+    val uiState: StateFlow<UIState<Alert>> = _uiState
 
     private val _alerts = MutableStateFlow<List<Alert>>(emptyList())
     val alerts: StateFlow<List<Alert>> = _alerts
+
+    private val _createSuccess = MutableStateFlow(false)
+    val createSuccess: StateFlow<Boolean> = _createSuccess
 
     init {
         loadAlerts()
@@ -24,27 +35,52 @@ class AlertViewModel(private val alertRepository: AlertRepository) : ViewModel()
 
     fun loadAlerts() {
         viewModelScope.launch {
-            println("Loading alerts...")
             val result = alertRepository.getAlerts(Constants.TOKEN)
             if (result is Resource.Success) {
-                println("Alerts loaded successfully: ${result.data}")
                 _alerts.value = result.data ?: emptyList()
             } else {
-                println("Failed to load alerts: ${result.message}")
-                handleError(Exception(result.message))
+                _uiState.value = UIState(isLoading = false, message = result.message ?: "")
             }
         }
     }
 
-    fun getAlertById(tripId: Int): Alert? {
-        val alert = _alerts.value.find { it.tripId == tripId }
-        println("Getting alert by ID $tripId: $alert")
-        return alert
+    var title: String = ""
+    var description: String = ""
+    fun createAlert(tripId: Int, title: String, description: String) {
+        viewModelScope.launch {
+            _uiState.value = UIState(isLoading = true)
+
+            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+            val now = sdf.format(Date())
+
+            val ongoingResult = tripRepository.getOngoingTripByTripId(tripId)
+
+            if (ongoingResult is Resource.Success && ongoingResult.data != null) {
+                val ongoingTripId = ongoingResult.data.id
+
+                val alert = Alert(
+                    id = 0,
+                    title = title,
+                    description = description,
+                    date = now,
+                    ongoingTripId = ongoingTripId
+                )
+
+                val result = alertRepository.createAlert(alert)
+                if (result is Resource.Success) {
+                    _createSuccess.value = true
+                    loadAlerts()
+                    _uiState.value = UIState(isLoading = false)
+                } else {
+                    _uiState.value = UIState(isLoading = false, message = result.message ?: "Error al crear alerta")
+                }
+            } else {
+                _uiState.value = UIState(isLoading = false, message = ongoingResult.message ?: "No se encontro ongoing trip")
+            }
+        }
     }
 
-    private fun handleError(exception: Exception) {
-        val message = exception.message ?: "Unknown error"
-        println("Error occurred: $message")
-        _uiState.value = UIState(isLoading = false, message = "Error: $message")
+    fun resetCreateSuccess() {
+        _createSuccess.value = false
     }
 }

@@ -209,6 +209,7 @@ class MainActivity : ComponentActivity() {
                 val entrepreneurRepository = EntrepreneurRepository(entrepreneurService)
                 val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
                 val currentRoute = navController.currentBackStackEntry?.destination?.route
+                val isGpsOrAlert = currentRoute == "gps/{tripId}" || currentRoute == "alert/{tripId}"
 
                 val ongoingTripRepository = OngoingTripRepository(ongoingTripService)
                 val alertRepository = AlertRepository(alertService)
@@ -233,15 +234,14 @@ class MainActivity : ComponentActivity() {
                 }
                 Scaffold(
                     topBar = {
-                        if (currentRoute != Routes.Login.routes && currentRoute != Routes.Register.routes) {
+                        if (currentRoute != Routes.Login.routes && currentRoute != Routes.Register.routes && !isGpsOrAlert) {
                             MyAppBar(onProfileClick = {
-                                // Navegar a la pantalla de perfil
                                 navController.navigate("profile")
                             })
                         }
                     },
                     bottomBar = {
-                        if (currentRoute != Routes.Login.routes && currentRoute != Routes.Register.routes) {
+                        if (currentRoute != Routes.Login.routes && currentRoute != Routes.Register.routes && !isGpsOrAlert) {
                             NavigationBar {
                                 NavigationBarItem(
                                     selected = currentDestination == "trips",
