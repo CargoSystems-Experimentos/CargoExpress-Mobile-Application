@@ -1,17 +1,37 @@
 package com.cargoexpress.app.core.presentation.trip.registerExpense
 
-
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.cargoexpress.app.core.data.repository.ExpenseRepository
 import com.cargoexpress.app.core.domain.Expense
 import com.cargoexpress.app.core.common.Constants
 import com.cargoexpress.app.core.common.Resource
+import kotlinx.coroutines.launch
 
 class RegisterExpenseViewModel(
     private val expenseRepository: ExpenseRepository
 ) : ViewModel() {
+    var fuelAmount: Int = 0
+    var fuelDescription: String = ""
+    var viaticsAmount: Int = 0
+    var viaticsDescription: String = ""
+    var tollsAmount: Int = 0
+    var tollsDescription: String = ""
 
-    suspend fun registerExpense(expense: Expense): Resource<Expense> {
-        return expenseRepository.addExpense(Constants.TOKEN, expense)
+    fun registerExpense(onResult: (Resource<Expense>) -> Unit){
+        viewModelScope.launch {
+            val expense = Expense(
+                id = 0,
+                fuelAmount = fuelAmount,
+                fuelDescription = fuelDescription,
+                viaticsAmount = viaticsAmount,
+                viaticsDescription = viaticsDescription,
+                tollsAmount = tollsAmount,
+                tollsDescription = tollsDescription,
+                tripId = Constants.TRIP_ID
+            )
+            val result = expenseRepository.addExpense(expense)
+            onResult(result)
+        }
     }
 }

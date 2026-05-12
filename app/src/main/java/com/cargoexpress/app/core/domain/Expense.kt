@@ -2,11 +2,11 @@ package com.cargoexpress.app.core.domain
 
 data class Expense(
     val id: Int,
-    val fuelAmount: Double,
+    val fuelAmount: Int,
     val fuelDescription: String,
-    val viaticsAmount: Double,
+    val viaticsAmount: Int,
     val viaticsDescription: String,
-    val tollsAmount: Double,
+    val tollsAmount: Int,
     val tollsDescription: String,
     val tripId: Int
 )

@@ -324,7 +324,7 @@ class MainActivity : ComponentActivity() {
                         composable(route = "register_expense/{tripId}") { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId")?.toInt() ?: 0
                             val registerExpenseViewModel = RegisterExpenseViewModel(expenseRepository)
-                            RegisterExpenseScreen(tripId = tripId, viewModel = registerExpenseViewModel) { expense ->
+                            RegisterExpenseScreen(viewModel = registerExpenseViewModel, navController = navController) { expense ->
 
                             }
                         }

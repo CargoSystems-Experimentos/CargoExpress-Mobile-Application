@@ -29,6 +29,7 @@ import com.cargoexpress.app.core.data.repository.VehicleRepository
 import com.cargoexpress.app.core.data.repository.ClientRepository
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import com.cargoexpress.app.core.common.Constants
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -179,12 +180,13 @@ fun TripDetailScreen(
                                 Icon(Icons.Default.Add, contentDescription = null)
                                 Spacer(Modifier.width(8.dp))
                                 Text("Agregar gasto")
+                                Constants.TRIP_ID = t.id
                             }
                         } else {
                             // Lista de gastos
-                            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(count = expenses.size) { index ->
-                                    ExpenseCard(expenses[index])
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                expenses.forEach { expense ->
+                                    ExpenseCard(expense)
                                 }
                             }
                         }
@@ -216,16 +218,110 @@ fun InfoItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: Strin
 fun ExpenseCard(expense: Expense) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text("Gasto #${expense.id}", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold))
-            Spacer(Modifier.height(6.dp))
-            Text("Combustible: ${expense.fuelAmount} USD", style = MaterialTheme.typography.bodyMedium)
-            Text("Viáticos: ${expense.viaticsAmount} USD", style = MaterialTheme.typography.bodyMedium)
-            Text("Peajes: ${expense.tollsAmount} USD", style = MaterialTheme.typography.bodyMedium)
+        Column(modifier = Modifier.padding(16.dp)) {
+
+            // Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(Color(0xFFFFF8E1), RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = Color(0xFFF9A825), modifier = Modifier.size(20.dp))
+                }
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text("Gastos del Viaje", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
+                }
+            }
+
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(12.dp))
+
+            // Combustible
+            ExpenseRow(
+                icon = Icons.Default.LocalGasStation,
+                iconBg = Color(0xFFFFF8E1),
+                iconTint = Color(0xFFF9A825),
+                label = "Combustible",
+                description = expense.fuelDescription,
+                amount = expense.fuelAmount
+            )
+            Spacer(Modifier.height(12.dp))
+
+            // Viáticos
+            ExpenseRow(
+                icon = Icons.Default.Restaurant,
+                iconBg = Color(0xFFE3F2FD),
+                iconTint = Color(0xFF1565C0),
+                label = "Viáticos",
+                description = expense.viaticsDescription,
+                amount = expense.viaticsAmount
+            )
+            Spacer(Modifier.height(12.dp))
+
+            // Peajes
+            ExpenseRow(
+                icon = Icons.Default.AddRoad,
+                iconBg = Color(0xFFE8F5E9),
+                iconTint = Color(0xFF2E7D32),
+                label = "Peajes",
+                description = expense.tollsDescription,
+                amount = expense.tollsAmount
+            )
+
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(top = 12.dp))
+
+            // Total
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Total", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "${expense.fuelAmount + expense.viaticsAmount + expense.tollsAmount}",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+            }
         }
+    }
+}
+
+@Composable
+fun ExpenseRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconBg: Color,
+    iconTint: Color,
+    label: String,
+    description: String,
+    amount: Int
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .background(iconBg, RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(description, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
+        }
+        Text("$amount", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
     }
 }
 

@@ -308,7 +308,10 @@ fun TripCard(
                 }
 
                 Button(
-                    onClick = { navController.navigate("gps/${trip.id}") },
+                    onClick = {
+                        navController.navigate("gps/${trip.id}")
+                        Constants.TRIP_ID = trip.id
+                              },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B))
                 ) {

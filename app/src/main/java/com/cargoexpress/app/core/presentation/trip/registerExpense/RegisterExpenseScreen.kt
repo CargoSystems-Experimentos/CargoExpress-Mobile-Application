@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.cargoexpress.app.core.common.Constants
 import com.cargoexpress.app.core.domain.Expense
 import com.cargoexpress.app.core.common.Resource
 import kotlinx.coroutines.launch
@@ -27,17 +28,17 @@ import org.json.JSONObject
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun RegisterExpenseScreen(
-    tripId: Int,
     navController: NavController,
     viewModel: RegisterExpenseViewModel = viewModel(),
     onExpenseRegistered: (Expense) -> Unit
 ) {
+
     var fuelAmount by remember { mutableStateOf("") }
-    var fuelDescription by remember { mutableStateOf("") }
+    var fuelDescription by remember { mutableStateOf(viewModel.fuelDescription) }
     var viaticsAmount by remember { mutableStateOf("") }
-    var viaticsDescription by remember { mutableStateOf("") }
+    var viaticsDescription by remember { mutableStateOf(viewModel.viaticsDescription) }
     var tollsAmount by remember { mutableStateOf("") }
-    var tollsDescription by remember { mutableStateOf("") }
+    var tollsDescription by remember { mutableStateOf(viewModel.tollsDescription) }
     var selectedCurrency by remember { mutableStateOf("USD") }
     var isLoading by remember { mutableStateOf(false) }
 
@@ -46,11 +47,11 @@ fun RegisterExpenseScreen(
     val scrollState = rememberScrollState()
 
     // Validaciones
-    val isFuelAmountValid = fuelAmount.isNotBlank() && fuelAmount.matches(Regex("""^\d+(\.\d{1,2})?$"""))
+    val isFuelAmountValid = fuelAmount.isNotBlank() && fuelAmount.toIntOrNull() != null && fuelAmount.toInt() >= 0
     val isFuelDescriptionValid = fuelDescription.isNotBlank()
-    val isViaticsAmountValid = viaticsAmount.isNotBlank() && viaticsAmount.matches(Regex("""^\d+(\.\d{1,2})?$"""))
+    val isViaticsAmountValid = viaticsAmount.isNotBlank() && viaticsAmount.toIntOrNull() != null && viaticsAmount.toInt() >= 0
     val isViaticsDescriptionValid = viaticsDescription.isNotBlank()
-    val isTollsAmountValid = tollsAmount.isNotBlank() && tollsAmount.matches(Regex("""^\d+(\.\d{1,2})?$"""))
+    val isTollsAmountValid = tollsAmount.isNotBlank() && tollsAmount.toIntOrNull() != null && tollsAmount.toInt() >= 0
     val isTollsDescriptionValid = tollsDescription.isNotBlank()
 
     val isFormValid = isFuelAmountValid && isFuelDescriptionValid &&
@@ -60,7 +61,7 @@ fun RegisterExpenseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Registrar Gasto") },
+                title = { Text("Registrar Gasto", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Retroceder")
@@ -78,13 +79,6 @@ fun RegisterExpenseScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = "Registrar Gasto",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
             // Selector de moneda
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -129,9 +123,9 @@ fun RegisterExpenseScreen(
 
                     OutlinedTextField(
                         value = fuelAmount,
-                        onValueChange = { fuelAmount = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text("Monto (0.00)") },
-                        isError = fuelAmount.isNotBlank() && !isFuelAmountValid,
+                        onValueChange = { fuelAmount = it.filter { c -> c.isDigit() }.take(7) },
+                        label = { Text("Monto Combustible") },
+                        isError = !isFuelAmountValid,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp)
                     )
@@ -162,9 +156,9 @@ fun RegisterExpenseScreen(
 
                     OutlinedTextField(
                         value = viaticsAmount,
-                        onValueChange = { viaticsAmount = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text("Monto (0.00)") },
-                        isError = viaticsAmount.isNotBlank() && !isViaticsAmountValid,
+                        onValueChange = { viaticsAmount = it.filter { c -> c.isDigit() }.take(7) },
+                        label = { Text("Monto Viaticos") },
+                        isError = !isViaticsAmountValid,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp)
                     )
@@ -195,9 +189,9 @@ fun RegisterExpenseScreen(
 
                     OutlinedTextField(
                         value = tollsAmount,
-                        onValueChange = { tollsAmount = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text("Monto (0.00)") },
-                        isError = tollsAmount.isNotBlank() && !isTollsAmountValid,
+                        onValueChange = { tollsAmount = it.filter { c -> c.isDigit() }.take(7) },
+                        label = { Text("Monto Peajes") },
+                        isError = !isTollsAmountValid,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp)
                     )
@@ -221,63 +215,69 @@ fun RegisterExpenseScreen(
 
             Button(
                 onClick = {
-                    isLoading = true
-                    val expense = Expense(
-                        id = 0,
-                        fuelAmount = fuelAmount.toDoubleOrNull() ?: 0.0,
-                        fuelDescription = "$selectedCurrency - $fuelDescription",
-                        viaticsAmount = viaticsAmount.toDoubleOrNull() ?: 0.0,
-                        viaticsDescription = "$selectedCurrency - $viaticsDescription",
-                        tollsAmount = tollsAmount.toDoubleOrNull() ?: 0.0,
-                        tollsDescription = "$selectedCurrency - $tollsDescription",
-                        tripId = tripId
-                    )
+                    val fuelAmountError = if (fuelAmount.isBlank() || (fuelAmount.toIntOrNull() ?: 0) <= 0) "El monto de combustible es obligatorio" else null
+                    val fuelDescriptionError = if (fuelDescription.isBlank()) "La descripción de combustible es obligatoria" else null
+                    val viaticsAmountError = if (viaticsAmount.isBlank() || (viaticsAmount.toIntOrNull() ?: 0) <= 0) "El monto de viáticos es obligatorio" else null
+                    val viaticsDescriptionError = if (viaticsDescription.isBlank()) "La descripción de viáticos es obligatoria" else null
+                    val tollsAmountError = if (tollsAmount.isBlank() || (tollsAmount.toIntOrNull() ?: 0) <= 0) "El monto de peajes es obligatorio" else null
+                    val tollsDescriptionError = if (tollsDescription.isBlank()) "La descripción de peajes es obligatoria" else null
 
-                    val expenseJson = JSONObject().apply {
-                        put("id", expense.id)
-                        put("fuelAmount", expense.fuelAmount)
-                        put("fuelAmount_type", "Double")
-                        put("fuelDescription", expense.fuelDescription)
-                        put("fuelDescription_type", "String")
-                        put("viaticsAmount", expense.viaticsAmount)
-                        put("viaticsAmount_type", "Double")
-                        put("viaticsDescription", expense.viaticsDescription)
-                        put("viaticsDescription_type", "String")
-                        put("tollsAmount", expense.tollsAmount)
-                        put("tollsAmount_type", "Double")
-                        put("tollsDescription", expense.tollsDescription)
-                        put("tollsDescription_type", "String")
-                        put("tripId", expense.tripId)
-                        put("tripId_type", "Int")
-                    }
+                    val valid = listOf(
+                        fuelAmountError, fuelDescriptionError,
+                        viaticsAmountError, viaticsDescriptionError,
+                        tollsAmountError, tollsDescriptionError
+                    ).all { it == null }
 
-                    Log.d("RegisterExpenseScreen", "Datos del Gasto:\n${expenseJson.toString(2)}")
+                    if (valid) {
+                        isLoading = true
+                        viewModel.fuelAmount = fuelAmount.toIntOrNull() ?: 0
+                        viewModel.fuelDescription = "$selectedCurrency - $fuelDescription"
+                        viewModel.viaticsAmount = viaticsAmount.toIntOrNull() ?: 0
+                        viewModel.viaticsDescription = "$selectedCurrency - $viaticsDescription"
+                        viewModel.tollsAmount = tollsAmount.toIntOrNull() ?: 0
+                        viewModel.tollsDescription = "$selectedCurrency - $tollsDescription"
 
-                    isLoading = false
+                        viewModel.registerExpense { result ->
+                            isLoading = false
+                            val message = if (result is Resource.Success && result.data != null) {
+                                onExpenseRegistered(result.data)
 
-                    /*
-                    scope.launch {
-                        val result = viewModel.registerExpense(expense)
-                        isLoading = false
-                        val message = if (result is Resource.Success) {
-                            onExpenseRegistered(result.data!!)
-                            "Gasto registrado correctamente"
-                        } else {
-                            "No se pudo registrar el gasto"
+                                fuelAmount = ""
+                                fuelDescription = ""
+                                viaticsAmount = ""
+                                viaticsDescription = ""
+                                tollsAmount = ""
+                                tollsDescription = ""
+                                navController.popBackStack()
+                                "Gasto registrado correctamente"
+                            } else {
+                                "No se pudo registrar el gasto"
+                            }
+
+                            scope.launch {
+                                snackbarHostState.showSnackbar(message)
+                            }
                         }
-                        snackbarHostState.showSnackbar(message)
+                    } else {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Por favor, completa todos los campos correctamente")
+                        }
                     }
-                    */
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(70.dp)
+                    .padding(top = 16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
                 enabled = isFormValid && !isLoading
             ) {
-                Text("Registrar Gasto", color = Color.Black, fontWeight = FontWeight.Bold)
+                Text(
+                    "Registrar Gasto",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
             }
-
             Spacer(modifier = Modifier.height(16.dp))
         }
     }

@@ -7,5 +7,7 @@ object Constants {
     var USER_ID: Int = 0
     var USER_NAME: String = ""
     var ENTREPRENEUR_ID: Int = 0
+    var CLIENT_ID: Int = 0
     var USER_ROLE: String = ""
+    var TRIP_ID: Int = 0
 }

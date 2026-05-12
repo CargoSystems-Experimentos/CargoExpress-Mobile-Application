@@ -1,32 +1,33 @@
 package com.cargoexpress.app.core.data.repository
 
 import android.util.Log
+import com.cargoexpress.app.core.common.Constants
 import com.cargoexpress.app.core.data.remote.expense.ExpenseService
 import com.cargoexpress.app.core.data.remote.expense.toExpense
 import com.cargoexpress.app.core.data.remote.expense.toExpenseDto
 import com.cargoexpress.app.core.domain.Expense
 import com.cargoexpress.app.core.common.Resource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class ExpenseRepository(private val expenseService: ExpenseService) {
 
 
-    suspend fun addExpense(token: String, expense: Expense): Resource<Expense> {
-        return try {
-            val expenseDto = expense.toExpenseDto()
-            val response = expenseService.addExpense(token, expenseDto)
+    suspend fun addExpense(expense: Expense): Resource<Expense> = withContext(Dispatchers.IO) {
+        if(Constants.TOKEN.isBlank()){
+            return@withContext Resource.Error("Token is required")
+        }
+        return@withContext try {
+            val response = expenseService.addExpense("Bearer ${Constants.TOKEN}", expense.toExpenseDto())
             if (response.isSuccessful) {
-                Log.d("ExpenseRepository", "POST successful: ${response.body()}")
-                Resource.Success(response.body()!!.toExpense())
+                Resource.Success(data = response.body()?.toExpense() ?: expense)
             } else {
-                Log.d("ExpenseRepository", "POST failed: ${response.message()}")
-                Resource.Error("Error: ${response.message()}")
+                Resource.Error("Failed to add expense")
             }
         } catch (e: Exception) {
-            Log.d("ExpenseRepository", "Exception: ${e.message}")
-            Resource.Error("Exception: ${e.message}")
+            Resource.Error(message = e.message ?: "An unknown error occurred")
         }
     }
-
 
     suspend fun getExpenses(token: String): Resource<List<Expense>> {
         return try {

@@ -60,14 +60,6 @@ class TripDetailViewModel(
         }
     }
 
-    fun addExpense(expense: Expense) {
-        viewModelScope.launch {
-            when (val result = expenseRepository.addExpense(Constants.TOKEN, expense)) {
-                is Resource.Success -> loadExpensesByTripId(expense.tripId)
-                is Resource.Error -> { }
-            }
-        }
-    }
 
     private fun loadRelatedNames(trip: Trip) {
         viewModelScope.launch {
