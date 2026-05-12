@@ -22,6 +22,8 @@ import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.data.repository.AlertRepository
 import com.cargoexpress.app.core.data.repository.TripRepository
 import com.cargoexpress.app.core.domain.Alert
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -245,7 +247,7 @@ private fun AlertItemCard(alert: Alert) {
                 if (alert.date.isNotBlank()) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = alert.date,
+                        text = formatAlertDateTime(alert.date),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -253,4 +255,25 @@ private fun AlertItemCard(alert: Alert) {
             }
         }
     }
+}
+
+private fun formatAlertDateTime(raw: String): String {
+    val inputFormats = listOf(
+        "yyyy-MM-dd'T'HH:mm:ss",
+        "yyyy-MM-dd'T'HH:mm:ss.SSS",
+        "yyyy-MM-dd HH:mm:ss"
+    )
+    val outputFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+
+    for (pattern in inputFormats) {
+        try {
+            val parser = SimpleDateFormat(pattern, Locale.getDefault()).apply {
+                isLenient = false
+            }
+            val date = parser.parse(raw)
+            if (date != null) return outputFormat.format(date)
+        } catch (_: Exception) {
+        }
+    }
+    return raw
 }

@@ -62,6 +62,8 @@ fun GpsScreen(
     var simulationStarted by remember { mutableStateOf(false) }
     var mapInitialized by remember { mutableStateOf(false) }
 
+    var tripName by remember { mutableStateOf("Viaje") }
+
     val destination = LatLng(
         GpsViewModel.DESTINATION_LAT.toDouble(),
         GpsViewModel.DESTINATION_LNG.toDouble()
@@ -73,6 +75,15 @@ fun GpsScreen(
     val distanceMeters = if (currentLat != 0f || currentLng != 0f)
         SphericalUtil.computeDistanceBetween(currentPosition, destination) else 0.0
     val displaySpeed = if (simulatedSpeed != 0) simulatedSpeed else ongoingTrip?.speed ?: 0
+
+    LaunchedEffect(tripId) {
+        val result = tripRepository.getTripById(tripId)
+        if (result is com.cargoexpress.app.core.common.Resource.Success && result.data != null) {
+            tripName = result.data.name
+        } else {
+            tripName = "Viaje"
+        }
+    }
 
     LaunchedEffect(ongoingTrips) {
         val trip = viewModel.getOngoingTripById(tripId)
@@ -211,7 +222,7 @@ fun GpsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Viaje #$tripId",
+                        text = tripName,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
