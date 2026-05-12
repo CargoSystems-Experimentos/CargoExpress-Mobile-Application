@@ -1,5 +1,6 @@
 package com.cargoexpress.app.core.presentation.register
-import android.net.Uri
+
+import android.app.Activity
 import android.util.Patterns
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,38 +9,32 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.cargoexpress.app.core.common.UIState
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.*
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Routes
-import com.cargoexpress.app.core.presentation.ImagePicker
+import com.cargoexpress.app.core.common.UIState
+import com.cargoexpress.app.core.presentation.phoneauth.OtpPhase
+import com.cargoexpress.app.core.presentation.phoneauth.OtpVerificationDialog
+import com.cargoexpress.app.core.presentation.phoneauth.PhoneAuthHelper
 
 @Composable
 fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
     val state by viewModel.state.observeAsState(UIState())
+    val otpPhase by viewModel.otpPhase.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -48,14 +43,48 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
     var dni by remember { mutableStateOf("") }
     var ruc by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
-
     var isClient by remember { mutableStateOf(true) }
+
+    // Trigger SMS when phase transitions to Sending or Resending
+    LaunchedEffect(otpPhase) {
+        val activity = context as? Activity ?: return@LaunchedEffect
+        when (otpPhase) {
+            is OtpPhase.Sending -> {
+                val phoneNum = (otpPhase as OtpPhase.Sending).phone
+                PhoneAuthHelper.enviarCodigo(
+                    phoneNumber = phoneNum,
+                    activity = activity,
+                    onCodeSent = { viewModel.onOtpSent() },
+                    onAutoVerified = { viewModel.onOtpAutoVerified() },
+                    onError = { viewModel.onOtpSendError(it) }
+                )
+            }
+            is OtpPhase.Resending -> {
+                val phoneNum = (otpPhase as OtpPhase.Resending).phone
+                PhoneAuthHelper.reenviarCodigo(
+                    phoneNumber = phoneNum,
+                    activity = activity,
+                    onCodeSent = { viewModel.onOtpSent() },
+                    onAutoVerified = { viewModel.onOtpAutoVerified() },
+                    onError = { viewModel.onOtpSendError(it) }
+                )
+            }
+            else -> {}
+        }
+    }
 
     LaunchedEffect(state.message) {
         if (state.message.isNotEmpty()) {
             snackbarHostState.showSnackbar(state.message)
         }
     }
+
+    OtpVerificationDialog(
+        otpPhase = otpPhase,
+        onVerify = { code -> viewModel.verifyOtpAndRegister(code) },
+        onResend = { viewModel.resendOtp() },
+        onCancel = { viewModel.cancelOtp() }
+    )
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -75,8 +104,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                 horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.Top
             ) {
-                // Encabezado
-                Column() {
+                Column {
                     Text(
                         text = "CARGOEXPRESS",
                         style = MaterialTheme.typography.headlineLarge.copy(
@@ -91,7 +119,6 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold
                     )
-
                     Text(
                         text = "Únete a nuestra red logística",
                         style = MaterialTheme.typography.bodySmall,
@@ -100,7 +127,6 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                     )
                 }
 
-                // Selección de rol
                 Text(
                     text = "¿Que función desempeñarás en CargoExpress?",
                     style = MaterialTheme.typography.bodyMedium,
@@ -118,53 +144,32 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isClient) Color.Yellow else Color.LightGray
                         ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp)
+                        modifier = Modifier.weight(1f).height(50.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Person,
-                                contentDescription = "Cliente",
-                                modifier = Modifier.size(20.dp),
-                                tint = Color.Black
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Person, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.Black)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Cliente", color = if (isClient) Color.Black else Color.DarkGray, fontWeight = FontWeight.Bold)
                         }
                     }
-
                     Button(
                         onClick = { isClient = false },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (!isClient) Color.Yellow else Color.LightGray
                         ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp)
+                        modifier = Modifier.weight(1f).height(50.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.AccountCircle,
-                                contentDescription = "Empresario",
-                                modifier = Modifier.size(20.dp),
-                                tint = Color.Black
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.AccountCircle, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.Black)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Empresario", color = if (!isClient) Color.Black else Color.DarkGray, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
 
-                // Validacion correo electrónico:
                 val isEmailValid = username.isBlank() || Patterns.EMAIL_ADDRESS.matcher(username).matches()
                 val showEmailError = username.isNotBlank() && !isEmailValid
 
-                // Validacion contraseña:
                 val hasUppercase = password.any { it.isUpperCase() }
                 val hasNumber = password.any { it.isDigit() }
                 val hasSpecialChar = password.any { !it.isLetterOrDigit() }
@@ -172,19 +177,14 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                 val isPasswordValid = password.isBlank() || (hasUppercase && hasNumber && hasSpecialChar && hasMinLength)
                 val showPasswordError = password.isNotBlank() && !isPasswordValid
 
-                // Validacion DNI y RUC:
                 val isDniValid = dni.length == 8 && dni.all { it.isDigit() }
                 val showDniError = dni.isNotBlank() && !isDniValid
-
                 val isRucValid = ruc.length == 11 && ruc.all { it.isDigit() }
                 val showRucError = ruc.isNotBlank() && !isRucValid
-
                 val isPhoneValid = phone.length == 9 && phone.all { it.isDigit() }
                 val showPhoneError = phone.isNotBlank() && !isPhoneValid
-
                 val idFieldValid = if (isClient) (dni.isNotBlank() && isDniValid) else (ruc.isNotBlank() && isRucValid)
 
-                // Validación general del formulario:
                 val isFormValid = username.isNotBlank() &&
                         password.isNotBlank() &&
                         name.isNotBlank() &&
@@ -197,23 +197,15 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                     value = username,
                     onValueChange = { username = it },
                     label = { Text("Correo electrónico") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.Email, contentDescription = "Correo electrónico") },
+                    leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
                     isError = showEmailError,
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
                     maxLines = 1,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 4.dp)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                 )
-
                 if (showEmailError) {
-                    Text(
-                        text = "El correo electrónico no es válido",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 12.dp, bottom = 12.dp)
-                    )
+                    Text("El correo electrónico no es válido", color = Color.Red, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 12.dp, bottom = 12.dp))
                 } else {
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -222,46 +214,39 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("Contraseña") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.Lock, contentDescription = "Contraseña") },
+                    leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = { IconButton(onClick = { showPassword = !showPassword }) { Icon(imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, contentDescription = null) } },
-                    supportingText = { if (showPasswordError) Text(text = "La contraseña debe tener mínimo 8 caracteres, una letra mayuscula, un caracter especial y un número", color = Color.Red) },
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, contentDescription = null)
+                        }
+                    },
+                    supportingText = {
+                        if (showPasswordError) Text("La contraseña debe tener mínimo 8 caracteres, una letra mayúscula, un carácter especial y un número", color = Color.Red)
+                    },
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
                     maxLines = 1,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                 )
 
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(if (isClient) "Nombre completo" else "Nombre de la empresa") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.Person, contentDescription = "Nombre") },
+                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
                     maxLines = 1,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                 )
 
                 var rawPhone by remember { mutableStateOf("") }
-
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Peru",
-                        modifier = Modifier
-                            .padding(end = 8.dp),
-                        color = Color.Gray
-                    )
-
+                    Text("Peru", modifier = Modifier.padding(end = 8.dp), color = Color.Gray)
                     OutlinedTextField(
                         value = formatPhone(rawPhone),
                         onValueChange = { input ->
@@ -269,7 +254,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                             phone = rawPhone
                         },
                         label = { Text("Número de celular") },
-                        leadingIcon = { Icon(imageVector = Icons.Filled.Phone, contentDescription = "Número de celular") },
+                        leadingIcon = { Icon(Icons.Filled.Phone, contentDescription = null) },
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         maxLines = 1,
@@ -279,70 +264,47 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-// Campos condicionales: DNI para Cliente
                 if (isClient) {
                     OutlinedTextField(
                         value = dni,
-                        onValueChange = {
-                            // aceptar sólo dígitos y hasta 8 caracteres
-                            dni = it.filter { ch -> ch.isDigit() }.take(8)
-                        },
+                        onValueChange = { dni = it.filter(Char::isDigit).take(8) },
                         label = { Text("DNI") },
-                        leadingIcon = { Icon(imageVector = Icons.Filled.Info, contentDescription = "DNI") },
+                        leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null) },
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         maxLines = 1,
                         isError = showDniError,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 4.dp)
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                     )
                     if (showDniError) {
-                        Text(
-                            text = "El DNI no es válido",
-                            color = Color.Red,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                        )
+                        Text("El DNI no es válido", color = Color.Red, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 16.dp, top = 4.dp))
                     } else {
                         Spacer(modifier = Modifier.height(12.dp))
                     }
                 } else {
-                    // Campos para Empresario: RUC
                     OutlinedTextField(
                         value = ruc,
-                        onValueChange = {
-                            // aceptar sólo dígitos y hasta 11 caracteres
-                            ruc = it.filter { ch -> ch.isDigit() }.take(11)
-                        },
+                        onValueChange = { ruc = it.filter(Char::isDigit).take(11) },
                         label = { Text("RUC") },
-                        leadingIcon = { Icon(imageVector = Icons.Filled.Info, contentDescription = "RUC") },
+                        leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null) },
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         maxLines = 1,
                         isError = showRucError,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 4.dp)
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                     )
                     if (showRucError) {
-                        Text(
-                            text = "El RUC no es válido",
-                            color = Color.Red,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                        )
+                        Text("El RUC no es válido", color = Color.Red, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 16.dp, top = 4.dp))
                     } else {
                         Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botón Crear Cuenta
                 Button(
                     onClick = {
                         if (isClient) {
-                            viewModel.signUpClient(
+                            viewModel.initiateClientRegistration(
                                 username = username,
                                 password = password,
                                 name = name,
@@ -350,21 +312,18 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                                 dni = dni
                             )
                         } else {
-                            viewModel.signUpEntrepreneur(
+                            viewModel.initiateEntrepreneurRegistration(
                                 username = username,
                                 password = password,
                                 name = name,
                                 phone = phone,
-                                ruc = ruc,
-                                logoImage = ""
+                                ruc = ruc
                             )
                         }
                     },
-                    enabled = isFormValid && !state.isLoading,
+                    enabled = isFormValid && !state.isLoading && otpPhase == OtpPhase.Idle,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Yellow),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Text(
                         "Crear Cuenta",
@@ -378,9 +337,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                 Text(
                     text = "¿Tienes una cuenta? Accede desde aquí",
                     color = Color(0xFF2196F3),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        textDecoration = TextDecoration.Underline
-                    ),
+                    style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.Underline),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { navController.navigate(Routes.Login.routes) },
@@ -389,10 +346,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
             }
 
             if (state.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
@@ -400,6 +354,4 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
     }
 }
 
-private fun formatPhone(phone: String): String {
-    return phone.chunked(3).joinToString("-")
-}
+private fun formatPhone(phone: String): String = phone.chunked(3).joinToString("-")

@@ -6,14 +6,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Routes
+import com.cargoexpress.app.core.common.UIState
 import com.cargoexpress.app.core.data.remote.user.ClientRequestDto
 import com.cargoexpress.app.core.data.remote.user.EntrepreneurRequestDto
 import com.cargoexpress.app.core.data.repository.ClientRepository
 import com.cargoexpress.app.core.data.repository.EntrepreneurRepository
 import com.cargoexpress.app.core.data.repository.LoginRepository
 import com.cargoexpress.app.core.data.repository.RegisterRepository
+import com.cargoexpress.app.core.presentation.phoneauth.OtpPhase
+import com.cargoexpress.app.core.presentation.phoneauth.PhoneAuthHelper
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import com.cargoexpress.app.core.common.UIState
 
 class RegisterViewModel(
     private val navController: NavController,
@@ -26,145 +30,172 @@ class RegisterViewModel(
     private val _state = MutableLiveData<UIState<Unit>>(UIState())
     val state: LiveData<UIState<Unit>> get() = _state
 
-    // Para cliente
-    fun signUpClient(
+    private val _otpPhase = MutableStateFlow<OtpPhase>(OtpPhase.Idle)
+    val otpPhase: StateFlow<OtpPhase> = _otpPhase
+
+    // Pending registration data
+    private var pendingUsername = ""
+    private var pendingPassword = ""
+    private var pendingName = ""
+    private var pendingPhone = ""
+    private var pendingDni = ""
+    private var pendingRuc = ""
+    private var pendingIsClient = true
+
+    fun initiateClientRegistration(
         username: String,
         password: String,
         name: String,
         phone: String,
         dni: String
     ) {
+        pendingUsername = username
+        pendingPassword = password
+        pendingName = name
+        pendingPhone = phone
+        pendingDni = dni
+        pendingIsClient = true
+        _otpPhase.value = OtpPhase.Sending(formatPhone(phone))
+    }
+
+    fun initiateEntrepreneurRegistration(
+        username: String,
+        password: String,
+        name: String,
+        phone: String,
+        ruc: String
+    ) {
+        pendingUsername = username
+        pendingPassword = password
+        pendingName = name
+        pendingPhone = phone
+        pendingRuc = ruc
+        pendingIsClient = false
+        _otpPhase.value = OtpPhase.Sending(formatPhone(phone))
+    }
+
+    fun onOtpSent() {
+        val phone = when (val p = _otpPhase.value) {
+            is OtpPhase.Sending -> p.phone
+            is OtpPhase.Resending -> p.phone
+            else -> return
+        }
+        _otpPhase.value = OtpPhase.AwaitingCode(phone)
+    }
+
+    fun onOtpAutoVerified() {
+        proceedWithRegistration()
+    }
+
+    fun onOtpSendError(error: String) {
+        _otpPhase.value = OtpPhase.Idle
+        _state.value = UIState(message = "Error al enviar código: $error")
+        clearPendingData()
+    }
+
+    fun verifyOtpAndRegister(code: String) {
+        val awaiting = _otpPhase.value as? OtpPhase.AwaitingCode ?: return
+        _otpPhase.value = OtpPhase.Verifying
+        PhoneAuthHelper.verificarCodigo(
+            codigo = code,
+            onSuccess = { proceedWithRegistration() },
+            onError = {
+                _otpPhase.value = OtpPhase.AwaitingCode(awaiting.phone, error = "Código incorrecto. Intenta de nuevo.")
+            }
+        )
+    }
+
+    fun resendOtp() {
+        val phone = (_otpPhase.value as? OtpPhase.AwaitingCode)?.phone ?: return
+        _otpPhase.value = OtpPhase.Resending(phone)
+    }
+
+    fun cancelOtp() {
+        _otpPhase.value = OtpPhase.Idle
+        PhoneAuthHelper.reset()
+        clearPendingData()
+    }
+
+    private fun proceedWithRegistration() {
+        _otpPhase.value = OtpPhase.Idle
         _state.value = UIState(isLoading = true)
-
         viewModelScope.launch {
-            registerRepository.registerUser(username, password) { result ->
-                result.onSuccess { message ->
-                    loginAfterRegisterClient(username, password, name, phone, dni)
+            registerRepository.registerUser(pendingUsername, pendingPassword) { result ->
+                result.onSuccess {
+                    if (pendingIsClient) loginAfterRegisterClient()
+                    else loginAfterRegisterEntrepreneur()
                 }.onFailure { exception ->
-                    val message = exception.message ?: "Error desconocido"
-                    _state.value = UIState(isLoading = false, message = "Error en el registro de usuario: $message")
+                    _state.value = UIState(isLoading = false, message = "Error en el registro: ${exception.message}")
                 }
             }
         }
     }
 
-    // Para entrepreneur
-    fun signUpEntrepreneur(
-        username: String,
-        password: String,
-        name: String,
-        phone: String,
-        ruc: String,
-        logoImage: String
-    ) {
-        _state.value = UIState(isLoading = true)
-
+    private fun loginAfterRegisterClient() {
         viewModelScope.launch {
-            registerRepository.registerUser(username, password) { result ->
-                result.onSuccess { message ->
-                    loginAfterRegisterEntrepreneur(username, password, name, phone, ruc, logoImage)
-                }.onFailure { exception ->
-                    val message = exception.message ?: "Error desconocido"
-                    _state.value = UIState(isLoading = false, message = "Error en el registro de usuario: $message")
-                }
-            }
-        }
-    }
-
-    private fun loginAfterRegisterClient(
-        username: String,
-        password: String,
-        name: String,
-        phone: String,
-        dni: String
-    ) {
-        viewModelScope.launch {
-            loginRepository.signIn(username, password) { result ->
+            loginRepository.signIn(pendingUsername, pendingPassword) { result ->
                 result.onSuccess { loginResponse ->
-                    val userId = loginResponse.id
-                    val token = loginResponse.token
-                    createClient(userId, token, name, phone, dni)
+                    createClient(loginResponse.id, loginResponse.token)
                 }.onFailure { exception ->
-                    val message = exception.message ?: "Error desconocido"
-                    _state.value = UIState(isLoading = false, message = "Error al iniciar sesión después del registro: $message")
+                    _state.value = UIState(isLoading = false, message = "Error al iniciar sesión después del registro: ${exception.message}")
                 }
             }
         }
     }
 
-    private fun loginAfterRegisterEntrepreneur(
-        username: String,
-        password: String,
-        name: String,
-        phone: String,
-        ruc: String,
-        logoImage: String
-    ) {
+    private fun loginAfterRegisterEntrepreneur() {
         viewModelScope.launch {
-            loginRepository.signIn(username, password) { result ->
+            loginRepository.signIn(pendingUsername, pendingPassword) { result ->
                 result.onSuccess { loginResponse ->
-                    val userId = loginResponse.id
-                    val token = loginResponse.token
-                    createEntrepreneur(userId, token, name, phone, ruc, logoImage)
+                    createEntrepreneur(loginResponse.id, loginResponse.token)
                 }.onFailure { exception ->
-                    val message = exception.message ?: "Error desconocido"
-                    _state.value = UIState(isLoading = false, message = "Error al iniciar sesión después del registro: $message")
+                    _state.value = UIState(isLoading = false, message = "Error al iniciar sesión después del registro: ${exception.message}")
                 }
             }
         }
     }
 
-    private fun createClient(userId: Int, token: String, name: String, phone: String, dni: String) {
+    private fun createClient(userId: Int, token: String) {
         viewModelScope.launch {
-            val clientRequest = ClientRequestDto(
-                name = name,
-                phone = phone,
-                dni = dni,
-                userId = userId
-            )
-
-            clientRepository.createClient(clientRequest, token)
-                .onSuccess {
-                    _state.value = UIState(isLoading = false, message = "Usuario y cliente creados exitosamente")
-                    navController.navigate(Routes.Login.routes)
-                }
-                .onFailure { exception ->
-                    val message = exception.message ?: "Error desconocido"
-                    _state.value = UIState(isLoading = false, message = "Error al crear el cliente: $message")
-                }
+            clientRepository.createClient(
+                ClientRequestDto(name = pendingName, phone = pendingPhone, dni = pendingDni, userId = userId),
+                token
+            ).onSuccess {
+                _state.value = UIState(isLoading = false, message = "Cuenta creada exitosamente")
+                clearPendingData()
+                navController.navigate(Routes.Login.routes)
+            }.onFailure { exception ->
+                _state.value = UIState(isLoading = false, message = "Error al crear el cliente: ${exception.message}")
+            }
         }
     }
 
-    private fun createEntrepreneur(
-        userId: Int,
-        token: String,
-        name: String,
-        phone: String,
-        ruc: String,
-        logoImage: String
-    ) {
+    private fun createEntrepreneur(userId: Int, token: String) {
         viewModelScope.launch {
-            android.util.Log.d(
-                "RegisterViewModel",
-                "Creating entrepreneur with userId=$userId, logoImage=$logoImage"
-            )
-            val entrepreneurRequest = EntrepreneurRequestDto(
-                name = name,
-                phone = phone,
-                ruc = ruc,
-                logoImage = logoImage,
-                userId = userId
-            )
-
-            entrepreneurRepository.createEntrepreneur(entrepreneurRequest, token)
-                .onSuccess {
-                    _state.value = UIState(isLoading = false, message = "Usuario y entrepreneur creados exitosamente")
-                    navController.navigate(Routes.Login.routes)
-                }
-                .onFailure { exception: Throwable ->
-                    val message = exception.message ?: "Error desconocido"
-                    _state.value = UIState(isLoading = false, message = "Error al crear el entrepreneur: $message")
-                }
+            entrepreneurRepository.createEntrepreneur(
+                EntrepreneurRequestDto(name = pendingName, phone = pendingPhone, ruc = pendingRuc, logoImage = "", userId = userId),
+                token
+            ).onSuccess {
+                _state.value = UIState(isLoading = false, message = "Cuenta creada exitosamente")
+                clearPendingData()
+                navController.navigate(Routes.Login.routes)
+            }.onFailure { exception ->
+                _state.value = UIState(isLoading = false, message = "Error al crear el empresario: ${exception.message}")
+            }
         }
+    }
+
+    private fun clearPendingData() {
+        pendingUsername = ""
+        pendingPassword = ""
+        pendingName = ""
+        pendingPhone = ""
+        pendingDni = ""
+        pendingRuc = ""
+    }
+
+    private fun formatPhone(phone: String): String {
+        val digits = phone.filter(Char::isDigit)
+        return if (phone.startsWith("+")) "+$digits" else "+51$digits"
     }
 }
