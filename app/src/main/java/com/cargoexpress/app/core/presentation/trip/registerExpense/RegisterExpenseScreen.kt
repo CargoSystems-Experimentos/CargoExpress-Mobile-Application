@@ -39,7 +39,7 @@ fun RegisterExpenseScreen(
     var viaticsDescription by remember { mutableStateOf(viewModel.viaticsDescription) }
     var tollsAmount by remember { mutableStateOf("") }
     var tollsDescription by remember { mutableStateOf(viewModel.tollsDescription) }
-    var selectedCurrency by remember { mutableStateOf("USD") }
+    //var selectedCurrency by remember { mutableStateOf("USD") }
     var isLoading by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
@@ -79,34 +79,6 @@ fun RegisterExpenseScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Selector de moneda
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        "Moneda",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("USD", "PEN", "EUR").forEach { currency ->
-                            FilterChip(
-                                selected = selectedCurrency == currency,
-                                onClick = { selectedCurrency = currency },
-                                label = { Text(currency) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-            }
 
             // Combustible
             Card(
@@ -124,7 +96,7 @@ fun RegisterExpenseScreen(
                     OutlinedTextField(
                         value = fuelAmount,
                         onValueChange = { fuelAmount = it.filter { c -> c.isDigit() }.take(7) },
-                        label = { Text("Monto Combustible") },
+                        label = { Text("Monto Combustible (USD)") },
                         isError = !isFuelAmountValid,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp)
@@ -157,7 +129,7 @@ fun RegisterExpenseScreen(
                     OutlinedTextField(
                         value = viaticsAmount,
                         onValueChange = { viaticsAmount = it.filter { c -> c.isDigit() }.take(7) },
-                        label = { Text("Monto Viaticos") },
+                        label = { Text("Monto Viáticos (USD)") },
                         isError = !isViaticsAmountValid,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp)
@@ -190,7 +162,7 @@ fun RegisterExpenseScreen(
                     OutlinedTextField(
                         value = tollsAmount,
                         onValueChange = { tollsAmount = it.filter { c -> c.isDigit() }.take(7) },
-                        label = { Text("Monto Peajes") },
+                        label = { Text("Monto Peajes (USD)") },
                         isError = !isTollsAmountValid,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp)
@@ -231,11 +203,11 @@ fun RegisterExpenseScreen(
                     if (valid) {
                         isLoading = true
                         viewModel.fuelAmount = fuelAmount.toIntOrNull() ?: 0
-                        viewModel.fuelDescription = "$selectedCurrency - $fuelDescription"
+                        viewModel.fuelDescription = "USD - $fuelDescription"
                         viewModel.viaticsAmount = viaticsAmount.toIntOrNull() ?: 0
-                        viewModel.viaticsDescription = "$selectedCurrency - $viaticsDescription"
+                        viewModel.viaticsDescription = "USD - $viaticsDescription"
                         viewModel.tollsAmount = tollsAmount.toIntOrNull() ?: 0
-                        viewModel.tollsDescription = "$selectedCurrency - $tollsDescription"
+                        viewModel.tollsDescription = "USD - $tollsDescription"
 
                         viewModel.registerExpense { result ->
                             isLoading = false

@@ -118,7 +118,7 @@ fun StatisticsScreen(tripRepository: TripRepository, expenseRepository: ExpenseR
                             iconBg = Color(0xFFE8F5E9),
                             iconTint = Color(0xFF2E7D32),
                             label = "Total gastos",
-                            value = "S/. ${"%,d".format(totalExpenses)}"
+                            value = "$ ${"%,d".format(totalExpenses)}"
                         )
                     }
 
@@ -219,7 +219,7 @@ private fun ExpenseCategoryBarChart(
                         verticalArrangement = Arrangement.Bottom
                     ) {
                         Text(
-                            text = "S/.${"%,d".format(value)}",
+                            text = "$${"%,d".format(value)}",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -454,7 +454,7 @@ private fun RecentTripCard(trip: Trip, expenses: List<Expense>) {
                 if (tripTotal > 0) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Gastos: S/. ${"%,d".format(tripTotal)}",
+                        text = "Gastos: $ ${"%,d".format(tripTotal)}",
                         style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF2E7D32), fontWeight = FontWeight.SemiBold)
                     )
                 }

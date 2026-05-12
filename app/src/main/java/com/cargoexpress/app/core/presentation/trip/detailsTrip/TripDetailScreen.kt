@@ -292,7 +292,7 @@ fun ExpenseCard(expense: Expense) {
             ) {
                 Text("Total", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    "${expense.fuelAmount + expense.viaticsAmount + expense.tollsAmount}",
+                    "USD ${expense.fuelAmount + expense.viaticsAmount + expense.tollsAmount}",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
             }
@@ -323,7 +323,7 @@ fun ExpenseRow(
             Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(description, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
         }
-        Text("$amount", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
+        Text("USD $amount", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
     }
 }
 
