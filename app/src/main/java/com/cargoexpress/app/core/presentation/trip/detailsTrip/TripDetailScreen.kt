@@ -159,9 +159,9 @@ fun TripDetailScreen(
                         val vehicleModelState by viewModel.vehicleModel.collectAsState()
                         val clientNameState by viewModel.clientName.collectAsState()
 
-                        InfoItem(icon = Icons.Default.Person, title = "Conductor", content = driverNameState.ifBlank { "ID: ${t.driverId}" })
-                        InfoItem(icon = Icons.Default.DirectionsCar, title = "Vehículo", content = vehicleModelState.ifBlank { "ID: ${t.vehicleId}" })
-                        InfoItem(icon = Icons.Default.Person, title = "Cliente", content = clientNameState.ifBlank { "ID: ${t.clientId}" })
+                        InfoItem(icon = Icons.Default.Person, title = "Conductor", content = driverNameState.ifBlank { "Cargando..." })
+                        InfoItem(icon = Icons.Default.DirectionsCar, title = "Vehículo", content = vehicleModelState.ifBlank { "Cargando...}" })
+                        InfoItem(icon = Icons.Default.Person, title = "Cliente", content = clientNameState.ifBlank { "Cargando..." })
                     }
                 }
             } else {
