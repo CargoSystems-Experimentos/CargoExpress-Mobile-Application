@@ -14,8 +14,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cargoexpress.app.core.domain.Vehicle
 import com.cargoexpress.app.core.common.Resource
+import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 import androidx.navigation.NavController
-import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterVehicleScreen(
@@ -36,9 +36,9 @@ fun RegisterVehicleScreen(
     var volumeTouched by remember { mutableStateOf(false) }
 
     var isLoading by remember { mutableStateOf(false) }
-
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+    var showConfirmModal by remember { mutableStateOf(false) }
+    var confirmModalSuccess by remember { mutableStateOf(false) }
+    var confirmModalMessage by remember { mutableStateOf("") }
 
     // Validaciones
     val isModelValid = model.isNotBlank()
@@ -59,9 +59,7 @@ fun RegisterVehicleScreen(
 
     val isFormValid = isModelValid && isPlateValid && isTractorPlateValid && isMaxLoadValid && isVolumeValid
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
 
         Column(
             modifier = Modifier
@@ -245,27 +243,15 @@ fun RegisterVehicleScreen(
 
                         viewModel.registerVehicle { result ->
                             isLoading = false
-                            val message = if (result is Resource.Success && result.data != null) {
+                            if (result is Resource.Success && result.data != null) {
                                 onVehicleRegistered(result.data)
-                                model = ""
-                                plate = ""
-                                rawTractorPlate = ""
-                                maxLoad = ""
-                                volume = ""
-                                modelTouched = false
-                                plateTouched = false
-                                tractorTouched = false
-                                maxLoadTouched = false
-                                volumeTouched = false
-                                navController.navigate("vehicles")
-                                "Vehículo registrado correctamente"
+                                confirmModalSuccess = true
+                                confirmModalMessage = "Vehículo registrado correctamente"
                             } else {
-                                "No se pudo registrar el vehículo"
+                                confirmModalSuccess = false
+                                confirmModalMessage = "No se pudo registrar el vehículo"
                             }
-
-                            scope.launch {
-                                snackbarHostState.showSnackbar(message)
-                            }
+                            showConfirmModal = true
                         }
                     }
                 },
@@ -284,5 +270,29 @@ fun RegisterVehicleScreen(
                 )
             }
         }
+    }
+
+    if (showConfirmModal) {
+        ConfirmationModal(
+            isSuccess = confirmModalSuccess,
+            message = confirmModalMessage,
+            onConfirm = {
+                showConfirmModal = false
+                if (confirmModalSuccess) {
+                    model = ""
+                    plate = ""
+                    rawTractorPlate = ""
+                    maxLoad = ""
+                    volume = ""
+                    modelTouched = false
+                    plateTouched = false
+                    tractorTouched = false
+                    maxLoadTouched = false
+                    volumeTouched = false
+                    navController.navigate("vehicles")
+                }
+            },
+            onDismiss = { showConfirmModal = false }
+        )
     }
 }

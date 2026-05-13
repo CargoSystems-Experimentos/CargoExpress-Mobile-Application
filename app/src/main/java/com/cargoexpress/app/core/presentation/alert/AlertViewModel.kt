@@ -29,8 +29,22 @@ class AlertViewModel(
     private val _createSuccess = MutableStateFlow(false)
     val createSuccess: StateFlow<Boolean> = _createSuccess
 
+    private val _tripName = MutableStateFlow("")
+    val tripName: StateFlow<String> = _tripName
+
     init {
         loadAlerts()
+    }
+
+    fun loadTripName(tripId: Int) {
+        viewModelScope.launch {
+            val result = tripRepository.getTripById(tripId)
+            if (result is Resource.Success) {
+                _tripName.value = result.data?.name ?: "Viaje #$tripId"
+            } else {
+                _tripName.value = "Viaje #$tripId"
+            }
+        }
     }
 
     fun loadAlerts() {

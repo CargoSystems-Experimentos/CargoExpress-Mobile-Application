@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cargoexpress.app.core.domain.Driver
 import com.cargoexpress.app.core.common.Resource
+import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 import kotlinx.coroutines.launch
 import androidx.navigation.NavController
 
@@ -35,6 +36,9 @@ fun RegisterDriverScreen(
     var contactError by remember { mutableStateOf<String?>(null) }
 
     var isLoading by remember { mutableStateOf(false) }
+    var showConfirmModal by remember { mutableStateOf(false) }
+    var confirmModalSuccess by remember { mutableStateOf(false) }
+    var confirmModalMessage by remember { mutableStateOf("") }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -255,22 +259,15 @@ fun RegisterDriverScreen(
 
                         viewModel.registerDriver { result ->
                             isLoading = false
-                            val message = if (result is Resource.Success && result.data != null) {
+                            if (result is Resource.Success && result.data != null) {
                                 onDriverRegistered(result.data)
-
-                                name = ""
-                                dni = ""
-                                license = ""
-                                contactNumber = ""
-                                navController.navigate("drivers")
-                                "Conductor registrado correctamente"
+                                confirmModalSuccess = true
+                                confirmModalMessage = "Conductor registrado correctamente"
                             } else {
-                                "No se pudo registrar al conductor"
+                                confirmModalSuccess = false
+                                confirmModalMessage = "No se pudo registrar al conductor"
                             }
-
-                            scope.launch {
-                                snackbarHostState.showSnackbar(message)
-                            }
+                            showConfirmModal = true
                         }
                     } else {
                         scope.launch {
@@ -293,6 +290,24 @@ fun RegisterDriverScreen(
                 )
             }
         }
+    }
+
+    if (showConfirmModal) {
+        ConfirmationModal(
+            isSuccess = confirmModalSuccess,
+            message = confirmModalMessage,
+            onConfirm = {
+                showConfirmModal = false
+                if (confirmModalSuccess) {
+                    name = ""
+                    dni = ""
+                    license = ""
+                    contactNumber = ""
+                    navController.navigate("drivers")
+                }
+            },
+            onDismiss = { showConfirmModal = false }
+        )
     }
 }
 

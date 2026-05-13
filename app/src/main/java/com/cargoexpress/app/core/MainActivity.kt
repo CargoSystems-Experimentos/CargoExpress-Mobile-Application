@@ -372,7 +372,7 @@ class MainActivity : ComponentActivity() {
                                     clientRepository = clientRepository
                                 )
                             )
-                            RegisterTripScreen(viewModel = registerTripViewModel) { trip ->
+                            RegisterTripScreen(viewModel = registerTripViewModel, navController = navController) { trip ->
 
                             }
                         }

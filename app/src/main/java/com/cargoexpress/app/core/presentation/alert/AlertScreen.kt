@@ -22,6 +22,7 @@ import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.data.repository.AlertRepository
 import com.cargoexpress.app.core.data.repository.TripRepository
 import com.cargoexpress.app.core.domain.Alert
+import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -39,21 +40,22 @@ fun AlertScreen(
     val alerts by viewModel.alerts.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val createSuccess by viewModel.createSuccess.collectAsState()
+    val tripName by viewModel.tripName.collectAsState()
     val isEntrepreneur = Constants.USER_ROLE == "ENTREPRENEUR"
 
     var showDialog by remember { mutableStateOf(false) }
     var alertTitle by remember { mutableStateOf("") }
     var alertDescription by remember { mutableStateOf("") }
     var ongoingTripId by remember { mutableStateOf<Int?>(null) }
+    var showConfirmModal by remember { mutableStateOf(false) }
+    var confirmModalSuccess by remember { mutableStateOf(false) }
+    var confirmModalMessage by remember { mutableStateOf("") }
 
     LaunchedEffect(tripId) {
+        viewModel.loadTripName(tripId)
         when (val result = tripRepository.getOngoingTripByTripId(tripId)) {
-            is Resource.Success -> {
-                ongoingTripId = result.data?.id
-            }
-            is Resource.Error -> {
-                ongoingTripId = null
-            }
+            is Resource.Success -> { ongoingTripId = result.data?.id }
+            is Resource.Error -> { ongoingTripId = null }
         }
     }
 
@@ -71,13 +73,16 @@ fun AlertScreen(
             alertTitle = ""
             alertDescription = ""
             viewModel.resetCreateSuccess()
+            confirmModalSuccess = true
+            confirmModalMessage = "Alerta registrada correctamente"
+            showConfirmModal = true
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Alertas – Viaje #$tripId") },
+                title = { Text("Alertas – ${tripName.ifBlank { "Viaje #$tripId" }}") },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigate("gps/$tripId") }) {
                         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Volver al GPS")
@@ -142,6 +147,15 @@ fun AlertScreen(
         }
     }
 
+    if (showConfirmModal) {
+        ConfirmationModal(
+            isSuccess = confirmModalSuccess,
+            message = confirmModalMessage,
+            onConfirm = { showConfirmModal = false },
+            onDismiss = { showConfirmModal = false }
+        )
+    }
+
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { if (!uiState.isLoading) showDialog = false },
@@ -164,13 +178,6 @@ fun AlertScreen(
                         minLines = 3,
                         maxLines = 5
                     )
-                    if (uiState.message.isNotEmpty()) {
-                        Text(
-                            text = uiState.message,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
                 }
             },
             confirmButton = {
@@ -198,6 +205,15 @@ fun AlertScreen(
                 }
             }
         )
+    }
+
+    LaunchedEffect(uiState.message) {
+        if (uiState.message.isNotEmpty() && !uiState.isLoading) {
+            confirmModalSuccess = false
+            confirmModalMessage = uiState.message
+            showConfirmModal = true
+            showDialog = false
+        }
     }
 }
 

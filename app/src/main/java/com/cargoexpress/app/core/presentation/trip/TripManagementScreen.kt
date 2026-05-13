@@ -2,9 +2,11 @@ package com.cargoexpress.app.core.presentation.trip
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -39,6 +41,21 @@ fun TripManagementScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("Nombre") }
     var sortAscending by remember { mutableStateOf(true) }
+    var selectedStatus by remember { mutableStateOf<String?>(null) }
+
+    val displayedTrips = remember(uiState.data, ongoingTrips, selectedStatus) {
+        val base = uiState.data ?: emptyList()
+        if (selectedStatus == null) base
+        else base.filter { trip ->
+            val ongoing = ongoingTrips.find { it.tripId == trip.id }
+            val status = when {
+                ongoing == null -> "SIN INICIAR"
+                ongoing.state == "FINALIZADO" -> "FINALIZADO"
+                else -> "EN PROGRESO"
+            }
+            status == selectedStatus
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadOngoingTrips(Constants.TOKEN)
@@ -137,6 +154,23 @@ fun TripManagementScreen(
                 )
             }
 
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                listOf(null, "SIN INICIAR", "EN PROGRESO", "FINALIZADO").forEach { status ->
+                    FilterChip(
+                        selected = selectedStatus == status,
+                        onClick = { selectedStatus = if (selectedStatus == status) null else status },
+                        label = { Text(status ?: "Todos") }
+                    )
+                }
+            }
+
             when {
                 uiState.isLoading -> {
                     Box(
@@ -157,7 +191,7 @@ fun TripManagementScreen(
 
                 else -> {
                     TripList(
-                        trips = uiState.data ?: emptyList(),
+                        trips = displayedTrips,
                         ongoingTrips = ongoingTrips,
                         navController = navController,
                         isDescending = !sortAscending

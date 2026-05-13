@@ -21,13 +21,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Constants
 import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.domain.Driver
 import com.cargoexpress.app.core.domain.Trip
 import com.cargoexpress.app.core.domain.Vehicle
+import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -37,11 +38,11 @@ import java.util.Locale
 @Composable
 fun RegisterTripScreen(
     viewModel: RegisterTripViewModel = viewModel(),
+    navController: NavController,
     onTripRegistered: (Trip) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
 
     var name by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("") }
@@ -62,6 +63,10 @@ fun RegisterTripScreen(
     var clientDniError by remember { mutableStateOf("") }
     var isDniValidating by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
+    var showConfirmModal by remember { mutableStateOf(false) }
+    var confirmModalSuccess by remember { mutableStateOf(false) }
+    var confirmModalMessage by remember { mutableStateOf("") }
+    var registeredTrip by remember { mutableStateOf<Trip?>(null) }
 
     var nameTouched by remember { mutableStateOf(false) }
     var typeTouched by remember { mutableStateOf(false) }
@@ -111,7 +116,6 @@ fun RegisterTripScreen(
                 isClientValid
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
             Button(
                 onClick = {
@@ -131,36 +135,16 @@ fun RegisterTripScreen(
 
                         viewModel.registerTrip { result ->
                             isLoading = false
-                            val message = if (result is Resource.Success && result.data != null) {
+                            if (result is Resource.Success && result.data != null) {
+                                registeredTrip = result.data
                                 onTripRegistered(result.data)
-                                name = ""
-                                type = ""
-                                weight = ""
-                                loadLocation = ""
-                                unloadLocation = ""
-                                loadCalendar = null
-                                unloadCalendar = null
-                                driverId = 0
-                                driverName = ""
-                                vehicleId = 0
-                                vehicleName = ""
-                                clientDni = ""
-                                resolvedClientId = 0
-                                clientFoundName = ""
-                                clientDniError = ""
-                                nameTouched = false
-                                typeTouched = false
-                                weightTouched = false
-                                loadLocationTouched = false
-                                unloadLocationTouched = false
-                                "Viaje registrado correctamente"
+                                confirmModalSuccess = true
+                                confirmModalMessage = "Viaje registrado correctamente"
                             } else {
-                                "No se pudo registrar el viaje"
+                                confirmModalSuccess = false
+                                confirmModalMessage = "No se pudo registrar el viaje"
                             }
-
-                            scope.launch {
-                                snackbarHostState.showSnackbar(message)
-                            }
+                            showConfirmModal = true
                         }
                     }
                 },
@@ -581,6 +565,40 @@ fun RegisterTripScreen(
                 }
             }
         }
+    }
+
+    if (showConfirmModal) {
+        ConfirmationModal(
+            isSuccess = confirmModalSuccess,
+            message = confirmModalMessage,
+            onConfirm = {
+                showConfirmModal = false
+                if (confirmModalSuccess) {
+                    name = ""
+                    type = ""
+                    weight = ""
+                    loadLocation = ""
+                    unloadLocation = ""
+                    loadCalendar = null
+                    unloadCalendar = null
+                    driverId = 0
+                    driverName = ""
+                    vehicleId = 0
+                    vehicleName = ""
+                    clientDni = ""
+                    resolvedClientId = 0
+                    clientFoundName = ""
+                    clientDniError = ""
+                    nameTouched = false
+                    typeTouched = false
+                    weightTouched = false
+                    loadLocationTouched = false
+                    unloadLocationTouched = false
+                    navController.navigate("trips")
+                }
+            },
+            onDismiss = { showConfirmModal = false }
+        )
     }
 
     if (showDriverModal) {

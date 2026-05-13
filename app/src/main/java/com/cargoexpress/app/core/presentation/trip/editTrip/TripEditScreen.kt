@@ -29,6 +29,7 @@ import com.cargoexpress.app.core.data.repository.TripRepository
 import com.cargoexpress.app.core.data.repository.VehicleRepository
 import com.cargoexpress.app.core.domain.Driver
 import com.cargoexpress.app.core.domain.Vehicle
+import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -51,7 +52,6 @@ fun TripEditScreen(
     val viewModel: TripEditViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
     var name by remember { mutableStateOf("") }
@@ -74,6 +74,9 @@ fun TripEditScreen(
     var showDriverModal by remember { mutableStateOf(false) }
     var showVehicleModal by remember { mutableStateOf(false) }
     var preloadApplied by remember { mutableStateOf(false) }
+    var showConfirmModal by remember { mutableStateOf(false) }
+    var confirmModalSuccess by remember { mutableStateOf(false) }
+    var confirmModalMessage by remember { mutableStateOf("") }
 
     val dateTimeFormat = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
     val loadDateText = loadCalendar?.time?.let { dateTimeFormat.format(it) } ?: ""
@@ -112,7 +115,6 @@ fun TripEditScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
             Button(
                 onClick = {
@@ -132,12 +134,13 @@ fun TripEditScreen(
                         viewModel.updateTrip { result ->
                             isLoading = false
                             if (result is Resource.Success) {
-                                navController.popBackStack()
+                                confirmModalSuccess = true
+                                confirmModalMessage = "Viaje actualizado correctamente"
                             } else {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("No se pudo actualizar el viaje")
-                                }
+                                confirmModalSuccess = false
+                                confirmModalMessage = "No se pudo actualizar el viaje"
                             }
+                            showConfirmModal = true
                         }
                     }
                 },
@@ -367,6 +370,18 @@ fun TripEditScreen(
                 }
             }
         }
+    }
+
+    if (showConfirmModal) {
+        ConfirmationModal(
+            isSuccess = confirmModalSuccess,
+            message = confirmModalMessage,
+            onConfirm = {
+                showConfirmModal = false
+                if (confirmModalSuccess) navController.popBackStack()
+            },
+            onDismiss = { showConfirmModal = false }
+        )
     }
 
     if (showDriverModal) {
