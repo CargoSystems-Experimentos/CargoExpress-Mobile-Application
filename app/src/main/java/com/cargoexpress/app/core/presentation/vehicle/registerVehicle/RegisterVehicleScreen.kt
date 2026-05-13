@@ -1,8 +1,9 @@
 package com.cargoexpress.app.core.presentation.vehicle.registerVehicle
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,22 +23,41 @@ fun RegisterVehicleScreen(
     viewModel: RegisterVehicleViewModel = viewModel(),
     onVehicleRegistered: (Vehicle) -> Unit
 ) {
-    var model by remember { mutableStateOf(viewModel.model) }
-    var plate by remember { mutableStateOf(viewModel.plate) }
-    var tractorPlate by remember { mutableStateOf(viewModel.tractorPlate) }
-    var maxLoad by remember { mutableStateOf(viewModel.maxLoad.toString()) }
-    var volume by remember { mutableStateOf(viewModel.volume.toString()) }
+    var model by remember { mutableStateOf("") }
+    var plate by remember { mutableStateOf("") }
+    var rawTractorPlate by remember { mutableStateOf("") }
+    var maxLoad by remember { mutableStateOf("") }
+    var volume by remember { mutableStateOf("") }
 
-    var modelError by remember { mutableStateOf<String?>(null) }
-    var plateError by remember { mutableStateOf<String?>(null) }
-    var tractorPlateError by remember { mutableStateOf<String?>(null) }
-    var maxLoadError by remember { mutableStateOf<String?>(null) }
-    var volumeError by remember { mutableStateOf<String?>(null) }
+    var modelTouched by remember { mutableStateOf(false) }
+    var plateTouched by remember { mutableStateOf(false) }
+    var tractorTouched by remember { mutableStateOf(false) }
+    var maxLoadTouched by remember { mutableStateOf(false) }
+    var volumeTouched by remember { mutableStateOf(false) }
 
     var isLoading by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    // Validaciones
+    val isModelValid = model.isNotBlank()
+    val showModelError = modelTouched && !isModelValid
+
+    val isPlateValid = plate.matches(Regex("[A-Z0-9]{3}-[A-Z0-9]{3}")) && plate.firstOrNull()?.isLetter() == true
+    val showPlateError = plateTouched && !isPlateValid
+
+    val tractorPlateFormatted = "X" + rawTractorPlate
+    val isTractorPlateValid = tractorPlateFormatted.matches(Regex("X[A-Z0-9]{2}-[A-Z0-9]{3}"))
+    val showTractorPlateError = tractorTouched && !isTractorPlateValid
+
+    val isMaxLoadValid = maxLoad.isNotBlank() && maxLoad.toFloatOrNull() != null && maxLoad.toFloatOrNull()!! > 0
+    val showMaxLoadError = maxLoadTouched && !isMaxLoadValid
+
+    val isVolumeValid = volume.isNotBlank() && volume.toFloatOrNull() != null && volume.toFloatOrNull()!! > 0
+    val showVolumeError = volumeTouched && !isVolumeValid
+
+    val isFormValid = isModelValid && isPlateValid && isTractorPlateValid && isMaxLoadValid && isVolumeValid
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -45,152 +65,224 @@ fun RegisterVehicleScreen(
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.Top
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                }
-                Text(
-                    text = "Registrar Nuevo Vehículo",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
+            // Título
+            Text(
+                text = "Registrar Vehículo",
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            InputField(
+            // Modelo
+            OutlinedTextField(
                 value = model,
-                label = "Modelo",
                 onValueChange = {
                     model = it
-                    modelError = if (it.isBlank()) "El modelo es obligatorio" else null
+                    modelTouched = true
                 },
-                error = modelError
+                label = { Text("Modelo") },
+                leadingIcon = { Icon(imageVector = Icons.Filled.DirectionsCar, contentDescription = "Modelo") },
+                shape = RoundedCornerShape(16.dp),
+                singleLine = true,
+                maxLines = 1,
+                isError = showModelError,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
             )
-            InputField(
+            if (showModelError) {
+                Text(
+                    text = "El modelo es obligatorio",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Left
+                )
+            } else {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Placa (XXX-XXX)
+            OutlinedTextField(
                 value = plate,
-                label = "Placa",
                 onValueChange = {
-                    plate = it
-                    plateError = if (it.isBlank()) "La placa es obligatoria" else null
+                    val input = it.uppercase().filter { char -> char.isLetterOrDigit() || char == '-' }
+                    plate = if (input.length <= 7) input else input.take(7)
+                    plateTouched = true
                 },
-                error = plateError
+                label = { Text("Placa (ej: A1B-000)") },
+                leadingIcon = { Icon(imageVector = Icons.Filled.Info, contentDescription = "Placa") },
+                shape = RoundedCornerShape(16.dp),
+                singleLine = true,
+                maxLines = 1,
+                isError = showPlateError,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
             )
-            InputField(
-                value = tractorPlate,
-                label = "Placa del Tractor",
+            if (showPlateError) {
+                Text(
+                    text = "La placa es inválida. Debe empezar con una letra y seguir el formato XXX-XXX",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Left
+                )
+            } else {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Placa del Tractor (X00-000)
+            OutlinedTextField(
+                value = tractorPlateFormatted,
                 onValueChange = {
-                    tractorPlate = it
-                    tractorPlateError = if (it.isBlank()) "La placa del tractor es obligatoria" else null
+                    val withoutX = it.removePrefix("X")
+                    rawTractorPlate = withoutX.filter { char -> char.isLetterOrDigit() || char == '-' }.take(6)
+                    tractorTouched = true
                 },
-                error = tractorPlateError
+                label = { Text("Placa Tractor (ej: X11-111)") },
+                leadingIcon = { Icon(imageVector = Icons.Filled.LocalShipping, contentDescription = "Placa Tractor") },
+                shape = RoundedCornerShape(16.dp),
+                singleLine = true,
+                maxLines = 1,
+                isError = showTractorPlateError,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
             )
-            InputField(
+            if (showTractorPlateError) {
+                Text(
+                    text = "La placa del tractor es inválida. Debe empezar con X y seguir el formato X00-000",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Left
+                )
+            } else {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Carga Máxima (kg)
+            OutlinedTextField(
                 value = maxLoad,
-                label = "Carga Máxima",
                 onValueChange = {
-                    maxLoad = it
-                    maxLoadError = if (it.isBlank() || it.toFloatOrNull() == null) "La carga máxima es obligatoria y debe ser un número" else null
+                    maxLoad = it.filter { char -> char.isDigit() || char == '.' }
+                    maxLoadTouched = true
                 },
-                error = maxLoadError
+                label = { Text("Carga Máxima (kg)") },
+                leadingIcon = { Icon(imageVector = Icons.Filled.Scale, contentDescription = "Carga Máxima") },
+                shape = RoundedCornerShape(16.dp),
+                singleLine = true,
+                maxLines = 1,
+                isError = showMaxLoadError,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
             )
-            InputField(
+            if (showMaxLoadError) {
+                Text(
+                    text = "La carga máxima es obligatoria y debe ser mayor a 0",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Left
+                )
+            } else {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Volumen (m³)
+            OutlinedTextField(
                 value = volume,
-                label = "Volumen",
                 onValueChange = {
-                    volume = it
-                    volumeError = if (it.isBlank() || it.toFloatOrNull() == null) "El volumen es obligatorio y debe ser un número" else null
+                    volume = it.filter { char -> char.isDigit() || char == '.' }
+                    volumeTouched = true
                 },
-                error = volumeError
+                label = { Text("Volumen (m³)") },
+                leadingIcon = { Icon(imageVector = Icons.Filled.ViewWeek, contentDescription = "Volumen") },
+                shape = RoundedCornerShape(16.dp),
+                singleLine = true,
+                maxLines = 1,
+                isError = showVolumeError,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
+            if (showVolumeError) {
+                Text(
+                    text = "El volumen es obligatorio y debe ser mayor a 0",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Left
+                )
+            } else {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             if (isLoading) {
-                CircularProgressIndicator(color = Color(0xFFFFEB3B))
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    color = Color(0xFFFFEB3B)
+                )
             }
 
             Button(
                 onClick = {
-                    modelError = if (model.isBlank()) "El modelo es obligatorio" else null
-                    plateError = if (plate.isBlank()) "La placa es obligatoria" else null
-                    tractorPlateError = if (tractorPlate.isBlank()) "La placa del tractor es obligatoria" else null
-                    maxLoadError = if (maxLoad.isBlank() || maxLoad.toFloatOrNull() == null) "La carga máxima es obligatoria y debe ser un número" else null
-                    volumeError = if (volume.isBlank() || volume.toFloatOrNull() == null) "El volumen es obligatorio y debe ser un número" else null
-
-                    val valid = listOf(modelError, plateError, tractorPlateError, maxLoadError, volumeError).all { it == null }
-
-                    if (valid) {
+                    if (isFormValid) {
                         isLoading = true
                         viewModel.model = model
                         viewModel.plate = plate
-                        viewModel.tractorPlate = tractorPlate
-                        viewModel.maxLoad = maxLoad.toFloat()
-                        viewModel.volume = volume.toFloat()
+                        viewModel.tractorPlate = tractorPlateFormatted
+                        viewModel.maxLoad = maxLoad.toFloatOrNull() ?: 0f
+                        viewModel.volume = volume.toFloatOrNull() ?: 0f
 
                         viewModel.registerVehicle { result ->
                             isLoading = false
                             val message = if (result is Resource.Success && result.data != null) {
                                 onVehicleRegistered(result.data)
-
                                 model = ""
                                 plate = ""
-                                tractorPlate = ""
+                                rawTractorPlate = ""
                                 maxLoad = ""
                                 volume = ""
-                                navController.navigate("vehicles") // Navigate to VehicleListScreen
-                                "Vehiculo registrado correctamente"
+                                modelTouched = false
+                                plateTouched = false
+                                tractorTouched = false
+                                maxLoadTouched = false
+                                volumeTouched = false
+                                navController.navigate("vehicles")
+                                "Vehículo registrado correctamente"
                             } else {
-                                "No se pudo registrar el vehiculo"
+                                "No se pudo registrar el vehículo"
                             }
 
                             scope.launch {
                                 snackbarHostState.showSnackbar(message)
                             }
                         }
-                    } else {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Por favor, completa todos los campos correctamente")
-                        }
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(70.dp)
                     .padding(top = 16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
-                enabled = !isLoading
+                enabled = isFormValid && !isLoading
             ) {
-                Text("Register Vehicle", color = Color.Black)
+                Text(
+                    "Registrar Vehículo",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
             }
-        }
-    }
-}
-
-@Composable
-fun InputField(value: String, label: String, onValueChange: (String) -> Unit, error: String?) {
-    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = { Text(label) },
-            modifier = Modifier.fillMaxWidth(),
-            isError = error != null
-        )
-        if (error != null) {
-            Text(
-                text = error,
-                color = Color.Red,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-            )
         }
     }
 }

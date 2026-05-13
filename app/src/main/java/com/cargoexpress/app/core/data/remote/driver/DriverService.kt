@@ -8,8 +8,14 @@ import retrofit2.http.Body
 import retrofit2.http.Path
 
 interface DriverService {
-    @GET("entrepreneurs/{entrepreneurId}/drivers")
+    @GET("drivers/entrepreneur/{entrepreneurId}")
     suspend fun getDrivers(
+        @Header("Authorization") token: String,
+        @Path("entrepreneurId") entrepreneurId: Int
+    ): Response<List<DriverDto>>
+
+    @GET("entrepreneur/{entrepreneurId}")
+    suspend fun getDriversDirectByEntrepreneur(
         @Header("Authorization") token: String,
         @Path("entrepreneurId") entrepreneurId: Int
     ): Response<List<DriverDto>>

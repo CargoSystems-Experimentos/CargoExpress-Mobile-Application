@@ -3,11 +3,11 @@ package com.cargoexpress.app.core.data.remote.expense
 import com.cargoexpress.app.core.domain.Expense
 
 data class ExpenseDto(
-    val fuelAmount: Double,
+    val fuelAmount: Int,
     val fuelDescription: String,
-    val viaticsAmount: Double,
+    val viaticsAmount: Int,
     val viaticsDescription: String,
-    val tollsAmount: Double,
+    val tollsAmount: Int,
     val tollsDescription: String,
     val tripId: Int
 )

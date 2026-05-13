@@ -5,13 +5,19 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cargoexpress.app.core.data.repository.TripRepository
+import com.cargoexpress.app.core.data.repository.DriverRepository
+import com.cargoexpress.app.core.data.repository.VehicleRepository
 import com.cargoexpress.app.core.domain.Trip
 import kotlinx.coroutines.launch
 import com.cargoexpress.app.core.common.Constants
 import com.cargoexpress.app.core.common.Resource
+import com.cargoexpress.app.core.domain.Driver
+import com.cargoexpress.app.core.domain.Vehicle
 
 class RegisterTripViewModel(
     private val tripRepository: TripRepository,
+    private val driverRepository: DriverRepository,
+    private val vehicleRepository: VehicleRepository
 ) : ViewModel() {
     var name: String = ""
     var type: String = ""
@@ -47,4 +53,14 @@ class RegisterTripViewModel(
             onResult(result)
         }
     }
+
+    suspend fun getDrivers(entrepreneurId: Int): Resource<List<Driver>> {
+        return driverRepository.getDrivers(Constants.TOKEN, entrepreneurId)
+    }
+
+    suspend fun getVehicles(entrepreneurId: Int): Resource<List<Vehicle>> {
+        return vehicleRepository.getVehicleList(Constants.TOKEN, entrepreneurId)
+    }
+
+
 }

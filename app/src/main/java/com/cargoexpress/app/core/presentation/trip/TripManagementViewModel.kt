@@ -33,7 +33,11 @@ class TripManagementViewModel(
     private fun loadTrips() {
         viewModelScope.launch {
             _uiState.value = UIState(isLoading = true)
-            val result = tripRepository.getTrips(Constants.TOKEN, Constants.ENTREPRENEUR_ID)
+            val result = if (Constants.USER_ROLE == "CLIENT") {
+                tripRepository.getTripsByClientId(Constants.TOKEN, Constants.CLIENT_ID)
+            } else {
+                tripRepository.getTrips(Constants.TOKEN, Constants.ENTREPRENEUR_ID)
+            }
             _uiState.value = when (result) {
                 is Resource.Success -> {
                     allTrips = result.data ?: emptyList()
@@ -66,10 +70,10 @@ class TripManagementViewModel(
     private fun filterTrips(query: String, selectedFilter: String) {
         val filteredTrips = allTrips.filter { trip ->
             when (selectedFilter) {
-                "ID" -> trip.id.toString().contains(query, ignoreCase = true)
-                "Nombre" -> trip.name.contains(query, ignoreCase = true)  // CAMBIO: tripName → name
-                "Fecha" -> trip.loadDate.toString().contains(query, ignoreCase = true) ||
-                        trip.unloadDate.toString().contains(query, ignoreCase = true)
+                "Nombre" -> trip.name.contains(query, ignoreCase = true)
+                "Tipo" -> trip.type.contains(query, ignoreCase = true)
+                "Fecha" -> trip.loadDate.contains(query, ignoreCase = true) ||
+                        trip.unloadDate.contains(query, ignoreCase = true)
                 else -> false
             }
         }

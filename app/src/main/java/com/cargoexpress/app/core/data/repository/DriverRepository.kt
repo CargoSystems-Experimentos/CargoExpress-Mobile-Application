@@ -16,12 +16,25 @@ class DriverRepository(private val driverService: DriverService) {
             return@withContext Resource.Error(message = "Token is required")
         }
         return@withContext try {
-            val response = driverService.getDrivers("Bearer $token", entrepreneurId)
-            if (response.isSuccessful) {
-                val drivers = response.body()?.map { it.toDriver() } ?: emptyList()
-                Resource.Success(data = drivers)
+            val bearerToken = "Bearer $token"
+            val primaryResponse = driverService.getDrivers(bearerToken, entrepreneurId)
+
+            val primaryDrivers = if (primaryResponse.isSuccessful) {
+                primaryResponse.body()?.map { it.toDriver() } ?: emptyList()
             } else {
-                Resource.Error(message = "Failed to fetch drivers")
+                emptyList()
+            }
+
+            if (primaryDrivers.isNotEmpty()) {
+                Resource.Success(data = primaryDrivers)
+            } else {
+                val fallbackResponse = driverService.getDriversDirectByEntrepreneur(bearerToken, entrepreneurId)
+                if (fallbackResponse.isSuccessful) {
+                    val fallbackDrivers = fallbackResponse.body()?.map { it.toDriver() } ?: emptyList()
+                    Resource.Success(data = fallbackDrivers)
+                } else {
+                    Resource.Error(message = "Failed to fetch drivers: ${fallbackResponse.code()}")
+                }
             }
         } catch (e: Exception) {
             Resource.Error(message = e.message ?: "An unknown error occurred")

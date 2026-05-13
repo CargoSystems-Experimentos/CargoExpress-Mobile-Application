@@ -1,6 +1,5 @@
 package com.cargoexpress.app.core.data.remote.vehicle
 
-import com.cargoexpress.app.core.data.remote.driver.DriverDto
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -9,8 +8,14 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface VehicleService {
-    @GET("entrepreneurs/{entrepreneurId}/vehicles")
+    @GET("vehicles/entrepreneur/{entrepreneurId}")
     suspend fun getVehicles(
+        @Header("Authorization") token: String,
+        @Path("entrepreneurId") entrepreneurId: Int
+    ): Response<List<VehicleDto>>
+
+    @GET("entrepreneur/{entrepreneurId}/vehicles")
+    suspend fun getVehiclesDirectByEntrepreneur(
         @Header("Authorization") token: String,
         @Path("entrepreneurId") entrepreneurId: Int
     ): Response<List<VehicleDto>>

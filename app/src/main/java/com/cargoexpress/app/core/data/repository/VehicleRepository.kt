@@ -17,16 +17,18 @@ class VehicleRepository(private val vehicleService: VehicleService) {
         if (token.isBlank()) {
             return@withContext Resource.Error(message = "Token is required")
         }
-        val bearerToken = "Bearer $token"
-        val response = vehicleService.getVehicles(bearerToken, entrepreneurId)
-        if (response.isSuccessful) {
-            response.body()?.let { vehicleDto ->
-                val vehicles = vehicleDto.map { it.toVehicle() }
-                return@withContext Resource.Success(vehicles)
+        return@withContext try {
+            val response = vehicleService.getVehicles("Bearer $token", entrepreneurId)
+
+            if (response.isSuccessful) {
+                val vehicles = response.body()?.map { it.toVehicle() } ?: emptyList()
+                Resource.Success(data = vehicles)
+            } else {
+                Resource.Error(message = "Failed to fetch vehicles: ${response.code()}")
             }
-            return@withContext Resource.Error(message = "Vehicles not found")
+        } catch (e: Exception) {
+            Resource.Error(message = e.message ?: "An unknown error occurred")
         }
-        return@withContext Resource.Error(response.message())
     }
 
     suspend fun addVehicle(vehicle: Vehicle): Resource<Vehicle> = withContext(Dispatchers.IO) {

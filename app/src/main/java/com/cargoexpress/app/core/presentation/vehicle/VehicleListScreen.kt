@@ -1,11 +1,12 @@
 package com.cargoexpress.app.core.presentation.vehicle
 
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +24,8 @@ import com.cargoexpress.app.core.common.Constants
 @Composable
 fun VehicleListScreen(viewModel: VehicleListViewModel = viewModel(), navController: NavController) {
     var searchQuery by remember { mutableStateOf("") }
+    var filterByModel by remember { mutableStateOf(true) }
+    var sortAscending by remember { mutableStateOf(true) }
     val state by viewModel.state
 
     LaunchedEffect(Unit) {
@@ -30,45 +33,106 @@ fun VehicleListScreen(viewModel: VehicleListViewModel = viewModel(), navControll
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            // Título
+            Text(
+                text = "Mis Vehículos",
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
 
-            // Campo de búsqueda
-            TextField(
+            // Campo de búsqueda mejorado
+            OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
+                label = { Text("Buscar vehículo") },
+                leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = "Buscar") },
+                shape = RoundedCornerShape(16.dp),
+                singleLine = true,
+                maxLines = 1,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                placeholder = { Text("Buscar vehículo") },
-                colors = TextFieldDefaults.textFieldColors(containerColor = Color(0xFFF1F5F9)),
-                singleLine = true
+                    .padding(bottom = 12.dp)
             )
+
+            // Filtros y Ordenamiento
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Filtro por tipo
+                FilterChip(
+                    selected = filterByModel,
+                    onClick = { filterByModel = true },
+                    label = { Text("Modelo") },
+                    leadingIcon = { Icon(Icons.Filled.DirectionsCar, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                )
+                FilterChip(
+                    selected = !filterByModel,
+                    onClick = { filterByModel = false },
+                    label = { Text("Placa") },
+                    leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Botón de ordenamiento
+                FilterChip(
+                    selected = true,
+                    onClick = { sortAscending = !sortAscending },
+                    label = {
+                        Text(if (sortAscending) "↑ A-Z" else "↓ Z-A")
+                    },
+                    leadingIcon = { Icon(if (sortAscending) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                )
+            }
 
             // Lista de vehículos
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp)
+                    .padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val filteredVehicles = state.data?.filter { vehicle ->
-                    vehicle.model.contains(searchQuery, ignoreCase = true) ||
-                            vehicle.plate.contains(searchQuery, ignoreCase = true) ||
-                            vehicle.tractorPlate.contains(searchQuery, ignoreCase = true)
+                    if (filterByModel) {
+                        vehicle.model.contains(searchQuery, ignoreCase = true)
+                    } else {
+                        vehicle.plate.contains(searchQuery, ignoreCase = true)
+                    }
                 } ?: emptyList()
 
-                if (filteredVehicles.isEmpty()) {
+                val sortedVehicles = if (filterByModel) {
+                    if (sortAscending) {
+                        filteredVehicles.sortedBy { it.model }
+                    } else {
+                        filteredVehicles.sortedByDescending { it.model }
+                    }
+                } else {
+                    filteredVehicles
+                }
+
+                if (sortedVehicles.isEmpty()) {
                     item {
                         Text(
-                            text = "No se encontraron vehículos.",
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                            color = MaterialTheme.colorScheme.error
+                            text = "No se encontraron vehículos",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
                     }
                 } else {
-                    items(filteredVehicles.size) { index ->
-                        val vehicle = filteredVehicles[index]
+                    items(sortedVehicles.size) { index ->
+                        val vehicle = sortedVehicles[index]
                         VehicleItem(vehicle = vehicle)
                     }
                 }
@@ -81,9 +145,9 @@ fun VehicleListScreen(viewModel: VehicleListViewModel = viewModel(), navControll
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp),
-            containerColor = Color(0xFFF1F504)
+            containerColor = Color(0xFFFFEB3B)
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Add")
+            Icon(Icons.Default.Add, contentDescription = "Agregar vehículo", tint = Color.Black)
         }
     }
 }
@@ -93,45 +157,97 @@ fun VehicleItem(vehicle: Vehicle) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(8.dp),
+            .padding(vertical = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFFFFFFF),
-            contentColor = Color.Black
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+                .padding(16.dp)
         ) {
-
-            Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color(0xFFFFF8E1), RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.DirectionsCar,
+                        contentDescription = null,
+                        tint = Color(0xFFF9A825),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Modelo: ${vehicle.model}",
+                    text = vehicle.model,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color(0xFF333333)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Placa: ${vehicle.plate}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF666666)
-                )
-                Text(
-                    text = "Carga máxima: ${vehicle.maxLoad} kg",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF666666)
-                )
-                Text(
-                    text = "Volumen: ${vehicle.volume} m³",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF666666)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
+
+            HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            VehicleInfoItem(
+                icon = Icons.Filled.Info,
+                label = "Placa",
+                value = vehicle.plate
+            )
+            VehicleInfoItem(
+                icon = Icons.Filled.Scale,
+                label = "Carga máxima",
+                value = "${vehicle.maxLoad} kg"
+            )
+            VehicleInfoItem(
+                icon = Icons.Filled.ViewWeek,
+                label = "Volumen",
+                value = "${vehicle.volume} m³"
+            )
+        }
+    }
+}
+
+@Composable
+fun VehicleInfoItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

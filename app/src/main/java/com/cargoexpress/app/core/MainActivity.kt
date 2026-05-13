@@ -55,6 +55,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.cargoexpress.app.R
 import com.cargoexpress.app.core.data.remote.alert.AlertService
@@ -79,8 +80,11 @@ import com.cargoexpress.app.core.presentation.trip.registerExpense.RegisterExpen
 //import com.cargoexpress.app.core.presentation.record.registerExpense.RegisterExpenseScreen
 import com.cargoexpress.app.core.presentation.trip.registerTrip.RegisterTripScreen
 import com.cargoexpress.app.core.presentation.trip.registerTrip.RegisterTripViewModel
+import com.cargoexpress.app.core.presentation.trip.registerTrip.RegisterTripViewModelFactory
 import com.cargoexpress.app.core.presentation.vehicle.registerVehicle.RegisterVehicleScreen
 import com.cargoexpress.app.core.presentation.vehicle.registerVehicle.RegisterVehicleViewModel
+import com.cargoexpress.app.core.presentation.statistics.StatisticsScreen
+import androidx.compose.material.icons.filled.BarChart
 
 class MainActivity : ComponentActivity() {
 
@@ -163,6 +167,7 @@ class MainActivity : ComponentActivity() {
             .create(AlertService::class.java)
 
         val tripRepository = TripRepository(tripService, expenseService)
+        val clientRepository = ClientRepository(clientService)
 
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -206,6 +211,7 @@ class MainActivity : ComponentActivity() {
                 val entrepreneurRepository = EntrepreneurRepository(entrepreneurService)
                 val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
                 val currentRoute = navController.currentBackStackEntry?.destination?.route
+                val isGpsOrAlert = currentRoute == "gps/{tripId}" || currentRoute == "alert/{tripId}"
 
                 val ongoingTripRepository = OngoingTripRepository(ongoingTripService)
                 val alertRepository = AlertRepository(alertService)
@@ -230,15 +236,14 @@ class MainActivity : ComponentActivity() {
                 }
                 Scaffold(
                     topBar = {
-                        if (currentRoute != Routes.Login.routes && currentRoute != Routes.Register.routes) {
+                        if (currentRoute != Routes.Login.routes && currentRoute != Routes.Register.routes && !isGpsOrAlert) {
                             MyAppBar(onProfileClick = {
-                                // Navegar a la pantalla de perfil
                                 navController.navigate("profile")
                             })
                         }
                     },
                     bottomBar = {
-                        if (currentRoute != Routes.Login.routes && currentRoute != Routes.Register.routes) {
+                        if (currentRoute != Routes.Login.routes && currentRoute != Routes.Register.routes && !isGpsOrAlert) {
                             NavigationBar {
                                 NavigationBarItem(
                                     selected = currentDestination == "trips",
@@ -251,28 +256,42 @@ class MainActivity : ComponentActivity() {
                                     },
                                     label = { Text("Viajes") }
                                 )
-                                NavigationBarItem(
-                                    selected = currentDestination == "vehicles",
-                                    onClick = { navController.navigate("vehicles") },
-                                    icon = {
-                                        Icon(
-                                            Icons.Filled.DirectionsBusFilled,
-                                            contentDescription = "Vehiculos"
-                                        )
-                                    },
-                                    label = { Text("Vehiculos") }
-                                )
-                                NavigationBarItem(
-                                    selected = currentDestination == "drivers",
-                                    onClick = { navController.navigate("drivers") },
-                                    icon = {
-                                        Icon(
-                                            Icons.Filled.Groups,
-                                            contentDescription = "Conductores"
-                                        )
-                                    },
-                                    label = { Text("Conductores") }
-                                )
+                                if (Constants.USER_ROLE == "CLIENT") {
+                                    NavigationBarItem(
+                                        selected = currentDestination == "statistics",
+                                        onClick = { navController.navigate("statistics") },
+                                        icon = {
+                                            Icon(
+                                                Icons.Filled.BarChart,
+                                                contentDescription = "Estadísticas"
+                                            )
+                                        },
+                                        label = { Text("Estadísticas") }
+                                    )
+                                } else {
+                                    NavigationBarItem(
+                                        selected = currentDestination == "vehicles",
+                                        onClick = { navController.navigate("vehicles") },
+                                        icon = {
+                                            Icon(
+                                                Icons.Filled.DirectionsBusFilled,
+                                                contentDescription = "Vehiculos"
+                                            )
+                                        },
+                                        label = { Text("Vehiculos") }
+                                    )
+                                    NavigationBarItem(
+                                        selected = currentDestination == "drivers",
+                                        onClick = { navController.navigate("drivers") },
+                                        icon = {
+                                            Icon(
+                                                Icons.Filled.Groups,
+                                                contentDescription = "Conductores"
+                                            )
+                                        },
+                                        label = { Text("Conductores") }
+                                    )
+                                }
                             }
                         }
                     }
@@ -311,14 +330,17 @@ class MainActivity : ComponentActivity() {
                                 tripId = tripId,
                                 navController = navController,
                                 tripRepository = tripRepository,
-                                expenseRepository = expenseRepository
+                                expenseRepository = expenseRepository,
+                                driverRepository = driverRepository,
+                                vehicleRepository = vehicleRepository,
+                                clientRepository = clientRepository
                             )
                         }
 
                         composable(route = "register_expense/{tripId}") { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId")?.toInt() ?: 0
                             val registerExpenseViewModel = RegisterExpenseViewModel(expenseRepository)
-                            RegisterExpenseScreen(tripId = tripId, viewModel = registerExpenseViewModel) { expense ->
+                            RegisterExpenseScreen(viewModel = registerExpenseViewModel, navController = navController) { expense ->
 
                             }
                         }
@@ -341,8 +363,15 @@ class MainActivity : ComponentActivity() {
 
                         composable(route = "register_trip") { backStackEntry ->
                             val token = backStackEntry.arguments?.getString("token") ?: ""
-                            val registerTripViewModel = RegisterTripViewModel(tripRepository)
-                            RegisterTripScreen (viewModel = registerTripViewModel) { trip ->
+                            val registerTripViewModel: RegisterTripViewModel = viewModel(
+                                factory = RegisterTripViewModelFactory(
+                                    tripRepository = tripRepository,
+                                    driverRepository = driverRepository,
+                                    vehicleRepository = vehicleRepository,
+                                    entrepreneurRepository = entrepreneurRepository
+                                )
+                            )
+                            RegisterTripScreen(viewModel = registerTripViewModel) { trip ->
 
                             }
                         }
@@ -362,9 +391,12 @@ class MainActivity : ComponentActivity() {
                             AlertScreen(tripId = tripId, tripRepository = tripRepository, navController = navController, alertRepository = alertRepository)
                         }
 
+                        composable(route = "statistics") {
+                            StatisticsScreen(tripRepository = tripRepository, expenseRepository = expenseRepository)
+                        }
+
                         composable(route = "profile") {
                             ProfileScreen(viewModel = profileViewModel, navController)
-                            // TripManagementScreen(tripRepository = tripRepository)
                         }
                     }
                 }

@@ -1,10 +1,9 @@
 package com.cargoexpress.app.core.domain
 
-import java.time.LocalDateTime
-
 data class Alert(
+    val id: Int,
     val title: String,
     val description: String,
     val date: String,
-    val tripId: Int
+    val ongoingTripId: Int
 )

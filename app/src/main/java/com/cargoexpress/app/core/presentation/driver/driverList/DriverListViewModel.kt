@@ -28,26 +28,50 @@ class DriverListViewModel(private val navController: NavController, private val 
     fun getDriverList() {
         _state.value = UIState(isLoading = true)
         viewModelScope.launch {
-            val result = driverRepository.getDrivers(Constants.TOKEN, Constants.ENTREPRENEUR_ID)
-            if (result is Resource.Success) {
-                val drivers = result.data
-                if (drivers != null) {
-                    val driversInfo = drivers.map { driver ->
-                        DriverDto(
-                            id = driver.id,
-                            name = driver.name,
-                            dni = driver.dni,
-                            license = driver.license,
-                            contactNumber = driver.contactNumber,
-                            entrepreneurId = driver.entrepreneurId
+            try {
+                if (Constants.TOKEN.isBlank() || Constants.ENTREPRENEUR_ID == 0) {
+                    _state.value = UIState(
+                        isLoading = false,
+                        message = "Token o Entrepreneur ID no inicializados"
+                    )
+                    return@launch
+                }
+
+                val result = driverRepository.getDrivers(Constants.TOKEN, Constants.ENTREPRENEUR_ID)
+
+                if (result is Resource.Success) {
+                    val drivers = result.data
+                    if (drivers != null && drivers.isNotEmpty()) {
+                        val driversInfo = drivers.map { driver ->
+                            DriverDto(
+                                id = driver.id,
+                                name = driver.name,
+                                dni = driver.dni,
+                                license = driver.license,
+                                contactNumber = driver.contactNumber,
+                                entrepreneurId = driver.entrepreneurId
+                            )
+                        }
+                        _state.value = UIState(data = driversInfo, isLoading = false)
+                    } else {
+                        _state.value = UIState(
+                            isLoading = false,
+                            message = "No hay conductores registrados para este empresario",
+                            data = emptyList()
                         )
                     }
-                    _state.value = UIState(data = driversInfo)
-                } else {
-                    _state.value = UIState(message = "No drivers found")
+                } else if (result is Resource.Error) {
+                    val errorMsg = result.message
+                    _state.value = UIState(
+                        isLoading = false,
+                        message = "Error al cargar conductores: $errorMsg"
+                    )
                 }
-            } else if (result is Resource.Error) {
-                _state.value = UIState(message = "Error with drivers")
+            } catch (e: Exception) {
+                _state.value = UIState(
+                    isLoading = false,
+                    message = "Excepción: ${e.message}"
+                )
             }
         }
     }

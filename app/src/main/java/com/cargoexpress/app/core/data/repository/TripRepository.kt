@@ -16,6 +16,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.cargoexpress.app.core.common.Constants
 import com.cargoexpress.app.core.common.Resource
+import com.cargoexpress.app.core.data.remote.ongoingtrip.OngoingTripDto
+import kotlin.collections.emptyList
+import com.cargoexpress.app.core.domain.OngoingTrip
+import com.cargoexpress.app.core.data.remote.ongoingtrip.toOngoingTrip
 
 class TripRepository(private val tripService: TripService, private val expenseService: ExpenseService) {
 
@@ -107,9 +111,45 @@ class TripRepository(private val tripService: TripService, private val expenseSe
         } as Resource<Trip>
     }
 
-    suspend fun getExpenseByTripId(tripId: Int): Resource<Expense> {
-        //falta la logica,nd
-        return Resource.Error<Expense>(message = "Not implemented")
+    suspend fun getOngoingTripByTripId(tripId: Int): Resource<OngoingTrip> = withContext(Dispatchers.IO) {
+        if (Constants.TOKEN.isBlank()) {
+            return@withContext Resource.Error(message = "Token is required")
+        }
+
+        return@withContext try {
+            val response = tripService.getOngoingTripsByTripId(tripId, "Bearer ${Constants.TOKEN}")
+            if (response.isSuccessful) {
+                val dto = response.body()
+                if (dto != null) {
+                    Resource.Success(data = dto.toOngoingTrip())
+                } else {
+                    Resource.Error(message = "Respuesta vacia")
+                }
+            } else {
+                Resource.Error(message = "Error: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Resource.Error(message = e.message ?: "An unknown error occurred")
+        }
+    }
+
+
+
+    suspend fun getTripsByClientId(token: String, clientId: Int): Resource<List<Trip>> = withContext(Dispatchers.IO) {
+        if (token.isBlank()) return@withContext Resource.Error(message = "Token is required")
+        return@withContext try {
+            val response = tripService.getTrips("Bearer $token")
+            if (response.isSuccessful) {
+                val trips = response.body()?.map { tripDto ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) tripDto.toTrip() else tripDto.toTripLegacy()
+                }?.filter { it.clientId == clientId } ?: emptyList()
+                Resource.Success(data = trips)
+            } else {
+                Resource.Error(message = "Failed to fetch trips")
+            }
+        } catch (e: Exception) {
+            Resource.Error(message = e.message ?: "An unknown error occurred")
+        }
     }
 
     suspend fun addExpense(expense: Expense): Resource<Expense> = withContext(Dispatchers.IO) {
