@@ -41,6 +41,8 @@ fun OngoingTrip.toOngoingTripDto() = OngoingTripDto(
     tripId = tripId
 )
 
+data class OngoingTripStateUpdateDto(val state: String)
+
 fun OngoingTrip.toOngoingTripDtoPost() = OngoingTripDtoPost(
     state = state,
     latitude = latitude,

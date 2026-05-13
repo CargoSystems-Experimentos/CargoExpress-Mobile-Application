@@ -34,6 +34,9 @@ class GpsViewModel(private val ongoingTripRepository: OngoingTripRepository) : V
 
     private var simulationJob: Job? = null
 
+    private val _isFinalized = MutableStateFlow(false)
+    val isFinalized: StateFlow<Boolean> = _isFinalized
+
     companion object {
         const val DESTINATION_LAT = -12.0613f
         const val DESTINATION_LNG = -77.1528f
@@ -58,6 +61,13 @@ class GpsViewModel(private val ongoingTripRepository: OngoingTripRepository) : V
 
     fun getOngoingTripById(tripId: Int): OngoingTrip? =
         _ongoingTrips.value.find { it.tripId == tripId }
+
+    fun checkIfFinalized(tripId: Int) {
+        val trip = getOngoingTripById(tripId)
+        if (trip?.state == "FINALIZADO") {
+            _isFinalized.value = true
+        }
+    }
 
     fun createOngoingTrip(tripId: Int) {
         viewModelScope.launch {
@@ -86,6 +96,7 @@ class GpsViewModel(private val ongoingTripRepository: OngoingTripRepository) : V
 
     fun startSimulation(tripId: Int) {
         val trip = getOngoingTripById(tripId) ?: return
+        val ongoingTripId = trip.id
         _simulatedLat.value = trip.latitude
         _simulatedLng.value = trip.longitude
         _simulatedSpeed.value = trip.speed
@@ -108,9 +119,18 @@ class GpsViewModel(private val ongoingTripRepository: OngoingTripRepository) : V
                     _simulatedLat.value = DESTINATION_LAT
                     _simulatedLng.value = DESTINATION_LNG
                     _simulatedSpeed.value = 0
+                    finalizeTrip(ongoingTripId)
                     break
                 }
             }
+        }
+    }
+
+    private fun finalizeTrip(ongoingTripId: Int) {
+        viewModelScope.launch {
+            ongoingTripRepository.finalizeOngoingTrip(Constants.TOKEN, ongoingTripId)
+            _isFinalized.value = true
+            loadOngoingTrips()
         }
     }
 

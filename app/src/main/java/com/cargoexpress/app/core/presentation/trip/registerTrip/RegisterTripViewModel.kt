@@ -4,6 +4,8 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cargoexpress.app.core.data.remote.user.ClientDto
+import com.cargoexpress.app.core.data.repository.ClientRepository
 import com.cargoexpress.app.core.data.repository.TripRepository
 import com.cargoexpress.app.core.data.repository.DriverRepository
 import com.cargoexpress.app.core.data.repository.VehicleRepository
@@ -17,7 +19,8 @@ import com.cargoexpress.app.core.domain.Vehicle
 class RegisterTripViewModel(
     private val tripRepository: TripRepository,
     private val driverRepository: DriverRepository,
-    private val vehicleRepository: VehicleRepository
+    private val vehicleRepository: VehicleRepository,
+    private val clientRepository: ClientRepository
 ) : ViewModel() {
     var name: String = ""
     var type: String = ""
@@ -62,5 +65,7 @@ class RegisterTripViewModel(
         return vehicleRepository.getVehicleList(Constants.TOKEN, entrepreneurId)
     }
 
-
+    suspend fun validateClientDni(dni: String): Result<ClientDto> {
+        return clientRepository.getClientByDni(dni, Constants.TOKEN)
+    }
 }

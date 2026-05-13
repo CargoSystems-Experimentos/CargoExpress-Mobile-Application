@@ -110,6 +110,16 @@ fun TripDetailScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+
+                        if (Constants.USER_ROLE != "CLIENT") {
+                            IconButton(onClick = { navController.navigate("edit_trip/${t.id}") }) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Editar viaje",
+                                    tint = Color(0xFFF9A825)
+                                )
+                            }
+                        }
                     }
                 }
             }

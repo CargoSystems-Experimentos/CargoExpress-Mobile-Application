@@ -45,4 +45,17 @@ class ClientRepository(private val clientService: ClientService) {
             Result.failure(e)
         }
     }
+
+    suspend fun getClientByDni(dni: String, token: String): Result<ClientDto> {
+        return try {
+            val response = clientService.getClientByDni(dni, "Bearer $token")
+            if (response.isSuccessful) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Cliente no encontrado"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

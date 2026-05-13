@@ -24,4 +24,10 @@ interface ClientService {
         @Path("userId") userId: Int,
         @Header("Authorization") token: String
     ): Response<ClientDto>
+
+    @GET("clients/dni/{dni}")
+    suspend fun getClientByDni(
+        @Path("dni") dni: String,
+        @Header("Authorization") token: String
+    ): Response<ClientDto>
 }

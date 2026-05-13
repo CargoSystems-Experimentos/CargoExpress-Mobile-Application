@@ -26,6 +26,9 @@ class TripManagementViewModel(
     private var allTrips: List<Trip> = emptyList()
     private var allOngoingTrips: List<OngoingTrip> = emptyList()
 
+    private val _ongoingTrips = MutableStateFlow<List<OngoingTrip>>(emptyList())
+    val ongoingTrips: StateFlow<List<OngoingTrip>> = _ongoingTrips
+
     init {
         loadTrips()
     }
@@ -53,6 +56,7 @@ class TripManagementViewModel(
             val result = ongoingTripRepository.getOngoingTrips(token)
             if (result is Resource.Success) {
                 allOngoingTrips = result.data ?: emptyList()
+                _ongoingTrips.value = allOngoingTrips
             } else {
                 handleError(Exception(result.message))
             }

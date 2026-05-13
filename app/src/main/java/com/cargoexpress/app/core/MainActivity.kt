@@ -368,7 +368,8 @@ class MainActivity : ComponentActivity() {
                                     tripRepository = tripRepository,
                                     driverRepository = driverRepository,
                                     vehicleRepository = vehicleRepository,
-                                    entrepreneurRepository = entrepreneurRepository
+                                    entrepreneurRepository = entrepreneurRepository,
+                                    clientRepository = clientRepository
                                 )
                             )
                             RegisterTripScreen(viewModel = registerTripViewModel) { trip ->
@@ -378,7 +379,14 @@ class MainActivity : ComponentActivity() {
 
                         composable("edit_trip/{tripId}") { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId")?.toInt() ?: 0
-                            TripEditScreen(tripId = tripId, tripRepository = tripRepository, navController = navController)
+                            TripEditScreen(
+                                tripId = tripId,
+                                tripRepository = tripRepository,
+                                driverRepository = driverRepository,
+                                vehicleRepository = vehicleRepository,
+                                clientRepository = clientRepository,
+                                navController = navController
+                            )
                         }
 
                         composable("gps/{tripId}") { backStackEntry ->

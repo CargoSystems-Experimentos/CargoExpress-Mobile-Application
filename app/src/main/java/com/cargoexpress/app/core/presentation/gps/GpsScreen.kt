@@ -51,9 +51,11 @@ fun GpsScreen(
     val simulatedLng by viewModel.simulatedLng.collectAsState()
     val simulatedSpeed by viewModel.simulatedSpeed.collectAsState()
 
+    val isFinalized by viewModel.isFinalized.collectAsState()
     val ongoingTrip = viewModel.getOngoingTripById(tripId)
     val hasOngoingTrip = ongoingTrip != null
     val isEntrepreneur = Constants.USER_ROLE == "ENTREPRENEUR"
+    val tripFinalized = isFinalized || ongoingTrip?.state == "FINALIZADO"
 
     val mapView = rememberMapViewWithLifecycle()
     var googleMap by remember { mutableStateOf<GoogleMap?>(null) }
@@ -87,9 +89,12 @@ fun GpsScreen(
 
     LaunchedEffect(ongoingTrips) {
         val trip = viewModel.getOngoingTripById(tripId)
-        if (trip != null && !simulationStarted) {
-            simulationStarted = true
-            viewModel.startSimulation(tripId)
+        if (trip != null) {
+            viewModel.checkIfFinalized(tripId)
+            if (!simulationStarted && trip.state != "FINALIZADO") {
+                simulationStarted = true
+                viewModel.startSimulation(tripId)
+            }
         }
     }
 
@@ -184,7 +189,7 @@ fun GpsScreen(
                 )
             }
 
-            if (hasOngoingTrip) {
+            if (hasOngoingTrip && !tripFinalized) {
                 FilledIconButton(
                     onClick = { navController.navigate("alert/$tripId") },
                     colors = IconButtonDefaults.filledIconButtonColors(

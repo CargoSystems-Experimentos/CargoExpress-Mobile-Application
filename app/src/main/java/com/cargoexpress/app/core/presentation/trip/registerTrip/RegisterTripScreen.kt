@@ -56,8 +56,11 @@ fun RegisterTripScreen(
     var driverName by remember { mutableStateOf("") }
     var vehicleId by remember { mutableStateOf(0) }
     var vehicleName by remember { mutableStateOf("") }
-    var clientId by remember { mutableStateOf("") }
-    var evidenceImg by remember { mutableStateOf("") }
+    var clientDni by remember { mutableStateOf("") }
+    var resolvedClientId by remember { mutableStateOf(0) }
+    var clientFoundName by remember { mutableStateOf("") }
+    var clientDniError by remember { mutableStateOf("") }
+    var isDniValidating by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
 
     var nameTouched by remember { mutableStateOf(false) }
@@ -90,6 +93,7 @@ fun RegisterTripScreen(
 
     val isDriverValid = driverId > 0
     val isVehicleValid = vehicleId > 0
+    val isClientValid = resolvedClientId > 0
 
     val isLoadValid = loadCalendar != null
     val isUnloadValid = unloadCalendar != null
@@ -103,7 +107,8 @@ fun RegisterTripScreen(
                 isDriverValid &&
                 isVehicleValid &&
                 isLoadValid &&
-                isUnloadValid
+                isUnloadValid &&
+                isClientValid
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -121,8 +126,8 @@ fun RegisterTripScreen(
                         viewModel.unloadDate = toBackendDateTime(unloadCalendar)
                         viewModel.driverId = driverId
                         viewModel.vehicleId = vehicleId
-                        viewModel.clientId = clientId.toIntOrNull() ?: 0
-                        viewModel.evidenceImg = evidenceImg
+                        viewModel.clientId = resolvedClientId
+                        viewModel.evidenceImg = ""
 
                         viewModel.registerTrip { result ->
                             isLoading = false
@@ -139,8 +144,10 @@ fun RegisterTripScreen(
                                 driverName = ""
                                 vehicleId = 0
                                 vehicleName = ""
-                                clientId = ""
-                                evidenceImg = ""
+                                clientDni = ""
+                                resolvedClientId = 0
+                                clientFoundName = ""
+                                clientDniError = ""
                                 nameTouched = false
                                 typeTouched = false
                                 weightTouched = false
@@ -500,32 +507,67 @@ fun RegisterTripScreen(
 
             item {
                 OutlinedTextField(
-                    value = clientId,
-                    onValueChange = { clientId = it },
-                    label = { Text("ID del Cliente") },
-                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = "Cliente") },
+                    value = clientDni,
+                    onValueChange = {
+                        clientDni = it
+                        resolvedClientId = 0
+                        clientFoundName = ""
+                        clientDniError = ""
+                    },
+                    label = { Text("DNI del Cliente") },
+                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = "DNI") },
+                    trailingIcon = {
+                        IconButton(
+                            onClick = {
+                                if (clientDni.isNotBlank()) {
+                                    isDniValidating = true
+                                    scope.launch {
+                                        val result = viewModel.validateClientDni(clientDni)
+                                        isDniValidating = false
+                                        result.onSuccess { client ->
+                                            resolvedClientId = client.id
+                                            clientFoundName = client.name
+                                            clientDniError = ""
+                                        }.onFailure {
+                                            resolvedClientId = 0
+                                            clientFoundName = ""
+                                            clientDniError = "Cliente no encontrado"
+                                        }
+                                    }
+                                }
+                            },
+                            enabled = clientDni.isNotBlank() && !isDniValidating
+                        ) {
+                            if (isDniValidating) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Filled.Search, contentDescription = "Verificar DNI")
+                            }
+                        }
+                    },
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
                     maxLines = 1,
+                    isError = clientDniError.isNotBlank(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 12.dp)
+                        .padding(bottom = 4.dp)
                 )
-            }
-
-            item {
-                OutlinedTextField(
-                    value = evidenceImg,
-                    onValueChange = { evidenceImg = it },
-                    label = { Text("URL de Evidencia") },
-                    leadingIcon = { Icon(Icons.Filled.Image, contentDescription = "Evidencia") },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    maxLines = 1,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp)
-                )
+                when {
+                    clientFoundName.isNotBlank() -> Text(
+                        text = "Cliente: $clientFoundName",
+                        color = Color(0xFF2E7D32),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
+                    )
+                    clientDniError.isNotBlank() -> Text(
+                        text = clientDniError,
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
+                    )
+                    else -> Spacer(modifier = Modifier.height(12.dp))
+                }
             }
 
             item {
