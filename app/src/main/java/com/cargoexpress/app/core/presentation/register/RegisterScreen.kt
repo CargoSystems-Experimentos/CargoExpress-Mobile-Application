@@ -17,7 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.*
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -248,7 +251,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                 ) {
                     Text("Peru", modifier = Modifier.padding(end = 8.dp), color = Color.Gray)
                     OutlinedTextField(
-                        value = formatPhone(rawPhone),
+                        value = rawPhone,
                         onValueChange = { input ->
                             rawPhone = input.filter { it.isDigit() }.take(9)
                             phone = rawPhone
@@ -259,6 +262,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                         singleLine = true,
                         maxLines = 1,
                         isError = showPhoneError,
+                        visualTransformation = PhoneVisualTransformation(),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -354,4 +358,28 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
     }
 }
 
-private fun formatPhone(phone: String): String = phone.chunked(3).joinToString("-")
+private class PhoneVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val digits = text.text
+        val out = StringBuilder()
+        for (i in digits.indices) {
+            if (i == 3 || i == 6) out.append('-')
+            out.append(digits[i])
+        }
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                var result = offset
+                if (offset >= 3 && digits.length > 3) result++
+                if (offset >= 6 && digits.length > 6) result++
+                return result
+            }
+            override fun transformedToOriginal(offset: Int): Int {
+                var result = offset
+                if (digits.length > 3 && offset > 3) result--
+                if (digits.length > 6 && offset > 7) result--
+                return result.coerceIn(0, digits.length)
+            }
+        }
+        return TransformedText(AnnotatedString(out.toString()), offsetMapping)
+    }
+}

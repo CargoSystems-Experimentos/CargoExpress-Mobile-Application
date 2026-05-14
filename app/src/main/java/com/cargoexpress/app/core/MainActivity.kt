@@ -212,6 +212,10 @@ class MainActivity : ComponentActivity() {
                 val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
                 val currentRoute = navController.currentBackStackEntry?.destination?.route
                 val isGpsOrAlert = currentRoute == "gps/{tripId}" || currentRoute == "alert/{tripId}"
+                val isRegisterOrEditScreen = currentRoute == "register_trip" ||
+                    currentRoute == "edit_trip/{tripId}" ||
+                    currentRoute == "register_vehicle" ||
+                    currentRoute == "register_driver"
 
                 val ongoingTripRepository = OngoingTripRepository(ongoingTripService)
                 val alertRepository = AlertRepository(alertService)
@@ -243,7 +247,7 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     bottomBar = {
-                        if (currentRoute != Routes.Login.routes && currentRoute != Routes.Register.routes && !isGpsOrAlert) {
+                        if (currentRoute != Routes.Login.routes && currentRoute != Routes.Register.routes && !isGpsOrAlert && !isRegisterOrEditScreen) {
                             NavigationBar {
                                 NavigationBarItem(
                                     selected = currentDestination == "trips",

@@ -1,7 +1,9 @@
 package com.cargoexpress.app.core.presentation.vehicle.registerVehicle
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -17,6 +19,7 @@ import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 import androidx.navigation.NavController
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterVehicleScreen(
     navController: NavController,
@@ -58,25 +61,70 @@ fun RegisterVehicleScreen(
     val showVolumeError = volumeTouched && !isVolumeValid
 
     val isFormValid = isModelValid && isPlateValid && isTractorPlateValid && isMaxLoadValid && isVolumeValid
+    val scrollState = rememberScrollState()
 
-    Scaffold { paddingValues ->
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Registrar Vehículo", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Retroceder")
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            Button(
+                onClick = {
+                    if (isFormValid) {
+                        isLoading = true
+                        viewModel.model = model
+                        viewModel.plate = plate
+                        viewModel.tractorPlate = tractorPlateFormatted
+                        viewModel.maxLoad = maxLoad.toFloatOrNull() ?: 0f
+                        viewModel.volume = volume.toFloatOrNull() ?: 0f
+
+                        viewModel.registerVehicle { result ->
+                            isLoading = false
+                            if (result is Resource.Success && result.data != null) {
+                                onVehicleRegistered(result.data)
+                                confirmModalSuccess = true
+                                confirmModalMessage = "Vehículo registrado correctamente"
+                            } else {
+                                confirmModalSuccess = false
+                                confirmModalMessage = "No se pudo registrar el vehículo"
+                            }
+                            showConfirmModal = true
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(70.dp)
+                    .padding(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
+                enabled = isFormValid && !isLoading
+            ) {
+                Text(
+                    "Registrar Vehículo",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    ) { paddingValues ->
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(scrollState)
                 .padding(16.dp),
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.Top
         ) {
-            // Título
-            Text(
-                text = "Registrar Vehículo",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
             // Modelo
             OutlinedTextField(
                 value = model,
@@ -230,45 +278,7 @@ fun RegisterVehicleScreen(
                     color = Color(0xFFFFEB3B)
                 )
             }
-
-            Button(
-                onClick = {
-                    if (isFormValid) {
-                        isLoading = true
-                        viewModel.model = model
-                        viewModel.plate = plate
-                        viewModel.tractorPlate = tractorPlateFormatted
-                        viewModel.maxLoad = maxLoad.toFloatOrNull() ?: 0f
-                        viewModel.volume = volume.toFloatOrNull() ?: 0f
-
-                        viewModel.registerVehicle { result ->
-                            isLoading = false
-                            if (result is Resource.Success && result.data != null) {
-                                onVehicleRegistered(result.data)
-                                confirmModalSuccess = true
-                                confirmModalMessage = "Vehículo registrado correctamente"
-                            } else {
-                                confirmModalSuccess = false
-                                confirmModalMessage = "No se pudo registrar el vehículo"
-                            }
-                            showConfirmModal = true
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(70.dp)
-                    .padding(top = 16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
-                enabled = isFormValid && !isLoading
-            ) {
-                Text(
-                    "Registrar Vehículo",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 

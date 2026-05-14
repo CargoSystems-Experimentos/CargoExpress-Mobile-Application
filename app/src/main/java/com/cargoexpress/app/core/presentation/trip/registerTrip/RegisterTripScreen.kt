@@ -116,6 +116,16 @@ fun RegisterTripScreen(
                 isClientValid
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Registrar Viaje", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Retroceder")
+                    }
+                }
+            )
+        },
         bottomBar = {
             Button(
                 onClick = {
@@ -172,16 +182,6 @@ fun RegisterTripScreen(
             contentPadding = PaddingValues(bottom = 90.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Registrar Viaje",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            }
-
             item {
                 OutlinedTextField(
                     value = name,

@@ -1,7 +1,9 @@
 package com.cargoexpress.app.core.presentation.driver.driverList.registerDriver
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -9,7 +11,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cargoexpress.app.core.domain.Driver
@@ -18,6 +24,7 @@ import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 import kotlinx.coroutines.launch
 import androidx.navigation.NavController
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterDriverScreen(
     navController: NavController,
@@ -42,6 +49,7 @@ fun RegisterDriverScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
 
     // Validación DNI: exactamente 8 números
     val isDniValid = dni.length == 8 && dni.all { it.isDigit() }
@@ -62,6 +70,66 @@ fun RegisterDriverScreen(
     val isFormValid = isNameValid && isDniValid && isLicenseValid && isContactValid
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Registrar Conductor", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Retroceder")
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            Button(
+                onClick = {
+                    nameError = if (name.isBlank()) "El nombre es obligatorio" else null
+                    dniError = if (dni.length != 8 || !dni.all { it.isDigit() }) "El número de DNI no es válido" else null
+                    licenseError = if (license.length != 9 || !license.startsWith("Q") || !license.drop(1).all { it.isDigit() }) "El número de licencia no es válido" else null
+                    contactError = if (contactNumber.length != 9 || !contactNumber.all { it.isDigit() }) "El número de contacto no es válido" else null
+
+                    val valid = listOf(nameError, dniError, licenseError, contactError).all { it == null }
+
+                    if (valid) {
+                        isLoading = true
+                        viewModel.name = name
+                        viewModel.dni = dni
+                        viewModel.license = license
+                        viewModel.contactNumber = contactNumber
+
+                        viewModel.registerDriver { result ->
+                            isLoading = false
+                            if (result is Resource.Success && result.data != null) {
+                                onDriverRegistered(result.data)
+                                confirmModalSuccess = true
+                                confirmModalMessage = "Conductor registrado correctamente"
+                            } else {
+                                confirmModalSuccess = false
+                                confirmModalMessage = "No se pudo registrar al conductor"
+                            }
+                            showConfirmModal = true
+                        }
+                    } else {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Por favor, completa todos los campos correctamente")
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(70.dp)
+                    .padding(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
+                enabled = isFormValid && !isLoading
+            ) {
+                Text(
+                    "Registrar Conductor",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
 
@@ -69,25 +137,10 @@ fun RegisterDriverScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(paddingValues)
+                .verticalScroll(scrollState)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                }
-                Text(
-                    text = "Registrar Conductor",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Nombre Input
             OutlinedTextField(
                 value = name,
@@ -203,7 +256,7 @@ fun RegisterDriverScreen(
                     color = Color.Gray
                 )
                 OutlinedTextField(
-                    value = formatPhone(rawContactNumber),
+                    value = rawContactNumber,
                     onValueChange = {
                         // Solo acepta dígitos y máximo 9 caracteres
                         rawContactNumber = it.filter { ch -> ch.isDigit() }.take(9)
@@ -220,6 +273,7 @@ fun RegisterDriverScreen(
                     singleLine = true,
                     maxLines = 1,
                     isError = showContactError,
+                    visualTransformation = PhoneVisualTransformation(),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -240,55 +294,7 @@ fun RegisterDriverScreen(
             if (isLoading) {
                 CircularProgressIndicator(color = Color(0xFFFFEB3B))
             }
-
-            Button(
-                onClick = {
-                    nameError = if (name.isBlank()) "El nombre es obligatorio" else null
-                    dniError = if (dni.length != 8 || !dni.all { it.isDigit() }) "El número de DNI no es válido" else null
-                    licenseError = if (license.length != 9 || !license.startsWith("Q") || !license.drop(1).all { it.isDigit() }) "El número de licencia no es válido" else null
-                    contactError = if (contactNumber.length != 9 || !contactNumber.all { it.isDigit() }) "El número de contacto no es válido" else null
-
-                    val valid = listOf(nameError, dniError, licenseError, contactError).all { it == null }
-
-                    if (valid) {
-                        isLoading = true
-                        viewModel.name = name
-                        viewModel.dni = dni
-                        viewModel.license = license
-                        viewModel.contactNumber = contactNumber
-
-                        viewModel.registerDriver { result ->
-                            isLoading = false
-                            if (result is Resource.Success && result.data != null) {
-                                onDriverRegistered(result.data)
-                                confirmModalSuccess = true
-                                confirmModalMessage = "Conductor registrado correctamente"
-                            } else {
-                                confirmModalSuccess = false
-                                confirmModalMessage = "No se pudo registrar al conductor"
-                            }
-                            showConfirmModal = true
-                        }
-                    } else {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Por favor, completa todos los campos correctamente")
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(70.dp)
-                    .padding(top = 16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
-                enabled = isFormValid && !isLoading
-            ) {
-                Text(
-                    "Registrar Conductor",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
@@ -311,8 +317,30 @@ fun RegisterDriverScreen(
     }
 }
 
-private fun formatPhone(phone: String): String {
-    return phone.chunked(3).joinToString("-")
+private class PhoneVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val digits = text.text
+        val out = StringBuilder()
+        for (i in digits.indices) {
+            if (i == 3 || i == 6) out.append('-')
+            out.append(digits[i])
+        }
+        val offsetMapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                var result = offset
+                if (offset >= 3 && digits.length > 3) result++
+                if (offset >= 6 && digits.length > 6) result++
+                return result
+            }
+            override fun transformedToOriginal(offset: Int): Int {
+                var result = offset
+                if (digits.length > 3 && offset > 3) result--
+                if (digits.length > 6 && offset > 7) result--
+                return result.coerceIn(0, digits.length)
+            }
+        }
+        return TransformedText(AnnotatedString(out.toString()), offsetMapping)
+    }
 }
 
 
