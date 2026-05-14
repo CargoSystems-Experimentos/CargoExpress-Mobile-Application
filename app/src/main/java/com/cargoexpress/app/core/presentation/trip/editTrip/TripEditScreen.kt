@@ -194,15 +194,41 @@ fun TripEditScreen(
             }
 
             item {
-                OutlinedTextField(
-                    value = type,
-                    onValueChange = { type = it },
-                    label = { Text("Tipo de Carga") },
-                    leadingIcon = { Icon(Icons.Filled.Category, contentDescription = null) },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
-                )
+                val cargoTypes = listOf("ESTÁNDAR", "FRÁGIL", "PESADO", "VALIOSO", "URGENTE", "PERECIBLE")
+                var typeExpanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = typeExpanded,
+                    onExpandedChange = { typeExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = type,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Tipo de Carga") },
+                        leadingIcon = { Icon(Icons.Filled.Category, contentDescription = null) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = typeExpanded,
+                        onDismissRequest = { typeExpanded = false }
+                    ) {
+                        cargoTypes.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option) },
+                                onClick = {
+                                    type = option
+                                    typeExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
 
             item {

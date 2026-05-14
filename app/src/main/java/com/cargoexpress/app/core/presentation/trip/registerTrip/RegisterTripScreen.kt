@@ -212,22 +212,43 @@ fun RegisterTripScreen(
             }
 
             item {
-                OutlinedTextField(
-                    value = type,
-                    onValueChange = {
-                        type = it
-                        typeTouched = true
-                    },
-                    label = { Text("Tipo de Carga") },
-                    leadingIcon = { Icon(Icons.Filled.Category, contentDescription = "Tipo") },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    maxLines = 1,
-                    isError = showTypeError,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 4.dp)
-                )
+                val cargoTypes = listOf("ESTÁNDAR", "FRÁGIL", "PESADO", "VALIOSO", "URGENTE", "PERECIBLE")
+                var typeExpanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = typeExpanded,
+                    onExpandedChange = { typeExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = type,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Tipo de Carga") },
+                        leadingIcon = { Icon(Icons.Filled.Category, contentDescription = "Tipo") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        isError = showTypeError,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 4.dp)
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = typeExpanded,
+                        onDismissRequest = { typeExpanded = false }
+                    ) {
+                        cargoTypes.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option) },
+                                onClick = {
+                                    type = option
+                                    typeTouched = true
+                                    typeExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
                 if (showTypeError) {
                     Text(
                         text = "El tipo de carga es obligatorio",
