@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -164,19 +165,37 @@ fun AlertScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = alertTitle,
-                        onValueChange = { alertTitle = it },
+                        onValueChange = { if (it.length <= 50) alertTitle = it },
                         label = { Text("Título") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        isError = uiState.message.isNotEmpty()
+                        isError = uiState.message.isNotEmpty(),
+                        supportingText = {
+                            Text(
+                                text = "${alertTitle.length}/50",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     )
                     OutlinedTextField(
                         value = alertDescription,
-                        onValueChange = { alertDescription = it },
+                        onValueChange = { if (it.length <= 200) alertDescription = it },
                         label = { Text("Descripción") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3,
-                        maxLines = 5
+                        maxLines = 5,
+                        supportingText = {
+                            Text(
+                                text = "${alertDescription.length}/200",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     )
                 }
             },

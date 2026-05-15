@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -145,8 +146,10 @@ fun RegisterDriverScreen(
             OutlinedTextField(
                 value = name,
                 onValueChange = {
-                    name = it
-                    nameError = if (it.isBlank()) "El nombre es obligatorio" else null
+                    if (it.length <= 50) {
+                        name = it
+                        nameError = if (it.isBlank()) "El nombre es obligatorio" else null
+                    }
                 },
                 label = { Text("Nombre") },
                 leadingIcon = { Icon(imageVector = Icons.Filled.Person, contentDescription = "Nombre") },
@@ -157,16 +160,29 @@ fun RegisterDriverScreen(
                     .fillMaxWidth()
                     .padding(bottom = 4.dp)
             )
-            if (nameError != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 4.dp, bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (nameError != null) {
+                    Text(
+                        text = nameError!!,
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f).padding(end = 4.dp),
+                        textAlign = TextAlign.Start
+                    )
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
                 Text(
-                    text = nameError!!,
-                    color = Color.Red,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Left
+                    text = "${name.length}/50",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
                 )
-            } else {
-                Spacer(modifier = Modifier.height(12.dp))
             }
 
             // DNI Input

@@ -117,6 +117,13 @@ class RegisterViewModel(
     }
 
     private fun proceedWithRegistration() {
+        val profileError = validateProfileFields()
+        if (profileError != null) {
+            _otpPhase.value = OtpPhase.Idle
+            _state.value = UIState(message = profileError)
+            clearPendingData()
+            return
+        }
         _otpPhase.value = OtpPhase.Idle
         _state.value = UIState(isLoading = true)
         viewModelScope.launch {
@@ -129,6 +136,22 @@ class RegisterViewModel(
                 }
             }
         }
+    }
+
+    private fun validateProfileFields(): String? {
+        if (pendingName.isBlank()) return "El nombre no puede estar vacío"
+        val phoneDigits = pendingPhone.filter(Char::isDigit)
+        if (phoneDigits.length != 9) return "El número de celular debe tener 9 dígitos"
+        if (pendingIsClient) {
+            if (pendingDni.length != 8 || !pendingDni.all(Char::isDigit))
+                return "El DNI debe tener 8 dígitos numéricos"
+        } else {
+            if (pendingRuc.length != 11 || !pendingRuc.all(Char::isDigit))
+                return "El RUC debe tener 11 dígitos numéricos"
+            if (!pendingRuc.startsWith("10") && !pendingRuc.startsWith("20"))
+                return "El RUC debe comenzar con 10 o 20"
+        }
+        return null
     }
 
     private fun loginAfterRegisterClient() {

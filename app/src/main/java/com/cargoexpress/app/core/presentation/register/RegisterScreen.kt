@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -198,7 +199,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
 
                 OutlinedTextField(
                     value = username,
-                    onValueChange = { username = it },
+                    onValueChange = { if (it.length <= 100) username = it },
                     label = { Text("Correo electrónico") },
                     leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
                     isError = showEmailError,
@@ -207,15 +208,34 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                     maxLines = 1,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                 )
-                if (showEmailError) {
-                    Text("El correo electrónico no es válido", color = Color.Red, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 12.dp, bottom = 12.dp))
-                } else {
-                    Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, end = 4.dp, bottom = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (showEmailError) {
+                        Text(
+                            text = "El correo electrónico no es válido",
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f).padding(end = 4.dp),
+                            textAlign = TextAlign.Start
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                    Text(
+                        text = "${username.length}/100",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
 
                 OutlinedTextField(
                     value = password,
-                    onValueChange = { password = it },
+                    onValueChange = { if (it.length <= 100) password = it },
                     label = { Text("Contraseña") },
                     leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -235,14 +255,24 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
 
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = { if (it.length <= 60) name = it },
                     label = { Text(if (isClient) "Nombre completo" else "Nombre de la empresa") },
                     leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
                     maxLines = 1,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                    supportingText = {
+                        Text(
+                            text = "${name.length}/60",
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.End,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 )
+                Spacer(modifier = Modifier.height(8.dp))
 
                 var rawPhone by remember { mutableStateOf("") }
                 Row(
@@ -337,7 +367,17 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Términos y Condiciones",
+                    color = Color(0xFF2196F3),
+                    style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.Underline),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { navController.navigate(Routes.TermsAndConditions.routes) },
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "¿Tienes una cuenta? Accede desde aquí",
                     color = Color(0xFF2196F3),

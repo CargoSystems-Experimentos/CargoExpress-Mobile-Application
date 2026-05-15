@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -184,12 +185,21 @@ fun TripEditScreen(
             item {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = { if (it.length <= 60) name = it },
                     label = { Text("Nombre del Viaje") },
                     leadingIcon = { Icon(Icons.Filled.LocalShipping, contentDescription = null) },
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                    supportingText = {
+                        Text(
+                            text = "${name.length}/60",
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.End,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 )
             }
 
@@ -234,7 +244,13 @@ fun TripEditScreen(
             item {
                 OutlinedTextField(
                     value = weight,
-                    onValueChange = { weight = it.filter { c -> c.isDigit() || c == '.' } },
+                    onValueChange = {
+                        val filtered = it.filter { c -> c.isDigit() || c == '.' }
+                        val parsed = filtered.toFloatOrNull()
+                        if (filtered.isEmpty() || filtered.endsWith('.') || (parsed != null && parsed <= 50000f)) {
+                            weight = filtered
+                        }
+                    },
                     label = { Text("Peso (kg)") },
                     leadingIcon = { Icon(Icons.Filled.Scale, contentDescription = null) },
                     shape = RoundedCornerShape(16.dp),
@@ -246,12 +262,21 @@ fun TripEditScreen(
             item {
                 OutlinedTextField(
                     value = loadLocation,
-                    onValueChange = { loadLocation = it },
+                    onValueChange = { if (it.length <= 100) loadLocation = it },
                     label = { Text("Ubicación de Carga") },
                     leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                    supportingText = {
+                        Text(
+                            text = "${loadLocation.length}/100",
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.End,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 )
             }
 
@@ -274,12 +299,21 @@ fun TripEditScreen(
             item {
                 OutlinedTextField(
                     value = unloadLocation,
-                    onValueChange = { unloadLocation = it },
+                    onValueChange = { if (it.length <= 100) unloadLocation = it },
                     label = { Text("Ubicación de Descarga") },
                     leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                    supportingText = {
+                        Text(
+                            text = "${unloadLocation.length}/100",
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.End,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 )
             }
 
@@ -331,7 +365,7 @@ fun TripEditScreen(
                 OutlinedTextField(
                     value = clientDni,
                     onValueChange = {
-                        clientDni = it
+                        clientDni = it.filter { c -> c.isDigit() }.take(8)
                         resolvedClientId = 0
                         clientFoundName = ""
                         clientDniError = ""

@@ -37,8 +37,14 @@ import com.cargoexpress.app.core.presentation.vehicle.VehicleListScreen
 import com.cargoexpress.app.core.presentation.trip.TripManagementScreen
 import com.cargoexpress.app.core.ui.theme.CargoexpressTheme
 import com.cargoexpress.app.core.common.Constants
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.DirectionsBusFilled
@@ -84,6 +90,7 @@ import com.cargoexpress.app.core.presentation.trip.registerTrip.RegisterTripView
 import com.cargoexpress.app.core.presentation.vehicle.registerVehicle.RegisterVehicleScreen
 import com.cargoexpress.app.core.presentation.vehicle.registerVehicle.RegisterVehicleViewModel
 import com.cargoexpress.app.core.presentation.statistics.StatisticsScreen
+import com.cargoexpress.app.core.presentation.terms.TermsAndConditionsScreen
 import androidx.compose.material.icons.filled.BarChart
 
 class MainActivity : ComponentActivity() {
@@ -92,79 +99,45 @@ class MainActivity : ComponentActivity() {
         const val PICK_IMAGE_REQUEST = 1
     }
 
+    private fun unsafeHttpClient(): OkHttpClient {
+        val trustAll = arrayOf<TrustManager>(object : X509TrustManager {
+            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
+            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
+            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+        })
+        val sslContext = SSLContext.getInstance("SSL").apply {
+            init(null, trustAll, SecureRandom())
+        }
+        return OkHttpClient.Builder()
+            .sslSocketFactory(sslContext.socketFactory, trustAll[0] as X509TrustManager)
+            .hostnameVerifier { _, _ -> true }
+            .build()
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
 
-        val loginService = Retrofit
-            .Builder()
-            .baseUrl(Constants.BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(LoginService::class.java)
+        val httpClient = unsafeHttpClient()
 
-        val registerService = Retrofit
-            .Builder()
+        fun <T> buildService(serviceClass: Class<T>): T = Retrofit.Builder()
             .baseUrl(Constants.BASE_URL)
+            .client(httpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(RegisterService::class.java)
+            .create(serviceClass)
 
-        val clientService = Retrofit
-            .Builder()
-            .baseUrl(Constants.BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(ClientService::class.java)
+        val loginService = buildService(LoginService::class.java)
+        val registerService = buildService(RegisterService::class.java)
+        val clientService = buildService(ClientService::class.java)
+        val entrepreneurService = buildService(EntrepreneurService::class.java)
+        val vehicleService = buildService(VehicleService::class.java)
+        val tripService = buildService(TripService::class.java)
+        val driverService = buildService(DriverService::class.java)
+        val expenseService = buildService(ExpenseService::class.java)
+        val ongoingTripService = buildService(OngoingTripService::class.java)
 
-        val entrepreneurService = Retrofit
-            .Builder()
-            .baseUrl(Constants.BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(EntrepreneurService::class.java)
-
-        val vehicleService = Retrofit
-            .Builder()
-            .baseUrl(Constants.BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(VehicleService::class.java)
-
-        val tripService = Retrofit
-            .Builder()
-            .baseUrl(Constants.BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(TripService::class.java)
-
-        val driverService = Retrofit
-            .Builder()
-            .baseUrl(Constants.BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(DriverService::class.java)
-
-        val expenseService = Retrofit
-            .Builder()
-            .baseUrl(Constants.BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(ExpenseService::class.java)
-
-        val ongoingTripService = Retrofit
-            .Builder()
-            .baseUrl(Constants.BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(OngoingTripService::class.java)
-
-        val alertService = Retrofit
-            .Builder()
-            .baseUrl(Constants.BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(AlertService::class.java)
+        val alertService = buildService(AlertService::class.java)
 
         val tripRepository = TripRepository(tripService, expenseService)
         val clientRepository = ClientRepository(clientService)
@@ -211,7 +184,7 @@ class MainActivity : ComponentActivity() {
                 val entrepreneurRepository = EntrepreneurRepository(entrepreneurService)
                 val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
                 val currentRoute = navController.currentBackStackEntry?.destination?.route
-                val isGpsOrAlert = currentRoute == "gps/{tripId}" || currentRoute == "alert/{tripId}"
+                val isGpsOrAlert = currentRoute == "gps/{tripId}" || currentRoute == "alert/{tripId}" || currentRoute == Routes.TermsAndConditions.routes
                 val isRegisterOrEditScreen = currentRoute == "register_trip" ||
                     currentRoute == "edit_trip/{tripId}" ||
                     currentRoute == "register_vehicle" ||
@@ -409,6 +382,10 @@ class MainActivity : ComponentActivity() {
 
                         composable(route = "profile") {
                             ProfileScreen(viewModel = profileViewModel, navController)
+                        }
+
+                        composable(route = Routes.TermsAndConditions.routes) {
+                            TermsAndConditionsScreen(navController)
                         }
                     }
                 }

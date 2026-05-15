@@ -2,7 +2,6 @@ package com.cargoexpress.app.core.presentation.login
 
 import android.app.Activity
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,7 +22,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.cargoexpress.app.R
@@ -114,7 +112,7 @@ fun LoginScreen(viewModel: LoginViewModel, navController: NavController) {
 
                 OutlinedTextField(
                     value = emailState,
-                    onValueChange = { emailState = it },
+                    onValueChange = { if (it.length <= 100) emailState = it },
                     label = { Text("Correo electrónico") },
                     leadingIcon = { Icon(imageVector = Icons.Filled.Email, contentDescription = "Correo electrónico") },
                     shape = RoundedCornerShape(16.dp),
@@ -137,15 +135,6 @@ fun LoginScreen(viewModel: LoginViewModel, navController: NavController) {
                 ) {
                     Text(text = "Iniciar Sesión", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
-
-                Text(
-                    text = "¿Olvidaste tu contraseña?",
-                    modifier = Modifier.clickable { },
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        textDecoration = TextDecoration.Underline
-                    ),
-                    color = Color(0xFF2196F3)
-                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -180,7 +169,7 @@ fun PasswordTextField(password: String, onPasswordChange: (String) -> Unit) {
 
     OutlinedTextField(
         value = password,
-        onValueChange = { onPasswordChange(it) },
+        onValueChange = { if (it.length <= 100) onPasswordChange(it) },
         label = { Text("Contraseña") },
         leadingIcon = {
             Icon(

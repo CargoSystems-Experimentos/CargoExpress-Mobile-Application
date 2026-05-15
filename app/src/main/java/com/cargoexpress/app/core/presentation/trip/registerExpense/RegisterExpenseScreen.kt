@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -95,7 +96,7 @@ fun RegisterExpenseScreen(
 
                     OutlinedTextField(
                         value = fuelAmount,
-                        onValueChange = { fuelAmount = it.filter { c -> c.isDigit() }.take(7) },
+                        onValueChange = { fuelAmount = it.filter { c -> c.isDigit() }.take(5) },
                         label = { Text("Monto Combustible (USD)") },
                         isError = !isFuelAmountValid,
                         modifier = Modifier.fillMaxWidth(),
@@ -104,11 +105,20 @@ fun RegisterExpenseScreen(
 
                     OutlinedTextField(
                         value = fuelDescription,
-                        onValueChange = { fuelDescription = it },
+                        onValueChange = { if (it.length <= 100) fuelDescription = it },
                         label = { Text("Descripción") },
                         isError = fuelDescription.isNotBlank() && !isFuelDescriptionValid,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        supportingText = {
+                            Text(
+                                text = "${fuelDescription.length}/100",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     )
                 }
             }
@@ -128,7 +138,7 @@ fun RegisterExpenseScreen(
 
                     OutlinedTextField(
                         value = viaticsAmount,
-                        onValueChange = { viaticsAmount = it.filter { c -> c.isDigit() }.take(7) },
+                        onValueChange = { viaticsAmount = it.filter { c -> c.isDigit() }.take(5) },
                         label = { Text("Monto Viáticos (USD)") },
                         isError = !isViaticsAmountValid,
                         modifier = Modifier.fillMaxWidth(),
@@ -137,11 +147,20 @@ fun RegisterExpenseScreen(
 
                     OutlinedTextField(
                         value = viaticsDescription,
-                        onValueChange = { viaticsDescription = it },
+                        onValueChange = { if (it.length <= 100) viaticsDescription = it },
                         label = { Text("Descripción") },
                         isError = viaticsDescription.isNotBlank() && !isViaticsDescriptionValid,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        supportingText = {
+                            Text(
+                                text = "${viaticsDescription.length}/100",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     )
                 }
             }
@@ -161,7 +180,7 @@ fun RegisterExpenseScreen(
 
                     OutlinedTextField(
                         value = tollsAmount,
-                        onValueChange = { tollsAmount = it.filter { c -> c.isDigit() }.take(7) },
+                        onValueChange = { tollsAmount = it.filter { c -> c.isDigit() }.take(5) },
                         label = { Text("Monto Peajes (USD)") },
                         isError = !isTollsAmountValid,
                         modifier = Modifier.fillMaxWidth(),
@@ -170,11 +189,20 @@ fun RegisterExpenseScreen(
 
                     OutlinedTextField(
                         value = tollsDescription,
-                        onValueChange = { tollsDescription = it },
+                        onValueChange = { if (it.length <= 100) tollsDescription = it },
                         label = { Text("Descripción") },
                         isError = tollsDescription.isNotBlank() && !isTollsDescriptionValid,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        supportingText = {
+                            Text(
+                                text = "${tollsDescription.length}/100",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     )
                 }
             }

@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cargoexpress.app.core.domain.Vehicle
@@ -129,8 +130,10 @@ fun RegisterVehicleScreen(
             OutlinedTextField(
                 value = model,
                 onValueChange = {
-                    model = it
-                    modelTouched = true
+                    if (it.length <= 50) {
+                        model = it
+                        modelTouched = true
+                    }
                 },
                 label = { Text("Modelo") },
                 leadingIcon = { Icon(imageVector = Icons.Filled.DirectionsCar, contentDescription = "Modelo") },
@@ -142,16 +145,29 @@ fun RegisterVehicleScreen(
                     .fillMaxWidth()
                     .padding(bottom = 4.dp)
             )
-            if (showModelError) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 4.dp, bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (showModelError) {
+                    Text(
+                        text = "El modelo es obligatorio",
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f).padding(end = 4.dp),
+                        textAlign = TextAlign.Start
+                    )
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
                 Text(
-                    text = "El modelo es obligatorio",
-                    color = Color.Red,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Left
+                    text = "${model.length}/50",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
                 )
-            } else {
-                Spacer(modifier = Modifier.height(12.dp))
             }
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -219,8 +235,12 @@ fun RegisterVehicleScreen(
             OutlinedTextField(
                 value = maxLoad,
                 onValueChange = {
-                    maxLoad = it.filter { char -> char.isDigit() || char == '.' }
-                    maxLoadTouched = true
+                    val filtered = it.filter { char -> char.isDigit() || char == '.' }
+                    val parsed = filtered.toFloatOrNull()
+                    if (filtered.isEmpty() || filtered.endsWith('.') || (parsed != null && parsed <= 50000f)) {
+                        maxLoad = filtered
+                        maxLoadTouched = true
+                    }
                 },
                 label = { Text("Carga Máxima (kg)") },
                 leadingIcon = { Icon(imageVector = Icons.Filled.Scale, contentDescription = "Carga Máxima") },
@@ -248,8 +268,12 @@ fun RegisterVehicleScreen(
             OutlinedTextField(
                 value = volume,
                 onValueChange = {
-                    volume = it.filter { char -> char.isDigit() || char == '.' }
-                    volumeTouched = true
+                    val filtered = it.filter { char -> char.isDigit() || char == '.' }
+                    val parsed = filtered.toFloatOrNull()
+                    if (filtered.isEmpty() || filtered.endsWith('.') || (parsed != null && parsed <= 200f)) {
+                        volume = filtered
+                        volumeTouched = true
+                    }
                 },
                 label = { Text("Volumen (m³)") },
                 leadingIcon = { Icon(imageVector = Icons.Filled.ViewWeek, contentDescription = "Volumen") },

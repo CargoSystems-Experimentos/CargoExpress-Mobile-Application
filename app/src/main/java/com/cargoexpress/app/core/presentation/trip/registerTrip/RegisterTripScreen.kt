@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -186,8 +187,10 @@ fun RegisterTripScreen(
                 OutlinedTextField(
                     value = name,
                     onValueChange = {
-                        name = it
-                        nameTouched = true
+                        if (it.length <= 60) {
+                            name = it
+                            nameTouched = true
+                        }
                     },
                     label = { Text("Nombre del Viaje") },
                     leadingIcon = { Icon(Icons.Filled.LocalShipping, contentDescription = "Nombre") },
@@ -199,15 +202,29 @@ fun RegisterTripScreen(
                         .fillMaxWidth()
                         .padding(bottom = 4.dp)
                 )
-                if (showNameError) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 4.dp, bottom = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (showNameError) {
+                        Text(
+                            text = "El nombre del viaje es obligatorio",
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f).padding(end = 4.dp),
+                            textAlign = TextAlign.Start
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                     Text(
-                        text = "El nombre del viaje es obligatorio",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
+                        text = "${name.length}/60",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
                     )
-                } else {
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
 
@@ -265,8 +282,12 @@ fun RegisterTripScreen(
                 OutlinedTextField(
                     value = weight,
                     onValueChange = {
-                        weight = it.filter { char -> char.isDigit() || char == '.' }
-                        weightTouched = true
+                        val filtered = it.filter { char -> char.isDigit() || char == '.' }
+                        val parsed = filtered.toFloatOrNull()
+                        if (filtered.isEmpty() || filtered.endsWith('.') || (parsed != null && parsed <= 50000f)) {
+                            weight = filtered
+                            weightTouched = true
+                        }
                     },
                     label = { Text("Peso (kg)") },
                     leadingIcon = { Icon(Icons.Filled.Scale, contentDescription = "Peso") },
@@ -294,8 +315,10 @@ fun RegisterTripScreen(
                 OutlinedTextField(
                     value = loadLocation,
                     onValueChange = {
-                        loadLocation = it
-                        loadLocationTouched = true
+                        if (it.length <= 100) {
+                            loadLocation = it
+                            loadLocationTouched = true
+                        }
                     },
                     label = { Text("Ubicación de Carga") },
                     leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = "Ubicación") },
@@ -307,15 +330,29 @@ fun RegisterTripScreen(
                         .fillMaxWidth()
                         .padding(bottom = 4.dp)
                 )
-                if (showLoadLocationError) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 4.dp, bottom = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (showLoadLocationError) {
+                        Text(
+                            text = "La ubicación de carga es obligatoria",
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f).padding(end = 4.dp),
+                            textAlign = TextAlign.Start
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                     Text(
-                        text = "La ubicación de carga es obligatoria",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
+                        text = "${loadLocation.length}/100",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
                     )
-                } else {
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
 
@@ -372,8 +409,10 @@ fun RegisterTripScreen(
                 OutlinedTextField(
                     value = unloadLocation,
                     onValueChange = {
-                        unloadLocation = it
-                        unloadLocationTouched = true
+                        if (it.length <= 100) {
+                            unloadLocation = it
+                            unloadLocationTouched = true
+                        }
                     },
                     label = { Text("Ubicación de Descarga") },
                     leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = "Ubicación") },
@@ -385,15 +424,29 @@ fun RegisterTripScreen(
                         .fillMaxWidth()
                         .padding(bottom = 4.dp)
                 )
-                if (showUnloadLocationError) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 4.dp, bottom = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (showUnloadLocationError) {
+                        Text(
+                            text = "La ubicación de descarga es obligatoria",
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f).padding(end = 4.dp),
+                            textAlign = TextAlign.Start
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                     Text(
-                        text = "La ubicación de descarga es obligatoria",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
+                        text = "${unloadLocation.length}/100",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
                     )
-                } else {
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
 
@@ -514,7 +567,7 @@ fun RegisterTripScreen(
                 OutlinedTextField(
                     value = clientDni,
                     onValueChange = {
-                        clientDni = it
+                        clientDni = it.filter { c -> c.isDigit() }.take(8)
                         resolvedClientId = 0
                         clientFoundName = ""
                         clientDniError = ""
