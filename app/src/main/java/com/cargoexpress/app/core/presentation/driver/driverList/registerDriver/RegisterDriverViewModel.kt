@@ -24,6 +24,7 @@ class RegisterDriverViewModel(
                 dni = dni,
                 license = license,
                 contactNumber = contactNumber,
+                state = "",
                 entrepreneurId = Constants.ENTREPRENEUR_ID
             )
             val result = driverRepository.addDriver(driver)

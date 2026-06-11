@@ -93,6 +93,8 @@ import com.cargoexpress.app.core.presentation.vehicle.registerVehicle.RegisterVe
 import com.cargoexpress.app.core.presentation.vehicle.registerVehicle.RegisterVehicleViewModel
 import com.cargoexpress.app.core.presentation.vehicle.editVehicle.EditVehicleScreen
 import com.cargoexpress.app.core.presentation.vehicle.editVehicle.EditVehicleViewModel
+import com.cargoexpress.app.core.presentation.driver.driverList.editDriver.EditDriverScreen
+import com.cargoexpress.app.core.presentation.driver.driverList.editDriver.EditDriverViewModel
 import com.cargoexpress.app.core.presentation.statistics.StatisticsScreen
 import com.cargoexpress.app.core.presentation.terms.TermsAndConditionsScreen
 import androidx.compose.material.icons.filled.BarChart
@@ -192,7 +194,8 @@ class MainActivity : ComponentActivity() {
                     currentRoute == "edit_trip/{tripId}" ||
                     currentRoute == "register_vehicle" ||
                     currentRoute == "edit_vehicle/{vehicleId}" ||
-                    currentRoute == "register_driver"
+                    currentRoute == "register_driver" ||
+                    currentRoute == "edit_driver/{driverId}"
 
                 val ongoingTripRepository = OngoingTripRepository(ongoingTripService)
                 val alertRepository = AlertRepository(alertService)
@@ -346,6 +349,12 @@ class MainActivity : ComponentActivity() {
                             val vehicleId = backStackEntry.arguments?.getString("vehicleId")?.toInt() ?: 0
                             val editVehicleViewModel = EditVehicleViewModel(vehicleRepository)
                             EditVehicleScreen(vehicleId = vehicleId, viewModel = editVehicleViewModel, navController = navController)
+                        }
+
+                        composable(route = "edit_driver/{driverId}") { backStackEntry ->
+                            val driverId = backStackEntry.arguments?.getString("driverId")?.toInt() ?: 0
+                            val editDriverViewModel = EditDriverViewModel(driverRepository)
+                            EditDriverScreen(driverId = driverId, viewModel = editDriverViewModel, navController = navController)
                         }
 
                         composable(route = "register_trip") { backStackEntry ->

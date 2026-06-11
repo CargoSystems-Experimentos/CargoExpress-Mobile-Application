@@ -146,7 +146,7 @@ fun RegisterDriverScreen(
             OutlinedTextField(
                 value = name,
                 onValueChange = {
-                    if (it.length <= 50) {
+                    if (it.length <= 60) {
                         name = it
                         nameError = if (it.isBlank()) "El nombre es obligatorio" else null
                     }
@@ -179,7 +179,7 @@ fun RegisterDriverScreen(
                     Spacer(modifier = Modifier.weight(1f))
                 }
                 Text(
-                    text = "${name.length}/50",
+                    text = "${name.length}/60",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
