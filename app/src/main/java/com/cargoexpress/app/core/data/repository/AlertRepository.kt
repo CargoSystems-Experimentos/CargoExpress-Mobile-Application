@@ -46,10 +46,17 @@ class AlertRepository(private val alertService: AlertService) {
             if (response.isSuccessful) {
                 Resource.Success(data = response.body()?.toAlert() ?: alert)
             } else {
-                Resource.Error(message = "Failed to create alert")
+                Resource.Error(message = parseBackendError(response.errorBody()?.string()))
             }
         } catch (e: Exception) {
             Resource.Error(message = e.message ?: "An unknown error occurred")
         }
+    }
+
+    private fun parseBackendError(body: String?): String {
+        if (body.isNullOrBlank()) return "Error desconocido"
+        return try {
+            org.json.JSONObject(body).optString("message", body)
+        } catch (_: Exception) { body }
     }
 }

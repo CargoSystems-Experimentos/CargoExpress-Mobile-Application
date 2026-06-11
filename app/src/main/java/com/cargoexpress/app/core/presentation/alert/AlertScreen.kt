@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Constants
-import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.data.repository.AlertRepository
 import com.cargoexpress.app.core.data.repository.TripRepository
 import com.cargoexpress.app.core.domain.Alert
@@ -42,41 +41,44 @@ fun AlertScreen(
     val uiState by viewModel.uiState.collectAsState()
     val createSuccess by viewModel.createSuccess.collectAsState()
     val tripName by viewModel.tripName.collectAsState()
+    val tripState by viewModel.tripState.collectAsState()
     val isEntrepreneur = Constants.USER_ROLE == "ENTREPRENEUR"
+
+    val blockedStates = setOf("AWAITING", "FINISHED", "CANCELED")
+    val canCreateAlert = isEntrepreneur && tripState.isNotBlank() && tripState !in blockedStates
 
     var showDialog by remember { mutableStateOf(false) }
     var alertTitle by remember { mutableStateOf("") }
+    var alertType by remember { mutableStateOf("") }
     var alertDescription by remember { mutableStateOf("") }
-    var ongoingTripId by remember { mutableStateOf<Int?>(null) }
     var showConfirmModal by remember { mutableStateOf(false) }
     var confirmModalSuccess by remember { mutableStateOf(false) }
     var confirmModalMessage by remember { mutableStateOf("") }
 
     LaunchedEffect(tripId) {
-        viewModel.loadTripName(tripId)
-        when (val result = tripRepository.getOngoingTripByTripId(tripId)) {
-            is Resource.Success -> { ongoingTripId = result.data?.id }
-            is Resource.Error -> { ongoingTripId = null }
-        }
-    }
-
-    val tripAlerts = alerts.filter { alert ->
-        ongoingTripId != null && alert.ongoingTripId == ongoingTripId
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.loadAlerts()
+        viewModel.loadTripData(tripId)
+        viewModel.loadAlerts(tripId)
     }
 
     LaunchedEffect(createSuccess) {
         if (createSuccess) {
             showDialog = false
             alertTitle = ""
+            alertType = ""
             alertDescription = ""
             viewModel.resetCreateSuccess()
             confirmModalSuccess = true
             confirmModalMessage = "Alerta registrada correctamente"
             showConfirmModal = true
+        }
+    }
+
+    LaunchedEffect(uiState.message) {
+        if (uiState.message.isNotEmpty() && !uiState.isLoading) {
+            confirmModalSuccess = false
+            confirmModalMessage = uiState.message
+            showConfirmModal = true
+            showDialog = false
         }
     }
 
@@ -95,7 +97,7 @@ fun AlertScreen(
             )
         },
         floatingActionButton = {
-            if (isEntrepreneur) {
+            if (canCreateAlert) {
                 ExtendedFloatingActionButton(
                     onClick = { showDialog = true },
                     icon = { Icon(imageVector = Icons.Default.Add, contentDescription = null) },
@@ -109,7 +111,7 @@ fun AlertScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            if (tripAlerts.isEmpty()) {
+            if (alerts.isEmpty()) {
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -126,7 +128,7 @@ fun AlertScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (isEntrepreneur) {
+                    if (canCreateAlert) {
                         Text(
                             text = "Usa el botón + para crear una alerta",
                             style = MaterialTheme.typography.bodySmall,
@@ -140,7 +142,7 @@ fun AlertScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(tripAlerts) { alert ->
+                    items(alerts) { alert ->
                         AlertItemCard(alert = alert)
                     }
                 }
@@ -165,14 +167,29 @@ fun AlertScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = alertTitle,
-                        onValueChange = { if (it.length <= 50) alertTitle = it },
+                        onValueChange = { if (it.length <= 100) alertTitle = it },
                         label = { Text("Título") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        isError = uiState.message.isNotEmpty(),
                         supportingText = {
                             Text(
-                                text = "${alertTitle.length}/50",
+                                text = "${alertTitle.length}/100",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    )
+                    OutlinedTextField(
+                        value = alertType,
+                        onValueChange = { if (it.length <= 60) alertType = it },
+                        label = { Text("Tipo") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        supportingText = {
+                            Text(
+                                text = "${alertType.length}/60",
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.End,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -203,13 +220,12 @@ fun AlertScreen(
                 if (uiState.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(28.dp))
                 } else {
+                    val isFormValid = alertTitle.isNotBlank() && alertType.isNotBlank() && alertDescription.isNotBlank()
                     Button(
                         onClick = {
-                            if (alertTitle.isNotBlank() && alertDescription.isNotBlank()) {
-                                viewModel.createAlert(tripId, alertTitle, alertDescription)
-                            }
+                            viewModel.createAlert(tripId, alertTitle, alertType, alertDescription)
                         },
-                        enabled = alertTitle.isNotBlank() && alertDescription.isNotBlank()
+                        enabled = isFormValid
                     ) {
                         Text("Crear Alerta")
                     }
@@ -224,15 +240,6 @@ fun AlertScreen(
                 }
             }
         )
-    }
-
-    LaunchedEffect(uiState.message) {
-        if (uiState.message.isNotEmpty() && !uiState.isLoading) {
-            confirmModalSuccess = false
-            confirmModalMessage = uiState.message
-            showConfirmModal = true
-            showDialog = false
-        }
     }
 }
 
@@ -273,6 +280,14 @@ private fun AlertItemCard(alert: Alert) {
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
+                if (alert.type.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = alert.type,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = alert.description,

@@ -32,24 +32,24 @@ class AlertViewModel(
     private val _tripName = MutableStateFlow("")
     val tripName: StateFlow<String> = _tripName
 
-    init {
-        loadAlerts()
-    }
+    private val _tripState = MutableStateFlow("")
+    val tripState: StateFlow<String> = _tripState
 
-    fun loadTripName(tripId: Int) {
+    fun loadTripData(tripId: Int) {
         viewModelScope.launch {
             val result = tripRepository.getTripById(tripId)
             if (result is Resource.Success) {
                 _tripName.value = result.data?.name ?: "Viaje #$tripId"
+                _tripState.value = result.data?.state ?: ""
             } else {
                 _tripName.value = "Viaje #$tripId"
             }
         }
     }
 
-    fun loadAlerts() {
+    fun loadAlerts(tripId: Int) {
         viewModelScope.launch {
-            val result = alertRepository.getAlerts(Constants.TOKEN)
+            val result = alertRepository.getAlertsByTripId(Constants.TOKEN, tripId)
             if (result is Resource.Success) {
                 _alerts.value = result.data ?: emptyList()
             } else {
@@ -58,38 +58,29 @@ class AlertViewModel(
         }
     }
 
-    var title: String = ""
-    var description: String = ""
-    fun createAlert(tripId: Int, title: String, description: String) {
+    fun createAlert(tripId: Int, title: String, type: String, description: String) {
         viewModelScope.launch {
             _uiState.value = UIState(isLoading = true)
 
             val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
             val now = sdf.format(Date())
 
-            val ongoingResult = tripRepository.getOngoingTripByTripId(tripId)
+            val alert = Alert(
+                id = 0,
+                title = title,
+                type = type,
+                description = description,
+                date = now,
+                tripId = tripId
+            )
 
-            if (ongoingResult is Resource.Success && ongoingResult.data != null) {
-                val ongoingTripId = ongoingResult.data.id
-
-                val alert = Alert(
-                    id = 0,
-                    title = title,
-                    description = description,
-                    date = now,
-                    ongoingTripId = ongoingTripId
-                )
-
-                val result = alertRepository.createAlert(alert)
-                if (result is Resource.Success) {
-                    _createSuccess.value = true
-                    loadAlerts()
-                    _uiState.value = UIState(isLoading = false)
-                } else {
-                    _uiState.value = UIState(isLoading = false, message = result.message ?: "Error al crear alerta")
-                }
+            val result = alertRepository.createAlert(alert)
+            if (result is Resource.Success) {
+                _createSuccess.value = true
+                loadAlerts(tripId)
+                _uiState.value = UIState(isLoading = false)
             } else {
-                _uiState.value = UIState(isLoading = false, message = ongoingResult.message ?: "No se encontro ongoing trip")
+                _uiState.value = UIState(isLoading = false, message = result.message ?: "Error al crear alerta")
             }
         }
     }
