@@ -6,6 +6,7 @@ import com.cargoexpress.app.core.common.Constants
 import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.common.UIState
 import com.cargoexpress.app.core.data.repository.OngoingTripRepository
+import com.cargoexpress.app.core.data.repository.TripRepository
 import com.cargoexpress.app.core.domain.OngoingTrip
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -15,7 +16,10 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.random.Random
 
-class GpsViewModel(private val ongoingTripRepository: OngoingTripRepository) : ViewModel() {
+class GpsViewModel(
+    private val ongoingTripRepository: OngoingTripRepository,
+    private val tripRepository: TripRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UIState<OngoingTrip>(isLoading = true))
     val uiState: StateFlow<UIState<OngoingTrip>> = _uiState
@@ -62,13 +66,6 @@ class GpsViewModel(private val ongoingTripRepository: OngoingTripRepository) : V
     fun getOngoingTripById(tripId: Int): OngoingTrip? =
         _ongoingTrips.value.find { it.tripId == tripId }
 
-    fun checkIfFinalized(tripId: Int) {
-        val trip = getOngoingTripById(tripId)
-        if (trip?.state == "FINALIZADO") {
-            _isFinalized.value = true
-        }
-    }
-
     fun createOngoingTrip(tripId: Int) {
         viewModelScope.launch {
             _uiState.value = UIState(isLoading = true)
@@ -78,7 +75,6 @@ class GpsViewModel(private val ongoingTripRepository: OngoingTripRepository) : V
             val distance = Random.nextInt(5000, 30000)
 
             val newTrip = OngoingTrip(
-                state = "EN PROGRESO",
                 latitude = lat,
                 longitude = lng,
                 speed = speed,
@@ -87,6 +83,7 @@ class GpsViewModel(private val ongoingTripRepository: OngoingTripRepository) : V
             )
             val result = ongoingTripRepository.createOngoingTrip(Constants.TOKEN, newTrip)
             if (result is Resource.Success) {
+                tripRepository.updateTripState(tripId, "EN PROGRESO")
                 loadOngoingTrips()
             } else {
                 _uiState.value = UIState(isLoading = false, message = result.message ?: "Error al iniciar viaje")
@@ -96,7 +93,6 @@ class GpsViewModel(private val ongoingTripRepository: OngoingTripRepository) : V
 
     fun startSimulation(tripId: Int) {
         val trip = getOngoingTripById(tripId) ?: return
-        val ongoingTripId = trip.id
         _simulatedLat.value = trip.latitude
         _simulatedLng.value = trip.longitude
         _simulatedSpeed.value = trip.speed
@@ -119,16 +115,15 @@ class GpsViewModel(private val ongoingTripRepository: OngoingTripRepository) : V
                     _simulatedLat.value = DESTINATION_LAT
                     _simulatedLng.value = DESTINATION_LNG
                     _simulatedSpeed.value = 0
-                    finalizeTrip(ongoingTripId)
+                    finalizeTrip()
                     break
                 }
             }
         }
     }
 
-    private fun finalizeTrip(ongoingTripId: Int) {
+    private fun finalizeTrip() {
         viewModelScope.launch {
-            ongoingTripRepository.finalizeOngoingTrip(Constants.TOKEN, ongoingTripId)
             _isFinalized.value = true
             loadOngoingTrips()
         }

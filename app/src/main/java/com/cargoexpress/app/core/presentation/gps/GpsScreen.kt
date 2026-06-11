@@ -44,7 +44,7 @@ fun GpsScreen(
     navController: NavController,
     ongoingTripRepository: OngoingTripRepository
 ) {
-    val viewModel: GpsViewModel = viewModel(factory = GpsViewModelFactory(ongoingTripRepository))
+    val viewModel: GpsViewModel = viewModel(factory = GpsViewModelFactory(ongoingTripRepository, tripRepository))
     val uiState by viewModel.uiState.collectAsState()
     val ongoingTrips by viewModel.ongoingTrips.collectAsState()
     val simulatedLat by viewModel.simulatedLat.collectAsState()
@@ -55,7 +55,7 @@ fun GpsScreen(
     val ongoingTrip = viewModel.getOngoingTripById(tripId)
     val hasOngoingTrip = ongoingTrip != null
     val isEntrepreneur = Constants.USER_ROLE == "ENTREPRENEUR"
-    val tripFinalized = isFinalized || ongoingTrip?.state == "FINALIZADO"
+    val tripFinalized = isFinalized
 
     val mapView = rememberMapViewWithLifecycle()
     var googleMap by remember { mutableStateOf<GoogleMap?>(null) }
@@ -89,12 +89,9 @@ fun GpsScreen(
 
     LaunchedEffect(ongoingTrips) {
         val trip = viewModel.getOngoingTripById(tripId)
-        if (trip != null) {
-            viewModel.checkIfFinalized(tripId)
-            if (!simulationStarted && trip.state != "FINALIZADO") {
-                simulationStarted = true
-                viewModel.startSimulation(tripId)
-            }
+        if (trip != null && !simulationStarted) {
+            simulationStarted = true
+            viewModel.startSimulation(tripId)
         }
     }
 
