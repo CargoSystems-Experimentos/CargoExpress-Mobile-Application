@@ -11,14 +11,14 @@ import kotlinx.coroutines.launch
 class RegisterExpenseViewModel(
     private val expenseRepository: ExpenseRepository
 ) : ViewModel() {
-    var fuelAmount: Int = 0
+    var fuelAmount: Double = 0.0
     var fuelDescription: String = ""
-    var viaticsAmount: Int = 0
+    var viaticsAmount: Double = 0.0
     var viaticsDescription: String = ""
-    var tollsAmount: Int = 0
+    var tollsAmount: Double = 0.0
     var tollsDescription: String = ""
 
-    fun registerExpense(onResult: (Resource<Expense>) -> Unit){
+    fun registerExpense(onResult: (Resource<Expense>) -> Unit) {
         viewModelScope.launch {
             val expense = Expense(
                 id = 0,
@@ -28,6 +28,7 @@ class RegisterExpenseViewModel(
                 viaticsDescription = viaticsDescription,
                 tollsAmount = tollsAmount,
                 tollsDescription = tollsDescription,
+                state = true,
                 tripId = Constants.TRIP_ID
             )
             val result = expenseRepository.addExpense(expense)

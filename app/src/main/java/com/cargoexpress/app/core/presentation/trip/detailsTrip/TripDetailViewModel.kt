@@ -53,8 +53,11 @@ class TripDetailViewModel(
 
     fun loadExpensesByTripId(tripId: Int) {
         viewModelScope.launch {
-            when (val result = expenseRepository.getExpensesByTripId(Constants.TOKEN, tripId)) {
-                is Resource.Success -> _expenses.value = result.data ?: emptyList()
+            when (val result = tripRepository.getExpenseByTripId(tripId)) {
+                is Resource.Success -> {
+                    val expense = result.data
+                    _expenses.value = if (expense != null) listOf(expense) else emptyList()
+                }
                 is Resource.Error -> _expenses.value = emptyList()
             }
         }

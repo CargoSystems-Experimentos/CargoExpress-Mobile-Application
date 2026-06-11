@@ -98,6 +98,9 @@ import com.cargoexpress.app.core.presentation.driver.driverList.editDriver.EditD
 import com.cargoexpress.app.core.presentation.statistics.StatisticsScreen
 import com.cargoexpress.app.core.presentation.terms.TermsAndConditionsScreen
 import androidx.compose.material.icons.filled.BarChart
+import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseScreen
+import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseViewModel
+import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
@@ -195,7 +198,8 @@ class MainActivity : ComponentActivity() {
                     currentRoute == "register_vehicle" ||
                     currentRoute == "edit_vehicle/{vehicleId}" ||
                     currentRoute == "register_driver" ||
-                    currentRoute == "edit_driver/{driverId}"
+                    currentRoute == "edit_driver/{driverId}" ||
+                    currentRoute == "edit_expense/{expenseId}"
 
                 val ongoingTripRepository = OngoingTripRepository(ongoingTripService)
                 val alertRepository = AlertRepository(alertService)
@@ -327,6 +331,18 @@ class MainActivity : ComponentActivity() {
                             RegisterExpenseScreen(viewModel = registerExpenseViewModel, navController = navController) { expense ->
 
                             }
+                        }
+
+                        composable(route = "edit_expense/{expenseId}") { backStackEntry ->
+                            val expenseId = backStackEntry.arguments?.getString("expenseId")?.toInt() ?: 0
+                            val editExpenseViewModel: EditExpenseViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                                factory = EditExpenseViewModelFactory(expenseRepository)
+                            )
+                            EditExpenseScreen(
+                                expenseId = expenseId,
+                                navController = navController,
+                                viewModel = editExpenseViewModel
+                            )
                         }
 
                         composable(route = "register_driver") { backStackEntry ->

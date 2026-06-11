@@ -64,6 +64,19 @@ fun TripDetailScreen(
         viewModel.loadExpensesByTripId(tripId)
     }
 
+    val expenseUpdated by navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getStateFlow("expense_updated", false)
+        ?.collectAsState()
+        ?: remember { mutableStateOf(false) }
+
+    LaunchedEffect(expenseUpdated) {
+        if (expenseUpdated) {
+            viewModel.loadExpensesByTripId(tripId)
+            navController.currentBackStackEntry?.savedStateHandle?.set("expense_updated", false)
+        }
+    }
+
 
     Column(
         modifier = Modifier
@@ -198,7 +211,13 @@ fun TripDetailScreen(
                             // Lista de gastos
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 expenses.forEach { expense ->
-                                    ExpenseCard(expense)
+                                    ExpenseCard(
+                                        expense = expense,
+                                        navController = navController,
+                                        onEditClick = if (Constants.USER_ROLE != "CLIENT" && expense.state) {
+                                            { navController.navigate("edit_expense/${expense.id}") }
+                                        } else null
+                                    )
                                 }
                             }
                         }
@@ -227,7 +246,11 @@ fun InfoItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: Strin
 }
 
 @Composable
-fun ExpenseCard(expense: Expense) {
+fun ExpenseCard(
+    expense: Expense,
+    navController: androidx.navigation.NavController? = null,
+    onEditClick: (() -> Unit)? = null
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -250,8 +273,13 @@ fun ExpenseCard(expense: Expense) {
                     Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = Color(0xFFF9A825), modifier = Modifier.size(20.dp))
                 }
                 Spacer(Modifier.width(10.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text("Gastos del Viaje", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
+                }
+                if (onEditClick != null) {
+                    IconButton(onClick = onEditClick, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.Edit, contentDescription = "Editar gasto", tint = Color(0xFFF9A825))
+                    }
                 }
             }
 
@@ -302,7 +330,7 @@ fun ExpenseCard(expense: Expense) {
             ) {
                 Text("Total", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    "USD ${expense.fuelAmount + expense.viaticsAmount + expense.tollsAmount}",
+                    "USD ${"%.2f".format(expense.fuelAmount + expense.viaticsAmount + expense.tollsAmount)}",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
             }
@@ -317,7 +345,7 @@ fun ExpenseRow(
     iconTint: Color,
     label: String,
     description: String,
-    amount: Int
+    amount: Double
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
@@ -333,7 +361,7 @@ fun ExpenseRow(
             Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(description, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
         }
-        Text("USD $amount", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
+        Text("USD ${"%.2f".format(amount)}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
     }
 }
 

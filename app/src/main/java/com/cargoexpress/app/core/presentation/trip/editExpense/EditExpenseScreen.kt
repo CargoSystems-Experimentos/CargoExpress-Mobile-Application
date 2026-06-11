@@ -1,7 +1,5 @@
-package com.cargoexpress.app.core.presentation.trip.registerExpense
+package com.cargoexpress.app.core.presentation.trip.editExpense
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,33 +18,46 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.cargoexpress.app.core.domain.Expense
 import com.cargoexpress.app.core.common.Resource
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun RegisterExpenseScreen(
+fun EditExpenseScreen(
+    expenseId: Int,
     navController: NavController,
-    viewModel: RegisterExpenseViewModel = viewModel(),
-    onExpenseRegistered: (Expense) -> Unit
+    viewModel: EditExpenseViewModel
 ) {
+    val uiState by viewModel.uiState.collectAsState()
 
     var fuelAmount by remember { mutableStateOf("") }
-    var fuelDescription by remember { mutableStateOf(viewModel.fuelDescription) }
+    var fuelDescription by remember { mutableStateOf("") }
     var viaticsAmount by remember { mutableStateOf("") }
-    var viaticsDescription by remember { mutableStateOf(viewModel.viaticsDescription) }
+    var viaticsDescription by remember { mutableStateOf("") }
     var tollsAmount by remember { mutableStateOf("") }
-    var tollsDescription by remember { mutableStateOf(viewModel.tollsDescription) }
-    //var selectedCurrency by remember { mutableStateOf("USD") }
-    var isLoading by remember { mutableStateOf(false) }
+    var tollsDescription by remember { mutableStateOf("") }
 
+    var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
 
-    // Validaciones
+    LaunchedEffect(expenseId) {
+        viewModel.loadExpense(expenseId)
+    }
+
+    // Pre-fill form once expense loads
+    LaunchedEffect(uiState.expense) {
+        uiState.expense?.let { expense ->
+            fuelAmount = expense.fuelAmount.toString()
+            fuelDescription = expense.fuelDescription
+            viaticsAmount = expense.viaticsAmount.toString()
+            viaticsDescription = expense.viaticsDescription
+            tollsAmount = expense.tollsAmount.toString()
+            tollsDescription = expense.tollsDescription
+        }
+    }
+
     val isFuelAmountValid = fuelAmount.isNotBlank() && fuelAmount.toDoubleOrNull() != null && (fuelAmount.toDoubleOrNull() ?: -1.0) >= 0.0
     val isFuelDescriptionValid = fuelDescription.isNotBlank()
     val isViaticsAmountValid = viaticsAmount.isNotBlank() && viaticsAmount.toDoubleOrNull() != null && (viaticsAmount.toDoubleOrNull() ?: -1.0) >= 0.0
@@ -61,7 +72,12 @@ fun RegisterExpenseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Registrar Gasto", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)) },
+                title = {
+                    Text(
+                        "Editar Gasto",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Retroceder")
@@ -71,6 +87,26 @@ fun RegisterExpenseScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color(0xFFFFEB3B))
+            }
+            return@Scaffold
+        }
+
+        if (uiState.message.isNotBlank() && uiState.expense == null) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(uiState.message, color = MaterialTheme.colorScheme.error)
+            }
+            return@Scaffold
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -79,7 +115,6 @@ fun RegisterExpenseScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-
             // Combustible
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -88,11 +123,15 @@ fun RegisterExpenseScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.LocalGasStation, contentDescription = null, tint = Color(0xFFFFEB3B), modifier = Modifier.size(24.dp))
+                        Icon(
+                            Icons.Default.LocalGasStation,
+                            contentDescription = null,
+                            tint = Color(0xFFFFEB3B),
+                            modifier = Modifier.size(24.dp)
+                        )
                         Spacer(Modifier.width(8.dp))
                         Text("Combustible", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                     }
-
                     OutlinedTextField(
                         value = fuelAmount,
                         onValueChange = { if (it.length <= 10) fuelAmount = it },
@@ -102,7 +141,6 @@ fun RegisterExpenseScreen(
                         shape = RoundedCornerShape(8.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                     )
-
                     OutlinedTextField(
                         value = fuelDescription,
                         onValueChange = { if (it.length <= 100) fuelDescription = it },
@@ -131,11 +169,15 @@ fun RegisterExpenseScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Restaurant, contentDescription = null, tint = Color(0xFFFFEB3B), modifier = Modifier.size(24.dp))
+                        Icon(
+                            Icons.Default.Restaurant,
+                            contentDescription = null,
+                            tint = Color(0xFFFFEB3B),
+                            modifier = Modifier.size(24.dp)
+                        )
                         Spacer(Modifier.width(8.dp))
                         Text("Viáticos", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                     }
-
                     OutlinedTextField(
                         value = viaticsAmount,
                         onValueChange = { if (it.length <= 10) viaticsAmount = it },
@@ -145,7 +187,6 @@ fun RegisterExpenseScreen(
                         shape = RoundedCornerShape(8.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                     )
-
                     OutlinedTextField(
                         value = viaticsDescription,
                         onValueChange = { if (it.length <= 100) viaticsDescription = it },
@@ -174,11 +215,15 @@ fun RegisterExpenseScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.AddRoad, contentDescription = null, tint = Color(0xFFFFEB3B), modifier = Modifier.size(24.dp))
+                        Icon(
+                            Icons.Default.AddRoad,
+                            contentDescription = null,
+                            tint = Color(0xFFFFEB3B),
+                            modifier = Modifier.size(24.dp)
+                        )
                         Spacer(Modifier.width(8.dp))
                         Text("Peajes", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                     }
-
                     OutlinedTextField(
                         value = tollsAmount,
                         onValueChange = { if (it.length <= 10) tollsAmount = it },
@@ -188,7 +233,6 @@ fun RegisterExpenseScreen(
                         shape = RoundedCornerShape(8.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                     )
-
                     OutlinedTextField(
                         value = tollsDescription,
                         onValueChange = { if (it.length <= 100) tollsDescription = it },
@@ -226,30 +270,20 @@ fun RegisterExpenseScreen(
                         viewModel.tollsAmount = tollsAmount.toDoubleOrNull() ?: 0.0
                         viewModel.tollsDescription = tollsDescription
 
-                        viewModel.registerExpense { result ->
+                        viewModel.updateExpense(expenseId) { result ->
                             isLoading = false
-                            val message = if (result is Resource.Success && result.data != null) {
-                                onExpenseRegistered(result.data)
-
-                                fuelAmount = ""
-                                fuelDescription = ""
-                                viaticsAmount = ""
-                                viaticsDescription = ""
-                                tollsAmount = ""
-                                tollsDescription = ""
+                            if (result is Resource.Success) {
+                                navController.previousBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.set("expense_updated", true)
                                 navController.popBackStack()
-                                "Gasto registrado correctamente"
                             } else {
-                                "No se pudo registrar el gasto"
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        (result as? Resource.Error)?.message ?: "No se pudo actualizar el gasto"
+                                    )
+                                }
                             }
-
-                            scope.launch {
-                                snackbarHostState.showSnackbar(message)
-                            }
-                        }
-                    } else {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Por favor, completa todos los campos correctamente")
                         }
                     }
                 },
@@ -261,7 +295,7 @@ fun RegisterExpenseScreen(
                 enabled = isFormValid && !isLoading
             ) {
                 Text(
-                    "Registrar Gasto",
+                    "Actualizar Gasto",
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color.Black,
                     fontWeight = FontWeight.Bold
