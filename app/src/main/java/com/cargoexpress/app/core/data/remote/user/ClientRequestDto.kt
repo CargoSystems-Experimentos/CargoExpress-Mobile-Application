@@ -1,8 +1,4 @@
 package com.cargoexpress.app.core.data.remote.user
 
-data class ClientRequestDto(
-    val name: String,
-    val phone: String,
-    val dni: String,
-    val userId: Int
-)
+// Client creation is handled by the authentication/sign-up endpoint.
+// See RegisterRequestDto.ClientProfileDto for the registration profile.

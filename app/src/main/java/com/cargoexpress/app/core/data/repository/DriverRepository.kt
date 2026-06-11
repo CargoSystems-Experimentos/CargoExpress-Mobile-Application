@@ -1,40 +1,24 @@
 package com.cargoexpress.app.core.data.repository
 
+import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.data.remote.driver.DriverService
 import com.cargoexpress.app.core.data.remote.driver.toDriver
-import com.cargoexpress.app.core.data.remote.driver.toDriverDto
+import com.cargoexpress.app.core.data.remote.driver.toDriverPostDto
 import com.cargoexpress.app.core.domain.Driver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import com.cargoexpress.app.core.common.Constants
-import com.cargoexpress.app.core.common.Resource
 
 class DriverRepository(private val driverService: DriverService) {
 
     suspend fun getDrivers(token: String, entrepreneurId: Int): Resource<List<Driver>> = withContext(Dispatchers.IO) {
-        if (token.isBlank()) {
-            return@withContext Resource.Error(message = "Token is required")
-        }
+        if (token.isBlank()) return@withContext Resource.Error(message = "Token is required")
         return@withContext try {
-            val bearerToken = "Bearer $token"
-            val primaryResponse = driverService.getDrivers(bearerToken, entrepreneurId)
-
-            val primaryDrivers = if (primaryResponse.isSuccessful) {
-                primaryResponse.body()?.map { it.toDriver() } ?: emptyList()
+            val response = driverService.getDriversByEntrepreneur(entrepreneurId, "Bearer $token")
+            if (response.isSuccessful) {
+                Resource.Success(data = response.body()?.map { it.toDriver() } ?: emptyList())
             } else {
-                emptyList()
-            }
-
-            if (primaryDrivers.isNotEmpty()) {
-                Resource.Success(data = primaryDrivers)
-            } else {
-                val fallbackResponse = driverService.getDriversDirectByEntrepreneur(bearerToken, entrepreneurId)
-                if (fallbackResponse.isSuccessful) {
-                    val fallbackDrivers = fallbackResponse.body()?.map { it.toDriver() } ?: emptyList()
-                    Resource.Success(data = fallbackDrivers)
-                } else {
-                    Resource.Error(message = "Failed to fetch drivers: ${fallbackResponse.code()}")
-                }
+                Resource.Error(message = "Failed to fetch drivers: ${response.code()}")
             }
         } catch (e: Exception) {
             Resource.Error(message = e.message ?: "An unknown error occurred")
@@ -42,11 +26,9 @@ class DriverRepository(private val driverService: DriverService) {
     }
 
     suspend fun addDriver(driver: Driver): Resource<Driver> = withContext(Dispatchers.IO) {
-        if (Constants.TOKEN.isBlank()) {
-            return@withContext Resource.Error(message = "Token is required")
-        }
+        if (Constants.TOKEN.isBlank()) return@withContext Resource.Error(message = "Token is required")
         return@withContext try {
-            val response = driverService.addDriver("Bearer ${Constants.TOKEN}", driver.toDriverDto())
+            val response = driverService.addDriver("Bearer ${Constants.TOKEN}", driver.toDriverPostDto())
             if (response.isSuccessful) {
                 Resource.Success(data = response.body()?.toDriver() ?: driver)
             } else {

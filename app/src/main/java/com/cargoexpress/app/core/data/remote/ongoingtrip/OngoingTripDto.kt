@@ -4,7 +4,6 @@ import com.cargoexpress.app.core.domain.OngoingTrip
 
 data class OngoingTripDto(
     val id: Int = 0,
-    val state: String = "",
     val latitude: Float,
     val longitude: Float,
     val speed: Int,
@@ -13,7 +12,14 @@ data class OngoingTripDto(
 )
 
 data class OngoingTripDtoPost(
-    val state: String,
+    val latitude: Float,
+    val longitude: Float,
+    val speed: Int,
+    val distance: Int,
+    val tripId: Int
+)
+
+data class OngoingTripUpdateDto(
     val latitude: Float,
     val longitude: Float,
     val speed: Int,
@@ -23,28 +29,22 @@ data class OngoingTripDtoPost(
 
 fun OngoingTripDto.toOngoingTrip() = OngoingTrip(
     id = id,
-    state = state,
     latitude = latitude,
     longitude = longitude,
     speed = speed,
     distance = distance,
     tripId = tripId
 )
-
-fun OngoingTrip.toOngoingTripDto() = OngoingTripDto(
-    id = id,
-    state = state,
-    latitude = latitude,
-    longitude = longitude,
-    speed = speed,
-    distance = distance,
-    tripId = tripId
-)
-
-data class OngoingTripStateUpdateDto(val state: String)
 
 fun OngoingTrip.toOngoingTripDtoPost() = OngoingTripDtoPost(
-    state = state,
+    latitude = latitude,
+    longitude = longitude,
+    speed = speed,
+    distance = distance,
+    tripId = tripId
+)
+
+fun OngoingTrip.toOngoingTripUpdateDto() = OngoingTripUpdateDto(
     latitude = latitude,
     longitude = longitude,
     speed = speed,

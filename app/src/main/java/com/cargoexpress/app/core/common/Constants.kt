@@ -2,12 +2,12 @@ package com.cargoexpress.app.core.common
 
 
 object Constants {
-    const val BASE_URL = "https://10.0.2.2:7162/api/v1/"
+    const val BASE_URL = "https://cargoexpress-backend-production.up.railway.app/api/v1/"
     var TOKEN: String = ""
     var USER_ID: Int = 0
     var USER_NAME: String = ""
+    var USER_ROLE: String = ""
     var ENTREPRENEUR_ID: Int = 0
     var CLIENT_ID: Int = 0
-    var USER_ROLE: String = ""
     var TRIP_ID: Int = 0
 }

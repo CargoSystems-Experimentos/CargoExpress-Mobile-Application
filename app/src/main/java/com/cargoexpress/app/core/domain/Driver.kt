@@ -6,5 +6,6 @@ data class Driver(
     val dni: String,
     val license: String,
     val contactNumber: String,
+    val state: String,
     val entrepreneurId: Int
 )

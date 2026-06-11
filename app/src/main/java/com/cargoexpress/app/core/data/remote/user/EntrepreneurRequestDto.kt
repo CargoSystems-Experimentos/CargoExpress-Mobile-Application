@@ -1,9 +1,4 @@
 package com.cargoexpress.app.core.data.remote.user
 
-data class EntrepreneurRequestDto (
-    val name: String,
-    val phone: String,
-    val ruc: String,
-    val logoImage: String,
-    val userId: Int
-)
+// Entrepreneur creation is handled by the authentication/sign-up endpoint.
+// See RegisterRequestDto.EntrepreneurProfileDto for the registration profile.
