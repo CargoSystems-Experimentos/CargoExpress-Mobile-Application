@@ -19,7 +19,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.cargoexpress.app.core.data.repository.ExpenseRepository
 import com.cargoexpress.app.core.data.repository.TripRepository
 import com.cargoexpress.app.core.domain.Expense
 import com.cargoexpress.app.core.domain.Trip
@@ -27,9 +26,9 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
-fun StatisticsScreen(tripRepository: TripRepository, expenseRepository: ExpenseRepository) {
+fun StatisticsScreen(tripRepository: TripRepository) {
     val viewModel: StatisticsViewModel = viewModel(
-        factory = StatisticsViewModelFactory(tripRepository, expenseRepository)
+        factory = StatisticsViewModelFactory(tripRepository)
     )
     val uiState by viewModel.uiState.collectAsState()
     val trips by viewModel.trips.collectAsState()
@@ -47,7 +46,7 @@ fun StatisticsScreen(tripRepository: TripRepository, expenseRepository: ExpenseR
     val totalTolls = expenses.sumOf { it.tollsAmount }
     val totalExpenses = totalFuel + totalViatics + totalTolls
 
-    val expensesByTrip = expenses
+    val expensesByTrip: List<Pair<String, Double>> = expenses
         .groupBy { it.tripId }
         .map { (tripId, exps) ->
             val trip = trips.find { it.id == tripId }
@@ -118,7 +117,7 @@ fun StatisticsScreen(tripRepository: TripRepository, expenseRepository: ExpenseR
                             iconBg = Color(0xFFE8F5E9),
                             iconTint = Color(0xFF2E7D32),
                             label = "Total gastos",
-                            value = "$ ${"%,d".format(totalExpenses)}"
+                            value = "S/ ${"%,.2f".format(totalExpenses)}"
                         )
                     }
 
@@ -180,9 +179,9 @@ fun StatisticsScreen(tripRepository: TripRepository, expenseRepository: ExpenseR
 
 @Composable
 private fun ExpenseCategoryBarChart(
-    fuelTotal: Int,
-    viaticsTotal: Int,
-    tollsTotal: Int
+    fuelTotal: Double,
+    viaticsTotal: Double,
+    tollsTotal: Double
 ) {
     val entries = listOf(
         Triple("Combustible", fuelTotal, Color(0xFFF9A825)),
@@ -219,7 +218,7 @@ private fun ExpenseCategoryBarChart(
                         verticalArrangement = Arrangement.Bottom
                     ) {
                         Text(
-                            text = "$${"%,d".format(value)}",
+                            text = "S/${"%,.0f".format(value)}",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -246,7 +245,7 @@ private fun ExpenseCategoryBarChart(
 }
 
 @Composable
-private fun ExpensePerTripBarChart(entries: List<Pair<String, Int>>) {
+private fun ExpensePerTripBarChart(entries: List<Pair<String, Double>>) {
     val maxValue = entries.maxOf { it.second }.toFloat().coerceAtLeast(1f)
 
     Card(
@@ -277,7 +276,7 @@ private fun ExpensePerTripBarChart(entries: List<Pair<String, Int>>) {
                         verticalArrangement = Arrangement.Bottom
                     ) {
                         Text(
-                            text = "S/.${"%,d".format(value)}",
+                            text = "S/${"%,.0f".format(value)}",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -454,7 +453,7 @@ private fun RecentTripCard(trip: Trip, expenses: List<Expense>) {
                 if (tripTotal > 0) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Gastos: $ ${"%,d".format(tripTotal)}",
+                        text = "Gastos: S/ ${"%,.2f".format(tripTotal)}",
                         style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF2E7D32), fontWeight = FontWeight.SemiBold)
                     )
                 }

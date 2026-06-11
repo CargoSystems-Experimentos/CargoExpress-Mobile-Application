@@ -48,10 +48,10 @@ class ProfileViewModel(
         }
     }
 
-    fun getClientProfile(userId: Int) {
+    fun getClientProfile(clientId: Int) {
         _clientState.value = UIState(isLoading = true)
         viewModelScope.launch {
-            val result = clientRepository.getClientByUserId(userId, Constants.TOKEN)
+            val result = clientRepository.getClient(clientId, Constants.TOKEN)
             if (result.isSuccess) {
                 _clientState.value = UIState(data = result.getOrNull())
             } else {

@@ -9,12 +9,13 @@ import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.domain.Trip
 import kotlinx.coroutines.launch
 
+/*
 class RegisterTripViewModel(
     private val tripRepository: TripRepository
 ) : ViewModel() {
     var name: String = ""
     var type: String = ""
-    var weight: Int = 0
+    var weight: Double = 0.0
     var loadLocation: String = ""
     var loadDate: String = ""
     var unloadLocation: String = ""
@@ -22,7 +23,7 @@ class RegisterTripViewModel(
     var driverId: Int = 0
     var vehicleId: Int = 0
     var clientId: Int = 0
-    var evidenceImg: String = ""
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun registerTrip(onResult: (Resource<Trip>) -> Unit) {
@@ -40,10 +41,12 @@ class RegisterTripViewModel(
                 vehicleId = vehicleId,
                 clientId = clientId,
                 entrepreneurId = Constants.ENTREPRENEUR_ID,
-                evidenceImg = evidenceImg
+                state = "",
             )
             val result = tripRepository.addTrip(trip)
             onResult(result)
         }
     }
 }
+
+ */

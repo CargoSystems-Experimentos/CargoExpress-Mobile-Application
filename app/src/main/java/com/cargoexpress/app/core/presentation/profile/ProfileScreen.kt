@@ -41,9 +41,9 @@ fun ProfileScreen(viewModel: ProfileViewModel, navController: NavController) {
     val clientState by viewModel.clientState
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    LaunchedEffect(Constants.USER_ROLE, Constants.USER_ID, Constants.ENTREPRENEUR_ID) {
+    LaunchedEffect(Constants.USER_ROLE, Constants.CLIENT_ID, Constants.ENTREPRENEUR_ID) {
         when (Constants.USER_ROLE) {
-            "CLIENT" -> viewModel.getClientProfile(Constants.USER_ID)
+            "CLIENT" -> viewModel.getClientProfile(Constants.CLIENT_ID)
             "ENTREPRENEUR" -> viewModel.getEntrepreneurProfile(Constants.ENTREPRENEUR_ID)
         }
     }
@@ -78,8 +78,6 @@ fun ProfileScreen(viewModel: ProfileViewModel, navController: NavController) {
                                     .padding(20.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                ProfileHeaderClient(client = client, selectedImageUri = selectedImageUri)
-
                                 Spacer(modifier = Modifier.height(12.dp))
 
                                 AssistChip(
@@ -114,11 +112,13 @@ fun ProfileScreen(viewModel: ProfileViewModel, navController: NavController) {
 
                                 Spacer(modifier = Modifier.height(12.dp))
 
+                                /*
                                 ProfileInfoItem(
                                     label = "Teléfono",
                                     value = client.phone,
                                     icon = Icons.Filled.Call
                                 )
+                                 */
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -178,8 +178,6 @@ fun ProfileScreen(viewModel: ProfileViewModel, navController: NavController) {
                                     .padding(20.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                ProfileHeaderEntrepreneur(entrepreneur = entrepreneur, selectedImageUri = selectedImageUri)
-
                                 Spacer(modifier = Modifier.height(12.dp))
 
                                 AssistChip(
@@ -214,11 +212,14 @@ fun ProfileScreen(viewModel: ProfileViewModel, navController: NavController) {
 
                                 Spacer(modifier = Modifier.height(12.dp))
 
+                                /*
                                 ProfileInfoItem(
                                     label = "Teléfono",
                                     value = entrepreneur.phone,
                                     icon = Icons.Filled.Call
                                 )
+
+                                 */
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -269,91 +270,6 @@ fun ProfileScreen(viewModel: ProfileViewModel, navController: NavController) {
                 }
             }
         }
-    }
-}
-
-@Composable
-fun ProfileHeaderClient(client: ClientDto, selectedImageUri: Uri?) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier.size(130.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            if (selectedImageUri != null) {
-                AsyncImage(
-                    model = selectedImageUri,
-                    contentDescription = "Foto del cliente",
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = client.name.take(1).uppercase(),
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = client.name,
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-            fontSize = 22.sp,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-@Composable
-fun ProfileHeaderEntrepreneur(entrepreneur: EntrepreneurDto, selectedImageUri: Uri?) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier.size(130.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            if (selectedImageUri != null) {
-                AsyncImage(
-                    model = selectedImageUri,
-                    contentDescription = "Logo del emprendedor",
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                AsyncImage(
-                    model = entrepreneur.logoImage,
-                    contentDescription = "Logo del emprendedor",
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop,
-                    placeholder = painterResource(R.drawable.ic_placeholder),
-                    error = painterResource(R.drawable.ic_error)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = entrepreneur.name,
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-            fontSize = 22.sp,
-            color = MaterialTheme.colorScheme.onSurface
-        )
     }
 }
 

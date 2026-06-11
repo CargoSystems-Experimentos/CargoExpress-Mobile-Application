@@ -29,10 +29,16 @@ class DriverRepository(private val driverService: DriverService) {
 
     suspend fun getDriverById(driverId: Int): Resource<Driver> = withContext(Dispatchers.IO) {
         if (Constants.TOKEN.isBlank()) return@withContext Resource.Error(message = "Token is required")
-        return@withContext try {
+
+        try {
             val response = driverService.getDriverById(driverId, "Bearer ${Constants.TOKEN}")
             if (response.isSuccessful) {
-                Resource.Success(data = response.body()?.toDriver())
+                val driver = response.body()?.toDriver()
+                if (driver != null) {
+                    Resource.Success(data = driver)
+                } else {
+                    Resource.Error(message = "No se pudo obtener el conductor")
+                }
             } else {
                 Resource.Error(message = "No se pudo obtener el conductor")
             }

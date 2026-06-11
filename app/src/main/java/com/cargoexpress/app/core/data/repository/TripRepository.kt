@@ -120,7 +120,12 @@ class TripRepository(private val tripService: TripService, private val expenseSe
         return@withContext try {
             val response = tripService.getTrip(tripId, "Bearer ${Constants.TOKEN}")
             if (response.isSuccessful) {
-                Resource.Success(data = response.body()?.toTrip())
+                val trip = response.body()?.toTrip()
+                if (trip != null) {
+                    Resource.Success(data = trip)
+                } else {
+                    Resource.Error(message = "No se pudo obtener el viaje")
+                }
             } else {
                 Resource.Error(message = "Failed to fetch trip details")
             }

@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.cargoexpress.app.core.common.Constants
 import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.common.UIState
-import com.cargoexpress.app.core.data.repository.ExpenseRepository
 import com.cargoexpress.app.core.data.repository.TripRepository
 import com.cargoexpress.app.core.domain.Expense
 import com.cargoexpress.app.core.domain.Trip
@@ -14,8 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class StatisticsViewModel(
-    private val tripRepository: TripRepository,
-    private val expenseRepository: ExpenseRepository
+    private val tripRepository: TripRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UIState<List<Trip>>(isLoading = true))
@@ -40,11 +38,14 @@ class StatisticsViewModel(
                 _trips.value = tripList
                 _uiState.value = UIState(isLoading = false, data = tripsResult.data)
 
-                val tripIds = tripList.map { it.id }.toSet()
-                val expensesResult = expenseRepository.getExpenses(Constants.TOKEN)
-                if (expensesResult is Resource.Success) {
-                    _expenses.value = expensesResult.data?.filter { it.tripId in tripIds } ?: emptyList()
+                val fetchedExpenses = mutableListOf<Expense>()
+                tripList.forEach { trip ->
+                    val expenseResult = tripRepository.getExpenseByTripId(trip.id)
+                    if (expenseResult is Resource.Success && expenseResult.data != null) {
+                        fetchedExpenses.add(expenseResult.data)
+                    }
                 }
+                _expenses.value = fetchedExpenses
             } else {
                 _uiState.value = UIState(isLoading = false, message = tripsResult.message ?: "")
             }
