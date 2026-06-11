@@ -27,13 +27,13 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Routes
 import com.cargoexpress.app.core.common.UIState
+import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
     val state by viewModel.state.observeAsState(UIState())
-    val snackbarHostState = remember { SnackbarHostState() }
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -48,10 +48,15 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
     var showPassword by remember { mutableStateOf(false) }
     var isClient by remember { mutableStateOf(true) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showConfirmModal by remember { mutableStateOf(false) }
+    var confirmModalSuccess by remember { mutableStateOf(false) }
+    var confirmModalMessage by remember { mutableStateOf("") }
 
     LaunchedEffect(state.message) {
         if (state.message.isNotEmpty()) {
-            snackbarHostState.showSnackbar(state.message)
+            confirmModalSuccess = state.data != null
+            confirmModalMessage = state.message
+            showConfirmModal = true
         }
     }
 
@@ -89,9 +94,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -463,6 +466,24 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                 }
             }
         }
+    }
+
+    if (showConfirmModal) {
+        ConfirmationModal(
+            isSuccess = confirmModalSuccess,
+            message = confirmModalMessage,
+            onConfirm = {
+                showConfirmModal = false
+                viewModel.clearState()
+                if (confirmModalSuccess) {
+                    navController.navigate(Routes.Login.routes)
+                }
+            },
+            onDismiss = {
+                showConfirmModal = false
+                viewModel.clearState()
+            }
+        )
     }
 }
 

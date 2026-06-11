@@ -19,6 +19,11 @@ import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 
 private val driverStates = listOf("AVAILABLE", "UNAVAILABLE", "INACTIVE")
+private val driverStateDisplayMap = mapOf(
+    "AVAILABLE" to "Disponible",
+    "UNAVAILABLE" to "No disponible",
+    "INACTIVE" to "Inactivo"
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -250,7 +255,7 @@ fun EditDriverScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 OutlinedTextField(
-                                    value = selectedState,
+                                    value = driverStateDisplayMap[selectedState] ?: selectedState,
                                     onValueChange = {},
                                     readOnly = true,
                                     label = { Text("Estado") },
@@ -265,7 +270,7 @@ fun EditDriverScreen(
                                 ) {
                                     driverStates.forEach { option ->
                                         DropdownMenuItem(
-                                            text = { Text(option) },
+                                            text = { Text(driverStateDisplayMap[option] ?: option) },
                                             onClick = {
                                                 selectedState = option
                                                 stateExpanded = false

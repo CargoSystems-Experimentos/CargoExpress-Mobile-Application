@@ -103,34 +103,11 @@ class TripEditViewModel(
     fun updateTrip(onResult: (Resource<Trip>) -> Unit) {
         viewModelScope.launch {
             val currentTrip = _uiState.value.trip ?: return@launch
-            val trip = Trip(
-                id = currentTrip.id,
-                name = name,
-                state = currentTrip.state,
-                type = type,
-                weight = weight,
-                loadLocation = loadLocation,
-                loadDate = loadDate,
-                unloadLocation = unloadLocation,
-                unloadDate = unloadDate,
-                driverId = driverId,
-                vehicleId = vehicleId,
-                clientId = clientId,
-                entrepreneurId = currentTrip.entrepreneurId
-            )
-
+            val trip = buildCurrentTrip(currentTrip)
             val detailsResult = tripRepository.updateTripDetails(trip)
-            if (detailsResult is Resource.Error) {
-                onResult(detailsResult)
-                return@launch
-            }
-
+            if (detailsResult is Resource.Error) { onResult(detailsResult); return@launch }
             val scheduleResult = tripRepository.updateTripSchedule(trip)
-            if (scheduleResult is Resource.Error) {
-                onResult(scheduleResult)
-                return@launch
-            }
-
+            if (scheduleResult is Resource.Error) { onResult(scheduleResult); return@launch }
             if (driverId != originalDriverId && originalDriverId > 0) {
                 driverRepository.updateDriverState(originalDriverId, "AVAILABLE")
                 driverRepository.updateDriverState(driverId, "UNAVAILABLE")
@@ -139,10 +116,45 @@ class TripEditViewModel(
                 vehicleRepository.updateVehicleState(originalVehicleId, "AVAILABLE")
                 vehicleRepository.updateVehicleState(vehicleId, "UNAVAILABLE")
             }
-
             onResult(Resource.Success(data = trip))
         }
     }
+
+    fun updateTripDetailsOnly(onResult: (Resource<Trip>) -> Unit) {
+        viewModelScope.launch {
+            val currentTrip = _uiState.value.trip ?: return@launch
+            val trip = buildCurrentTrip(currentTrip)
+            val result = tripRepository.updateTripDetails(trip)
+            if (result is Resource.Error) { onResult(result); return@launch }
+            if (driverId != originalDriverId && originalDriverId > 0) {
+                driverRepository.updateDriverState(originalDriverId, "AVAILABLE")
+                driverRepository.updateDriverState(driverId, "UNAVAILABLE")
+                originalDriverId = driverId
+            }
+            if (vehicleId != originalVehicleId && originalVehicleId > 0) {
+                vehicleRepository.updateVehicleState(originalVehicleId, "AVAILABLE")
+                vehicleRepository.updateVehicleState(vehicleId, "UNAVAILABLE")
+                originalVehicleId = vehicleId
+            }
+            onResult(Resource.Success(data = trip))
+        }
+    }
+
+    fun updateTripScheduleOnly(onResult: (Resource<Trip>) -> Unit) {
+        viewModelScope.launch {
+            val currentTrip = _uiState.value.trip ?: return@launch
+            val trip = buildCurrentTrip(currentTrip)
+            onResult(tripRepository.updateTripSchedule(trip))
+        }
+    }
+
+    private fun buildCurrentTrip(currentTrip: Trip) = Trip(
+        id = currentTrip.id, name = name, state = currentTrip.state,
+        type = type, weight = weight, loadLocation = loadLocation,
+        loadDate = loadDate, unloadLocation = unloadLocation, unloadDate = unloadDate,
+        driverId = driverId, vehicleId = vehicleId, clientId = clientId,
+        entrepreneurId = currentTrip.entrepreneurId
+    )
 
     suspend fun getDrivers(entrepreneurId: Int): Resource<List<Driver>> {
         return driverRepository.getDrivers(Constants.TOKEN, entrepreneurId)

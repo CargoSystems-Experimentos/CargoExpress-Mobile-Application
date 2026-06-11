@@ -19,6 +19,11 @@ import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 
 private val vehicleStates = listOf("AVAILABLE", "UNAVAILABLE", "INACTIVE")
+private val vehicleStateDisplayMap = mapOf(
+    "AVAILABLE" to "Disponible",
+    "UNAVAILABLE" to "No disponible",
+    "INACTIVE" to "Inactivo"
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -235,7 +240,7 @@ fun EditVehicleScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 OutlinedTextField(
-                                    value = selectedState,
+                                    value = vehicleStateDisplayMap[selectedState] ?: selectedState,
                                     onValueChange = {},
                                     readOnly = true,
                                     label = { Text("Estado") },
@@ -256,7 +261,7 @@ fun EditVehicleScreen(
                                 ) {
                                     vehicleStates.forEach { option ->
                                         DropdownMenuItem(
-                                            text = { Text(option) },
+                                            text = { Text(vehicleStateDisplayMap[option] ?: option) },
                                             onClick = {
                                                 selectedState = option
                                                 stateExpanded = false

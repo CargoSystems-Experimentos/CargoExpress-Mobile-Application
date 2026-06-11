@@ -6,7 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -33,6 +35,12 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+
+private fun isWeightDecimalValid(input: String): Boolean {
+    val dotIdx = input.indexOf('.')
+    return if (dotIdx == -1) input.length <= 8
+    else input.indexOf('.', dotIdx + 1) == -1 && input.length - dotIdx - 1 <= 2 && dotIdx <= 8
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +76,8 @@ fun TripEditScreen(
     var clientFoundName by remember { mutableStateOf("") }
     var clientDniError by remember { mutableStateOf("") }
     var isDniValidating by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
+    var isDetailsLoading by remember { mutableStateOf(false) }
+    var isScheduleLoading by remember { mutableStateOf(false) }
     var showDriverModal by remember { mutableStateOf(false) }
     var showVehicleModal by remember { mutableStateOf(false) }
     var preloadApplied by remember { mutableStateOf(false) }
@@ -112,6 +121,13 @@ fun TripEditScreen(
         return
     }
 
+    val isDetailsFormValid = name.isNotBlank() && type.isNotBlank() &&
+            weight.toDoubleOrNull()?.let { it > 0.0 } == true &&
+            driverId > 0 && vehicleId > 0 && resolvedClientId > 0
+
+    val isScheduleFormValid = loadLocation.isNotBlank() && unloadLocation.isNotBlank() &&
+            loadCalendar != null && unloadCalendar != null
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -122,308 +138,315 @@ fun TripEditScreen(
                     }
                 }
             )
-        },
-        bottomBar = {
-            Button(
-                onClick = {
-                    isLoading = true
-                    viewModel.name = name
-                    viewModel.type = type
-                    viewModel.weight = weight.toDoubleOrNull() ?: 0.0
-                    viewModel.loadLocation = loadLocation
-                    viewModel.loadDate = toBackendDateTime(loadCalendar)
-                    viewModel.unloadLocation = unloadLocation
-                    viewModel.unloadDate = toBackendDateTime(unloadCalendar)
-                    viewModel.driverId = driverId
-                    viewModel.vehicleId = vehicleId
-                    viewModel.clientId = resolvedClientId
-                    viewModel.updateTrip { result ->
-                        isLoading = false
-                        if (result is Resource.Success) {
-                            confirmModalSuccess = true
-                            confirmModalMessage = "Viaje actualizado correctamente"
-                        } else {
-                            confirmModalSuccess = false
-                            confirmModalMessage = (result as? Resource.Error)?.message
-                                ?: "No se pudo actualizar el viaje"
-                        }
-                        showConfirmModal = true
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(70.dp)
-                    .padding(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
-                enabled = isFormValid(
-                    name, type, weight, loadLocation, unloadLocation,
-                    loadCalendar, unloadCalendar, driverId, vehicleId, resolvedClientId
-                ) && !isLoading
-            ) {
-                Text(
-                    "Guardar Cambios",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold
-                )
-            }
         }
     ) { paddingValues ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(bottom = 90.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { if (it.length <= 60) name = it },
-                    label = { Text("Nombre del Viaje") },
-                    leadingIcon = { Icon(Icons.Filled.LocalShipping, contentDescription = null) },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                    supportingText = {
-                        Text(
-                            text = "${name.length}/60",
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.End,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                )
-            }
-
-            item {
-                val cargoTypes = listOf("ESTÁNDAR", "FRÁGIL", "PESADO", "VALIOSO", "URGENTE", "PERECIBLE")
-                var typeExpanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = typeExpanded,
-                    onExpandedChange = { typeExpanded = it }
+            // — Sección: Detalles del Viaje —
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedTextField(
-                        value = type,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Tipo de Carga") },
-                        leadingIcon = { Icon(Icons.Filled.Category, contentDescription = null) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp)
-                            .menuAnchor()
+                    Text(
+                        "Detalles del Viaje",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
-                    ExposedDropdownMenu(
-                        expanded = typeExpanded,
-                        onDismissRequest = { typeExpanded = false }
-                    ) {
-                        cargoTypes.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option) },
-                                onClick = {
-                                    type = option
-                                    typeExpanded = false
-                                }
+                    HorizontalDivider()
+
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { if (it.length <= 60) name = it },
+                        label = { Text("Nombre del Viaje") },
+                        leadingIcon = { Icon(Icons.Filled.LocalShipping, contentDescription = null) },
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Text(
+                                text = "${name.length}/60",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall
                             )
                         }
-                    }
-                }
-            }
+                    )
 
-            item {
-                OutlinedTextField(
-                    value = weight,
-                    onValueChange = {
-                        val filtered = it.filter { c -> c.isDigit() || c == '.' }
-                        val dotCount = filtered.count { c -> c == '.' }
-                        val parsed = filtered.toDoubleOrNull()
-                        if (dotCount <= 1 && (filtered.isEmpty() || filtered.endsWith('.') ||
-                                    (parsed != null && parsed <= 99999999.99))) {
-                            weight = filtered
-                        }
-                    },
-                    label = { Text("Peso (kg)") },
-                    leadingIcon = { Icon(Icons.Filled.Scale, contentDescription = null) },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
-                )
-            }
-
-            item {
-                OutlinedTextField(
-                    value = loadLocation,
-                    onValueChange = { if (it.length <= 100) loadLocation = it },
-                    label = { Text("Ubicación de Carga") },
-                    leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                    supportingText = {
-                        Text(
-                            text = "${loadLocation.length}/100",
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.End,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelSmall
+                    val cargoTypes = listOf("ESTÁNDAR", "FRÁGIL", "PESADO", "VALIOSO", "URGENTE", "PERECIBLE")
+                    var typeExpanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(
+                        expanded = typeExpanded,
+                        onExpandedChange = { typeExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = type,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Tipo de Carga") },
+                            leadingIcon = { Icon(Icons.Filled.Category, contentDescription = null) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().menuAnchor()
                         )
-                    }
-                )
-            }
-
-            item {
-                Text("Fecha y hora de Carga", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(bottom = 8.dp))
-                Button(
-                    onClick = { showDateTimePicker(context, loadCalendar) { loadCalendar = it } },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    modifier = Modifier.fillMaxWidth().height(56.dp).padding(bottom = 8.dp)
-                ) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (loadDateText.isBlank()) "Seleccionar carga" else loadDateText, color = MaterialTheme.colorScheme.onSurface)
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            item {
-                OutlinedTextField(
-                    value = unloadLocation,
-                    onValueChange = { if (it.length <= 100) unloadLocation = it },
-                    label = { Text("Ubicación de Descarga") },
-                    leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                    supportingText = {
-                        Text(
-                            text = "${unloadLocation.length}/100",
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.End,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                )
-            }
-
-            item {
-                Text("Fecha y hora de Descarga", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(bottom = 8.dp))
-                Button(
-                    onClick = { showDateTimePicker(context, unloadCalendar) { unloadCalendar = it } },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    modifier = Modifier.fillMaxWidth().height(56.dp).padding(bottom = 8.dp)
-                ) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (unloadDateText.isBlank()) "Seleccionar descarga" else unloadDateText, color = MaterialTheme.colorScheme.onSurface)
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            item {
-                Button(
-                    onClick = { showDriverModal = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    modifier = Modifier.fillMaxWidth().height(50.dp).padding(bottom = 12.dp)
-                ) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Person, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (driverName.isBlank()) "Seleccionar Conductor" else driverName, color = MaterialTheme.colorScheme.onSurface)
-                    }
-                }
-            }
-
-            item {
-                Button(
-                    onClick = { showVehicleModal = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    modifier = Modifier.fillMaxWidth().height(50.dp).padding(bottom = 12.dp)
-                ) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.DirectionsCar, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (vehicleName.isBlank()) "Seleccionar Vehículo" else vehicleName, color = MaterialTheme.colorScheme.onSurface)
-                    }
-                }
-            }
-
-            item {
-                OutlinedTextField(
-                    value = clientDni,
-                    onValueChange = {
-                        clientDni = it.filter { c -> c.isDigit() }.take(8)
-                        resolvedClientId = 0
-                        clientFoundName = ""
-                        clientDniError = ""
-                    },
-                    label = { Text("DNI del Cliente") },
-                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
-                    trailingIcon = {
-                        IconButton(
-                            onClick = {
-                                if (clientDni.isNotBlank()) {
-                                    isDniValidating = true
-                                    scope.launch {
-                                        val result = viewModel.validateClientDni(clientDni)
-                                        isDniValidating = false
-                                        result.onSuccess { client ->
-                                            resolvedClientId = client.id
-                                            clientFoundName = client.name
-                                            clientDniError = ""
-                                        }.onFailure {
-                                            resolvedClientId = 0
-                                            clientFoundName = ""
-                                            clientDniError = "Cliente no encontrado"
-                                        }
-                                    }
-                                }
-                            },
-                            enabled = clientDni.isNotBlank() && !isDniValidating
+                        ExposedDropdownMenu(
+                            expanded = typeExpanded,
+                            onDismissRequest = { typeExpanded = false }
                         ) {
-                            if (isDniValidating) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                            } else {
-                                Icon(Icons.Filled.Search, contentDescription = "Verificar DNI")
+                            cargoTypes.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = { type = option; typeExpanded = false }
+                                )
                             }
                         }
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    isError = clientDniError.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                )
-                when {
-                    clientFoundName.isNotBlank() -> Text(
-                        text = "Cliente: $clientFoundName",
-                        color = Color(0xFF2E7D32),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
+                    }
+
+                    OutlinedTextField(
+                        value = weight,
+                        onValueChange = { input ->
+                            val filtered = input.filter { it.isDigit() || it == '.' }
+                            if (filtered.isEmpty() || isWeightDecimalValid(filtered)) weight = filtered
+                        },
+                        label = { Text("Peso (kg)") },
+                        leadingIcon = { Icon(Icons.Filled.Scale, contentDescription = null) },
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    clientDniError.isNotBlank() -> Text(
-                        text = clientDniError,
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
+
+                    Button(
+                        onClick = { showDriverModal = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        modifier = Modifier.fillMaxWidth().height(50.dp)
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Person, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (driverName.isBlank()) "Seleccionar Conductor" else driverName, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+
+                    Button(
+                        onClick = { showVehicleModal = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        modifier = Modifier.fillMaxWidth().height(50.dp)
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.DirectionsCar, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (vehicleName.isBlank()) "Seleccionar Vehículo" else vehicleName, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = clientDni,
+                        onValueChange = {
+                            clientDni = it.filter { c -> c.isDigit() }.take(8)
+                            resolvedClientId = 0
+                            clientFoundName = ""
+                            clientDniError = ""
+                        },
+                        label = { Text("DNI del Cliente") },
+                        leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = {
+                                    if (clientDni.isNotBlank()) {
+                                        isDniValidating = true
+                                        scope.launch {
+                                            val result = viewModel.validateClientDni(clientDni)
+                                            isDniValidating = false
+                                            result.onSuccess { client ->
+                                                resolvedClientId = client.id
+                                                clientFoundName = client.name
+                                                clientDniError = ""
+                                            }.onFailure {
+                                                resolvedClientId = 0
+                                                clientFoundName = ""
+                                                clientDniError = "Cliente no encontrado"
+                                            }
+                                        }
+                                    }
+                                },
+                                enabled = clientDni.isNotBlank() && !isDniValidating
+                            ) {
+                                if (isDniValidating) {
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Icon(Icons.Filled.Search, contentDescription = "Verificar DNI")
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        isError = clientDniError.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    else -> Spacer(modifier = Modifier.height(12.dp))
+                    when {
+                        clientFoundName.isNotBlank() -> Text(
+                            text = "Cliente: $clientFoundName",
+                            color = Color(0xFF2E7D32),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                        clientDniError.isNotBlank() -> Text(
+                            text = clientDniError,
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            if (isDetailsFormValid) {
+                                isDetailsLoading = true
+                                viewModel.name = name
+                                viewModel.type = type
+                                viewModel.weight = weight.toDoubleOrNull() ?: 0.0
+                                viewModel.driverId = driverId
+                                viewModel.vehicleId = vehicleId
+                                viewModel.clientId = resolvedClientId
+                                viewModel.updateTripDetailsOnly { result ->
+                                    isDetailsLoading = false
+                                    confirmModalSuccess = result is Resource.Success
+                                    confirmModalMessage = if (result is Resource.Success) "Detalles actualizados correctamente"
+                                    else (result as? Resource.Error)?.message ?: "No se pudo actualizar los detalles"
+                                    showConfirmModal = true
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
+                        enabled = isDetailsFormValid && !isDetailsLoading
+                    ) {
+                        if (isDetailsLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.Black, strokeWidth = 2.dp)
+                        } else {
+                            Text("Actualizar Detalles", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
 
-            item {
-                if (isLoading) {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = Color(0xFFFFEB3B))
+            // — Sección: Horario del Viaje —
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        "Horario del Viaje",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    HorizontalDivider()
+
+                    OutlinedTextField(
+                        value = loadLocation,
+                        onValueChange = { if (it.length <= 100) loadLocation = it },
+                        label = { Text("Ubicación de Carga") },
+                        leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Text(
+                                text = "${loadLocation.length}/100",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    )
+
+                    Text("Fecha y hora de Carga", style = MaterialTheme.typography.titleSmall)
+                    Button(
+                        onClick = { showDateTimePicker(context, loadCalendar) { loadCalendar = it } },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        modifier = Modifier.fillMaxWidth().height(56.dp)
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (loadDateText.isBlank()) "Seleccionar carga" else loadDateText, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = unloadLocation,
+                        onValueChange = { if (it.length <= 100) unloadLocation = it },
+                        label = { Text("Ubicación de Descarga") },
+                        leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Text(
+                                text = "${unloadLocation.length}/100",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    )
+
+                    Text("Fecha y hora de Descarga", style = MaterialTheme.typography.titleSmall)
+                    Button(
+                        onClick = { showDateTimePicker(context, unloadCalendar) { unloadCalendar = it } },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        modifier = Modifier.fillMaxWidth().height(56.dp)
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (unloadDateText.isBlank()) "Seleccionar descarga" else unloadDateText, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            if (isScheduleFormValid) {
+                                isScheduleLoading = true
+                                viewModel.loadLocation = loadLocation
+                                viewModel.loadDate = toBackendDateTime(loadCalendar)
+                                viewModel.unloadLocation = unloadLocation
+                                viewModel.unloadDate = toBackendDateTime(unloadCalendar)
+                                viewModel.updateTripScheduleOnly { result ->
+                                    isScheduleLoading = false
+                                    confirmModalSuccess = result is Resource.Success
+                                    confirmModalMessage = if (result is Resource.Success) "Horario actualizado correctamente"
+                                    else (result as? Resource.Error)?.message ?: "No se pudo actualizar el horario"
+                                    showConfirmModal = true
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
+                        enabled = isScheduleFormValid && !isScheduleLoading
+                    ) {
+                        if (isScheduleLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.Black, strokeWidth = 2.dp)
+                        } else {
+                            Text("Actualizar Horario", color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -562,18 +585,6 @@ private fun EditVehicleModal(
         confirmButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
 }
-
-private fun isFormValid(
-    name: String, type: String, weight: String,
-    loadLocation: String, unloadLocation: String,
-    loadCalendar: Calendar?, unloadCalendar: Calendar?,
-    driverId: Int, vehicleId: Int, resolvedClientId: Int
-): Boolean =
-    name.isNotBlank() && type.isNotBlank() &&
-            weight.toDoubleOrNull()?.let { it > 0.0 } == true &&
-            loadLocation.isNotBlank() && unloadLocation.isNotBlank() &&
-            loadCalendar != null && unloadCalendar != null &&
-            driverId > 0 && vehicleId > 0 && resolvedClientId > 0
 
 private fun showDateTimePicker(
     context: android.content.Context,

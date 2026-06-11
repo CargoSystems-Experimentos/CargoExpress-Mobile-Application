@@ -29,6 +29,7 @@ class LoginViewModel(
     private var pendingUserId = 0
     private var pendingToken = ""
     private var pendingUsername = ""
+    private var pendingUserPhone = ""
 
     fun signIn(username: String, password: String) {
         _state.value = UIState(isLoading = true)
@@ -48,6 +49,8 @@ class LoginViewModel(
 
     private fun fetchRoleAndNavigate(userId: Int, token: String) {
         viewModelScope.launch {
+            val userResult = userRepository.getUser(userId, token)
+            if (userResult is Resource.Success) pendingUserPhone = userResult.data?.phone ?: ""
             when (val roleResource = userRepository.getUserRole(userId, token)) {
                 is Resource.Success -> {
                     val isEntrepreneur = roleResource.data ?: false
@@ -95,6 +98,7 @@ class LoginViewModel(
         Constants.USER_ID = pendingUserId
         Constants.TOKEN = pendingToken
         Constants.USER_NAME = pendingUsername
+        Constants.USER_PHONE = pendingUserPhone
         Constants.USER_ROLE = role
         Constants.ENTREPRENEUR_ID = entrepreneurId
         Constants.CLIENT_ID = clientId

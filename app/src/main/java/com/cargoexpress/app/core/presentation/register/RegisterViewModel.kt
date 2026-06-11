@@ -4,14 +4,11 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
-import com.cargoexpress.app.core.common.Routes
 import com.cargoexpress.app.core.common.UIState
 import com.cargoexpress.app.core.data.repository.RegisterRepository
 import kotlinx.coroutines.launch
 
 class RegisterViewModel(
-    private val navController: NavController,
     private val registerRepository: RegisterRepository
 ) : ViewModel() {
 
@@ -30,8 +27,7 @@ class RegisterViewModel(
         viewModelScope.launch {
             registerRepository.registerClient(username, password, phone, name, dni, birthDate) { result ->
                 result.onSuccess {
-                    _state.value = UIState(message = "¡Cuenta creada exitosamente!")
-                    navController.navigate(Routes.Login.routes)
+                    _state.value = UIState(data = Unit, message = "¡Cuenta creada exitosamente!")
                 }.onFailure { exception ->
                     _state.value = UIState(message = exception.message ?: "Error al registrar")
                 }
@@ -51,12 +47,15 @@ class RegisterViewModel(
         viewModelScope.launch {
             registerRepository.registerEntrepreneur(username, password, phone, name, ruc, address) { result ->
                 result.onSuccess {
-                    _state.value = UIState(message = "¡Cuenta creada exitosamente!")
-                    navController.navigate(Routes.Login.routes)
+                    _state.value = UIState(data = Unit, message = "¡Cuenta creada exitosamente!")
                 }.onFailure { exception ->
                     _state.value = UIState(message = exception.message ?: "Error al registrar")
                 }
             }
         }
+    }
+
+    fun clearState() {
+        _state.value = UIState()
     }
 }

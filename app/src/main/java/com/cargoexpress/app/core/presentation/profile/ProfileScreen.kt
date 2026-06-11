@@ -1,6 +1,5 @@
 package com.cargoexpress.app.core.presentation.profile
 
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -9,37 +8,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
-import com.cargoexpress.app.R
 import com.cargoexpress.app.core.common.Constants
-import com.cargoexpress.app.core.data.remote.user.ClientDto
-import com.cargoexpress.app.core.data.remote.user.EntrepreneurDto
-import com.cargoexpress.app.core.presentation.ImagePicker
 
 @Composable
 fun ProfileScreen(viewModel: ProfileViewModel, navController: NavController) {
     val entrepreneurState by viewModel.entrepreneurState
     val clientState by viewModel.clientState
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     LaunchedEffect(Constants.USER_ROLE, Constants.CLIENT_ID, Constants.ENTREPRENEUR_ID) {
         when (Constants.USER_ROLE) {
@@ -80,6 +68,22 @@ fun ProfileScreen(viewModel: ProfileViewModel, navController: NavController) {
                             ) {
                                 Spacer(modifier = Modifier.height(12.dp))
 
+                                Box(
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .background(Color(0xFFFFF8E1), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Person,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFD700),
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
                                 AssistChip(
                                     onClick = { },
                                     label = {
@@ -110,15 +114,14 @@ fun ProfileScreen(viewModel: ProfileViewModel, navController: NavController) {
                                     icon = Icons.Filled.Badge
                                 )
 
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                /*
-                                ProfileInfoItem(
-                                    label = "Teléfono",
-                                    value = client.phone,
-                                    icon = Icons.Filled.Call
-                                )
-                                 */
+                                if (Constants.USER_PHONE.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    ProfileInfoItem(
+                                        label = "Teléfono",
+                                        value = Constants.USER_PHONE,
+                                        icon = Icons.Filled.Call
+                                    )
+                                }
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -145,10 +148,6 @@ fun ProfileScreen(viewModel: ProfileViewModel, navController: NavController) {
                                 }
 
                                 Spacer(modifier = Modifier.height(16.dp))
-
-                                ImagePicker { uri ->
-                                    selectedImageUri = uri
-                                }
                             }
                         }
                     } else {
@@ -178,6 +177,22 @@ fun ProfileScreen(viewModel: ProfileViewModel, navController: NavController) {
                                     .padding(20.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .background(Color(0xFFFFF8E1), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Work,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFD700),
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                }
+
                                 Spacer(modifier = Modifier.height(12.dp))
 
                                 AssistChip(
@@ -210,16 +225,14 @@ fun ProfileScreen(viewModel: ProfileViewModel, navController: NavController) {
                                     icon = Icons.Filled.Badge
                                 )
 
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                /*
-                                ProfileInfoItem(
-                                    label = "Teléfono",
-                                    value = entrepreneur.phone,
-                                    icon = Icons.Filled.Call
-                                )
-
-                                 */
+                                if (Constants.USER_PHONE.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    ProfileInfoItem(
+                                        label = "Teléfono",
+                                        value = Constants.USER_PHONE,
+                                        icon = Icons.Filled.Call
+                                    )
+                                }
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -246,10 +259,6 @@ fun ProfileScreen(viewModel: ProfileViewModel, navController: NavController) {
                                 }
 
                                 Spacer(modifier = Modifier.height(16.dp))
-
-                                ImagePicker { uri ->
-                                    selectedImageUri = uri
-                                }
                             }
                         }
                     } else {

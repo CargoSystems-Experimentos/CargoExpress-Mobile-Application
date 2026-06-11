@@ -219,9 +219,14 @@ fun DriverStateBadge(state: String) {
         "UNAVAILABLE" -> Color(0xFFFFF3E0) to Color(0xFFE65100)
         else -> Color(0xFFEEEEEE) to Color(0xFF616161)
     }
+    val displayText = when (state) {
+        "AVAILABLE" -> "Disponible"
+        "UNAVAILABLE" -> "No disponible"
+        else -> "Inactivo"
+    }
     Surface(shape = RoundedCornerShape(8.dp), color = bgColor) {
         Text(
-            text = state,
+            text = displayText,
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
             color = textColor,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)

@@ -166,7 +166,6 @@ class MainActivity : ComponentActivity() {
                     ClientRepository(clientService)
                 )
                 val registerViewModel = RegisterViewModel(
-                    navController,
                     RegisterRepository(registerService)
                 )
 

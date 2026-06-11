@@ -29,9 +29,15 @@ import com.cargoexpress.app.core.domain.Trip
 import com.cargoexpress.app.core.domain.Vehicle
 import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 import kotlinx.coroutines.launch
+
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+private fun isWeightDecimalValid(input: String): Boolean {
+    val dotIdx = input.indexOf('.')
+    return if (dotIdx == -1) input.length <= 8
+    else input.indexOf('.', dotIdx + 1) == -1 && input.length - dotIdx - 1 <= 2 && dotIdx <= 8
+}
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -280,12 +286,9 @@ fun RegisterTripScreen(
             item {
                 OutlinedTextField(
                     value = weight,
-                    onValueChange = {
-                        val filtered = it.filter { char -> char.isDigit() || char == '.' }
-                        val dotCount = filtered.count { c -> c == '.' }
-                        val parsed = filtered.toDoubleOrNull()
-                        if (dotCount <= 1 && (filtered.isEmpty() || filtered.endsWith('.') ||
-                                    (parsed != null && parsed <= 99999999.99))) {
+                    onValueChange = { input ->
+                        val filtered = input.filter { it.isDigit() || it == '.' }
+                        if (filtered.isEmpty() || isWeightDecimalValid(filtered)) {
                             weight = filtered
                             weightTouched = true
                         }

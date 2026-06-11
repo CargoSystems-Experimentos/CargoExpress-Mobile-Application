@@ -16,10 +16,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Resource
-import kotlinx.coroutines.launch
+import com.cargoexpress.app.core.presentation.common.ConfirmationModal
+
+private fun isDecimalValid(input: String): Boolean {
+    val dotIdx = input.indexOf('.')
+    return if (dotIdx == -1) input.length <= 8
+    else input.indexOf('.', dotIdx + 1) == -1 && input.length - dotIdx - 1 <= 2 && dotIdx <= 8
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,15 +43,17 @@ fun EditExpenseScreen(
     var tollsDescription by remember { mutableStateOf("") }
 
     var isLoading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    var showWarningDialog by remember { mutableStateOf(false) }
+    var showConfirmModal by remember { mutableStateOf(false) }
+    var confirmModalSuccess by remember { mutableStateOf(false) }
+    var confirmModalMessage by remember { mutableStateOf("") }
+
     val scrollState = rememberScrollState()
 
     LaunchedEffect(expenseId) {
         viewModel.loadExpense(expenseId)
     }
 
-    // Pre-fill form once expense loads
     LaunchedEffect(uiState.expense) {
         uiState.expense?.let { expense ->
             fuelAmount = expense.fuelAmount.toString()
@@ -85,7 +92,24 @@ fun EditExpenseScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        bottomBar = {
+            Button(
+                onClick = { if (isFormValid) showWarningDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(70.dp)
+                    .padding(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
+                enabled = isFormValid && !isLoading
+            ) {
+                Text(
+                    "Actualizar Gasto",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     ) { padding ->
         if (uiState.isLoading) {
             Box(
@@ -123,18 +147,16 @@ fun EditExpenseScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.LocalGasStation,
-                            contentDescription = null,
-                            tint = Color(0xFFFFEB3B),
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Icon(Icons.Default.LocalGasStation, contentDescription = null, tint = Color(0xFFFFEB3B), modifier = Modifier.size(24.dp))
                         Spacer(Modifier.width(8.dp))
                         Text("Combustible", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                     }
                     OutlinedTextField(
                         value = fuelAmount,
-                        onValueChange = { if (it.length <= 10) fuelAmount = it },
+                        onValueChange = { input ->
+                            val filtered = input.filter { it.isDigit() || it == '.' }
+                            if (filtered.isEmpty() || isDecimalValid(filtered)) fuelAmount = filtered
+                        },
                         label = { Text("Monto Combustible (USD)") },
                         isError = fuelAmount.isNotBlank() && !isFuelAmountValid,
                         modifier = Modifier.fillMaxWidth(),
@@ -143,14 +165,15 @@ fun EditExpenseScreen(
                     )
                     OutlinedTextField(
                         value = fuelDescription,
-                        onValueChange = { if (it.length <= 100) fuelDescription = it },
+                        onValueChange = { if (it.length <= 200) fuelDescription = it },
                         label = { Text("Descripción") },
-                        isError = fuelDescription.isNotBlank() && !isFuelDescriptionValid,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
+                        minLines = 3,
+                        maxLines = 5,
                         supportingText = {
                             Text(
-                                text = "${fuelDescription.length}/100",
+                                text = "${fuelDescription.length}/200",
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.End,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -169,18 +192,16 @@ fun EditExpenseScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Restaurant,
-                            contentDescription = null,
-                            tint = Color(0xFFFFEB3B),
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Icon(Icons.Default.Restaurant, contentDescription = null, tint = Color(0xFFFFEB3B), modifier = Modifier.size(24.dp))
                         Spacer(Modifier.width(8.dp))
                         Text("Viáticos", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                     }
                     OutlinedTextField(
                         value = viaticsAmount,
-                        onValueChange = { if (it.length <= 10) viaticsAmount = it },
+                        onValueChange = { input ->
+                            val filtered = input.filter { it.isDigit() || it == '.' }
+                            if (filtered.isEmpty() || isDecimalValid(filtered)) viaticsAmount = filtered
+                        },
                         label = { Text("Monto Viáticos (USD)") },
                         isError = viaticsAmount.isNotBlank() && !isViaticsAmountValid,
                         modifier = Modifier.fillMaxWidth(),
@@ -189,14 +210,15 @@ fun EditExpenseScreen(
                     )
                     OutlinedTextField(
                         value = viaticsDescription,
-                        onValueChange = { if (it.length <= 100) viaticsDescription = it },
+                        onValueChange = { if (it.length <= 200) viaticsDescription = it },
                         label = { Text("Descripción") },
-                        isError = viaticsDescription.isNotBlank() && !isViaticsDescriptionValid,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
+                        minLines = 3,
+                        maxLines = 5,
                         supportingText = {
                             Text(
-                                text = "${viaticsDescription.length}/100",
+                                text = "${viaticsDescription.length}/200",
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.End,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -215,18 +237,16 @@ fun EditExpenseScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.AddRoad,
-                            contentDescription = null,
-                            tint = Color(0xFFFFEB3B),
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Icon(Icons.Default.AddRoad, contentDescription = null, tint = Color(0xFFFFEB3B), modifier = Modifier.size(24.dp))
                         Spacer(Modifier.width(8.dp))
                         Text("Peajes", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                     }
                     OutlinedTextField(
                         value = tollsAmount,
-                        onValueChange = { if (it.length <= 10) tollsAmount = it },
+                        onValueChange = { input ->
+                            val filtered = input.filter { it.isDigit() || it == '.' }
+                            if (filtered.isEmpty() || isDecimalValid(filtered)) tollsAmount = filtered
+                        },
                         label = { Text("Monto Peajes (USD)") },
                         isError = tollsAmount.isNotBlank() && !isTollsAmountValid,
                         modifier = Modifier.fillMaxWidth(),
@@ -235,14 +255,15 @@ fun EditExpenseScreen(
                     )
                     OutlinedTextField(
                         value = tollsDescription,
-                        onValueChange = { if (it.length <= 100) tollsDescription = it },
+                        onValueChange = { if (it.length <= 200) tollsDescription = it },
                         label = { Text("Descripción") },
-                        isError = tollsDescription.isNotBlank() && !isTollsDescriptionValid,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
+                        minLines = 3,
+                        maxLines = 5,
                         supportingText = {
                             Text(
-                                text = "${tollsDescription.length}/100",
+                                text = "${tollsDescription.length}/200",
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.End,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -258,10 +279,19 @@ fun EditExpenseScreen(
                     CircularProgressIndicator(color = Color(0xFFFFEB3B))
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
 
-            Button(
-                onClick = {
-                    if (isFormValid) {
+    if (showWarningDialog) {
+        AlertDialog(
+            onDismissRequest = { showWarningDialog = false },
+            title = { Text("Advertencia", fontWeight = FontWeight.Bold) },
+            text = { Text("Este gasto solo puede editarse una vez. ¿Deseas continuar?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showWarningDialog = false
                         isLoading = true
                         viewModel.fuelAmount = fuelAmount.toDoubleOrNull() ?: 0.0
                         viewModel.fuelDescription = fuelDescription
@@ -269,39 +299,44 @@ fun EditExpenseScreen(
                         viewModel.viaticsDescription = viaticsDescription
                         viewModel.tollsAmount = tollsAmount.toDoubleOrNull() ?: 0.0
                         viewModel.tollsDescription = tollsDescription
-
                         viewModel.updateExpense(expenseId) { result ->
                             isLoading = false
                             if (result is Resource.Success) {
-                                navController.previousBackStackEntry
-                                    ?.savedStateHandle
-                                    ?.set("expense_updated", true)
-                                navController.popBackStack()
+                                confirmModalSuccess = true
+                                confirmModalMessage = "Gasto actualizado correctamente"
                             } else {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        (result as? Resource.Error)?.message ?: "No se pudo actualizar el gasto"
-                                    )
-                                }
+                                confirmModalSuccess = false
+                                confirmModalMessage = (result as? Resource.Error)?.message
+                                    ?: "No se pudo actualizar el gasto"
                             }
+                            showConfirmModal = true
                         }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(70.dp)
-                    .padding(top = 16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
-                enabled = isFormValid && !isLoading
-            ) {
-                Text(
-                    "Actualizar Gasto",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold
-                )
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B))
+                ) {
+                    Text("Confirmar", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWarningDialog = false }) { Text("Cancelar") }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-        }
+        )
+    }
+
+    if (showConfirmModal) {
+        ConfirmationModal(
+            isSuccess = confirmModalSuccess,
+            message = confirmModalMessage,
+            onConfirm = {
+                showConfirmModal = false
+                if (confirmModalSuccess) {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("expense_updated", true)
+                    navController.popBackStack()
+                }
+            },
+            onDismiss = { showConfirmModal = false }
+        )
     }
 }
