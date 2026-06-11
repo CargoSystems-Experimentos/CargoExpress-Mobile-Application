@@ -27,12 +27,14 @@ fun RegisterVehicleScreen(
     viewModel: RegisterVehicleViewModel = viewModel(),
     onVehicleRegistered: (Vehicle) -> Unit
 ) {
+    var name by remember { mutableStateOf("") }
     var model by remember { mutableStateOf("") }
     var plate by remember { mutableStateOf("") }
     var rawTractorPlate by remember { mutableStateOf("") }
     var maxLoad by remember { mutableStateOf("") }
     var volume by remember { mutableStateOf("") }
 
+    var nameTouched by remember { mutableStateOf(false) }
     var modelTouched by remember { mutableStateOf(false) }
     var plateTouched by remember { mutableStateOf(false) }
     var tractorTouched by remember { mutableStateOf(false) }
@@ -44,7 +46,9 @@ fun RegisterVehicleScreen(
     var confirmModalSuccess by remember { mutableStateOf(false) }
     var confirmModalMessage by remember { mutableStateOf("") }
 
-    // Validaciones
+    val isNameValid = name.isNotBlank() && name.length <= 60
+    val showNameError = nameTouched && !isNameValid
+
     val isModelValid = model.isNotBlank()
     val showModelError = modelTouched && !isModelValid
 
@@ -55,13 +59,15 @@ fun RegisterVehicleScreen(
     val isTractorPlateValid = tractorPlateFormatted.matches(Regex("X[A-Z0-9]{2}-[A-Z0-9]{3}"))
     val showTractorPlateError = tractorTouched && !isTractorPlateValid
 
-    val isMaxLoadValid = maxLoad.isNotBlank() && maxLoad.toFloatOrNull() != null && maxLoad.toFloatOrNull()!! > 0
+    val maxLoadValue = maxLoad.toDoubleOrNull()
+    val isMaxLoadValid = maxLoad.isNotBlank() && maxLoadValue != null && maxLoadValue > 0
     val showMaxLoadError = maxLoadTouched && !isMaxLoadValid
 
-    val isVolumeValid = volume.isNotBlank() && volume.toFloatOrNull() != null && volume.toFloatOrNull()!! > 0
+    val volumeValue = volume.toDoubleOrNull()
+    val isVolumeValid = volume.isNotBlank() && volumeValue != null && volumeValue > 0
     val showVolumeError = volumeTouched && !isVolumeValid
 
-    val isFormValid = isModelValid && isPlateValid && isTractorPlateValid && isMaxLoadValid && isVolumeValid
+    val isFormValid = isNameValid && isModelValid && isPlateValid && isTractorPlateValid && isMaxLoadValid && isVolumeValid
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -80,11 +86,12 @@ fun RegisterVehicleScreen(
                 onClick = {
                     if (isFormValid) {
                         isLoading = true
+                        viewModel.name = name
                         viewModel.model = model
                         viewModel.plate = plate
                         viewModel.tractorPlate = tractorPlateFormatted
-                        viewModel.maxLoad = maxLoad.toFloatOrNull() ?: 0f
-                        viewModel.volume = volume.toFloatOrNull() ?: 0f
+                        viewModel.maxLoad = maxLoadValue ?: 0.0
+                        viewModel.volume = volumeValue ?: 0.0
 
                         viewModel.registerVehicle { result ->
                             isLoading = false
@@ -94,7 +101,7 @@ fun RegisterVehicleScreen(
                                 confirmModalMessage = "Vehículo registrado correctamente"
                             } else {
                                 confirmModalSuccess = false
-                                confirmModalMessage = "No se pudo registrar el vehículo"
+                                confirmModalMessage = (result as? Resource.Error)?.message ?: "No se pudo registrar el vehículo"
                             }
                             showConfirmModal = true
                         }
@@ -126,11 +133,56 @@ fun RegisterVehicleScreen(
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.Top
         ) {
+            // Nombre
+            OutlinedTextField(
+                value = name,
+                onValueChange = {
+                    if (it.length <= 60) {
+                        name = it
+                        nameTouched = true
+                    }
+                },
+                label = { Text("Nombre del vehículo") },
+                leadingIcon = { Icon(imageVector = Icons.Filled.Badge, contentDescription = "Nombre") },
+                shape = RoundedCornerShape(16.dp),
+                singleLine = true,
+                maxLines = 1,
+                isError = showNameError,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 4.dp, bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (showNameError) {
+                    Text(
+                        text = "El nombre es obligatorio (máx. 60 caracteres)",
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f).padding(end = 4.dp),
+                        textAlign = TextAlign.Start
+                    )
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+                Text(
+                    text = "${name.length}/60",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+
             // Modelo
             OutlinedTextField(
                 value = model,
                 onValueChange = {
-                    if (it.length <= 50) {
+                    if (it.length <= 60) {
                         model = it
                         modelTouched = true
                     }
@@ -164,12 +216,12 @@ fun RegisterVehicleScreen(
                     Spacer(modifier = Modifier.weight(1f))
                 }
                 Text(
-                    text = "${model.length}/50",
+                    text = "${model.length}/60",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Placa (XXX-XXX)
             OutlinedTextField(
@@ -195,10 +247,10 @@ fun RegisterVehicleScreen(
                     color = Color.Red,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Left
+                    textAlign = TextAlign.Left
                 )
             } else {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Placa del Tractor (X00-000)
@@ -221,23 +273,30 @@ fun RegisterVehicleScreen(
             )
             if (showTractorPlateError) {
                 Text(
-                    text = "La placa del tractor es inválida. Debe empezar con X y seguir el formato X00-000",
+                    text = "La placa del tractor es inválida. Debe seguir el formato X00-000",
                     color = Color.Red,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Left
+                    textAlign = TextAlign.Left
                 )
             } else {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Carga Máxima (kg)
             OutlinedTextField(
                 value = maxLoad,
-                onValueChange = {
-                    val filtered = it.filter { char -> char.isDigit() || char == '.' }
-                    val parsed = filtered.toFloatOrNull()
-                    if (filtered.isEmpty() || filtered.endsWith('.') || (parsed != null && parsed <= 50000f)) {
+                onValueChange = { input ->
+                    val filtered = input.filter { it.isDigit() || it == '.' }
+                    val dotIdx = filtered.indexOf('.')
+                    val valid = if (dotIdx == -1) {
+                        filtered.length <= 8
+                    } else {
+                        filtered.indexOf('.', dotIdx + 1) == -1 &&
+                            filtered.length - dotIdx - 1 <= 2 &&
+                            dotIdx <= 8
+                    }
+                    if (filtered.isEmpty() || valid) {
                         maxLoad = filtered
                         maxLoadTouched = true
                     }
@@ -258,19 +317,26 @@ fun RegisterVehicleScreen(
                     color = Color.Red,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Left
+                    textAlign = TextAlign.Left
                 )
             } else {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Volumen (m³)
             OutlinedTextField(
                 value = volume,
-                onValueChange = {
-                    val filtered = it.filter { char -> char.isDigit() || char == '.' }
-                    val parsed = filtered.toFloatOrNull()
-                    if (filtered.isEmpty() || filtered.endsWith('.') || (parsed != null && parsed <= 200f)) {
+                onValueChange = { input ->
+                    val filtered = input.filter { it.isDigit() || it == '.' }
+                    val dotIdx = filtered.indexOf('.')
+                    val valid = if (dotIdx == -1) {
+                        filtered.length <= 8
+                    } else {
+                        filtered.indexOf('.', dotIdx + 1) == -1 &&
+                            filtered.length - dotIdx - 1 <= 2 &&
+                            dotIdx <= 8
+                    }
+                    if (filtered.isEmpty() || valid) {
                         volume = filtered
                         volumeTouched = true
                     }
@@ -291,11 +357,12 @@ fun RegisterVehicleScreen(
                     color = Color.Red,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Left
+                    textAlign = TextAlign.Left
                 )
             } else {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
+
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -313,11 +380,13 @@ fun RegisterVehicleScreen(
             onConfirm = {
                 showConfirmModal = false
                 if (confirmModalSuccess) {
+                    name = ""
                     model = ""
                     plate = ""
                     rawTractorPlate = ""
                     maxLoad = ""
                     volume = ""
+                    nameTouched = false
                     modelTouched = false
                     plateTouched = false
                     tractorTouched = false

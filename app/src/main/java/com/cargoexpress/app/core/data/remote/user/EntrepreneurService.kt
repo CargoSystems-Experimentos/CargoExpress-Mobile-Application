@@ -9,6 +9,11 @@ import retrofit2.http.Header
 import retrofit2.http.Path
 
 interface EntrepreneurService {
+    @GET("entrepreneurs")
+    suspend fun getAllEntrepreneurs(
+        @Header("Authorization") token: String
+    ): Response<List<EntrepreneurDto>>
+
     @GET("entrepreneurs/{entrepreneurId}")
     suspend fun getEntrepreneurById(
         @Path("entrepreneurId") id: Int,

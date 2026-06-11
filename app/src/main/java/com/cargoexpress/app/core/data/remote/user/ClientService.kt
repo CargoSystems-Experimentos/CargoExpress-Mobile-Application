@@ -7,6 +7,11 @@ import retrofit2.http.Header
 import retrofit2.http.Path
 
 interface ClientService {
+    @GET("clients")
+    suspend fun getAllClients(
+        @Header("Authorization") token: String
+    ): Response<List<ClientDto>>
+
     @GET("clients/{id}")
     suspend fun getClient(
         @Path("id") id: Int,

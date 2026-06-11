@@ -1,6 +1,5 @@
 package com.cargoexpress.app.core.presentation.login
 
-import android.app.Activity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -16,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -27,59 +25,19 @@ import androidx.navigation.NavController
 import com.cargoexpress.app.R
 import com.cargoexpress.app.core.common.Routes
 import com.cargoexpress.app.core.common.UIState
-import com.cargoexpress.app.core.presentation.phoneauth.OtpPhase
-import com.cargoexpress.app.core.presentation.phoneauth.OtpVerificationDialog
-import com.cargoexpress.app.core.presentation.phoneauth.PhoneAuthHelper
 
 @Composable
 fun LoginScreen(viewModel: LoginViewModel, navController: NavController) {
     val state by viewModel.state.observeAsState(UIState())
-    val otpPhase by viewModel.otpPhase.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var emailState by rememberSaveable { mutableStateOf("") }
     var passwordState by rememberSaveable { mutableStateOf("") }
-    val context = LocalContext.current
-
-    // Trigger SMS when phase transitions to Sending or Resending
-    LaunchedEffect(otpPhase) {
-        val activity = context as? Activity ?: return@LaunchedEffect
-        when (otpPhase) {
-            is OtpPhase.Sending -> {
-                val phone = (otpPhase as OtpPhase.Sending).phone
-                PhoneAuthHelper.enviarCodigo(
-                    phoneNumber = phone,
-                    activity = activity,
-                    onCodeSent = { viewModel.onOtpSent() },
-                    onAutoVerified = { viewModel.onOtpAutoVerified() },
-                    onError = { viewModel.onOtpSendError(it) }
-                )
-            }
-            is OtpPhase.Resending -> {
-                val phone = (otpPhase as OtpPhase.Resending).phone
-                PhoneAuthHelper.reenviarCodigo(
-                    phoneNumber = phone,
-                    activity = activity,
-                    onCodeSent = { viewModel.onOtpSent() },
-                    onAutoVerified = { viewModel.onOtpAutoVerified() },
-                    onError = { viewModel.onOtpSendError(it) }
-                )
-            }
-            else -> {}
-        }
-    }
 
     LaunchedEffect(state.message) {
         if (state.message.isNotEmpty()) {
             snackbarHostState.showSnackbar(state.message)
         }
     }
-
-    OtpVerificationDialog(
-        otpPhase = otpPhase,
-        onVerify = { code -> viewModel.verifyOtp(code) },
-        onResend = { viewModel.resendOtp() },
-        onCancel = { viewModel.cancelOtp() }
-    )
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }

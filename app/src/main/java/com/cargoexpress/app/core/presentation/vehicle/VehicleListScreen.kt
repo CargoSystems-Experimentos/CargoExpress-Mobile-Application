@@ -1,6 +1,5 @@
 package com.cargoexpress.app.core.presentation.vehicle
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,22 +13,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.cargoexpress.app.core.domain.Vehicle
 import com.cargoexpress.app.core.common.Constants
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VehicleListScreen(viewModel: VehicleListViewModel = viewModel(), navController: NavController) {
+fun VehicleListScreen(viewModel: VehicleListViewModel, navController: NavController) {
     var searchQuery by remember { mutableStateOf("") }
     var filterByModel by remember { mutableStateOf(true) }
     var sortAscending by remember { mutableStateOf(true) }
     val state by viewModel.state
 
-    LaunchedEffect(Unit) {
-        viewModel.getVehiclesForEntrepreneur(entrepreneurId = Constants.ENTREPRENEUR_ID, token = Constants.TOKEN)
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(navBackStackEntry) {
+        if (navBackStackEntry?.destination?.route == "vehicles") {
+            viewModel.getVehiclesForEntrepreneur(
+                entrepreneurId = Constants.ENTREPRENEUR_ID,
+                token = Constants.TOKEN
+            )
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -39,7 +43,6 @@ fun VehicleListScreen(viewModel: VehicleListViewModel = viewModel(), navControll
                 .padding(16.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            // Título
             Text(
                 text = "Mis Vehículos",
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
@@ -47,7 +50,6 @@ fun VehicleListScreen(viewModel: VehicleListViewModel = viewModel(), navControll
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Campo de búsqueda mejorado
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -61,7 +63,6 @@ fun VehicleListScreen(viewModel: VehicleListViewModel = viewModel(), navControll
                     .padding(bottom = 12.dp)
             )
 
-            // Filtros y Ordenamiento
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -69,34 +70,51 @@ fun VehicleListScreen(viewModel: VehicleListViewModel = viewModel(), navControll
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Filtro por tipo
                 FilterChip(
                     selected = filterByModel,
                     onClick = { filterByModel = true },
                     label = { Text("Modelo") },
-                    leadingIcon = { Icon(Icons.Filled.DirectionsCar, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.DirectionsCar,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 )
                 FilterChip(
                     selected = !filterByModel,
                     onClick = { filterByModel = false },
                     label = { Text("Placa") },
-                    leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.Info,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 )
-
                 Spacer(modifier = Modifier.weight(1f))
-
-                // Botón de ordenamiento
                 FilterChip(
                     selected = true,
                     onClick = { sortAscending = !sortAscending },
-                    label = {
-                        Text(if (sortAscending) "↑ A-Z" else "↓ Z-A")
-                    },
-                    leadingIcon = { Icon(if (sortAscending) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    label = { Text(if (sortAscending) "↑ A-Z" else "↓ Z-A") },
+                    leadingIcon = {
+                        Icon(
+                            if (sortAscending) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 )
             }
 
-            // Lista de vehículos
+            if (state.isLoading) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Color(0xFFFFEB3B))
+                }
+            }
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -112,36 +130,34 @@ fun VehicleListScreen(viewModel: VehicleListViewModel = viewModel(), navControll
                 } ?: emptyList()
 
                 val sortedVehicles = if (filterByModel) {
-                    if (sortAscending) {
-                        filteredVehicles.sortedBy { it.model }
-                    } else {
-                        filteredVehicles.sortedByDescending { it.model }
-                    }
+                    if (sortAscending) filteredVehicles.sortedBy { it.model }
+                    else filteredVehicles.sortedByDescending { it.model }
                 } else {
                     filteredVehicles
                 }
 
-                if (sortedVehicles.isEmpty()) {
+                if (sortedVehicles.isEmpty() && !state.isLoading) {
                     item {
                         Text(
-                            text = "No se encontraron vehículos",
+                            text = if (state.message.isNotEmpty()) state.message else "No se encontraron vehículos",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 } else {
                     items(sortedVehicles.size) { index ->
                         val vehicle = sortedVehicles[index]
-                        VehicleItem(vehicle = vehicle)
+                        VehicleItem(
+                            vehicle = vehicle,
+                            onEditClick = { navController.navigate("edit_vehicle/${vehicle.id}") }
+                        )
                     }
                 }
             }
         }
 
-        // Botón flotante para agregar vehículo
         FloatingActionButton(
-            onClick = { navController.navigate("register_vehicle?token=${Constants.TOKEN}") },
+            onClick = { navController.navigate("register_vehicle") },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp),
@@ -153,7 +169,7 @@ fun VehicleListScreen(viewModel: VehicleListViewModel = viewModel(), navControll
 }
 
 @Composable
-fun VehicleItem(vehicle: Vehicle) {
+fun VehicleItem(vehicle: Vehicle, onEditClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -188,20 +204,37 @@ fun VehicleItem(vehicle: Vehicle) {
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = vehicle.model,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = vehicle.name,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = vehicle.model,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                VehicleStateBadge(vehicle.state)
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = onEditClick, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = "Editar vehículo",
+                        tint = Color(0xFFF9A825)
+                    )
+                }
             }
 
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(modifier = Modifier.height(12.dp))
 
+            VehicleInfoItem(icon = Icons.Filled.Info, label = "Placa", value = vehicle.plate)
             VehicleInfoItem(
-                icon = Icons.Filled.Info,
-                label = "Placa",
-                value = vehicle.plate
+                icon = Icons.Filled.LocalShipping,
+                label = "Placa tractor",
+                value = vehicle.tractorPlate
             )
             VehicleInfoItem(
                 icon = Icons.Filled.Scale,
@@ -214,6 +247,26 @@ fun VehicleItem(vehicle: Vehicle) {
                 value = "${vehicle.volume} m³"
             )
         }
+    }
+}
+
+@Composable
+fun VehicleStateBadge(state: String) {
+    val (bgColor, textColor) = when (state) {
+        "AVAILABLE" -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
+        "UNAVAILABLE" -> Color(0xFFFFF3E0) to Color(0xFFE65100)
+        else -> Color(0xFFEEEEEE) to Color(0xFF616161)
+    }
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = bgColor
+    ) {
+        Text(
+            text = state,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            color = textColor,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
     }
 }
 

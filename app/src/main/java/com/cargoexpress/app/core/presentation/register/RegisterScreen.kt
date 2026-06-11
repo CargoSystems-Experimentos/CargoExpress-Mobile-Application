@@ -1,6 +1,5 @@
 package com.cargoexpress.app.core.presentation.register
 
-import android.app.Activity
 import android.util.Patterns
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,9 +14,8 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.*
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TransformedText
@@ -29,53 +27,27 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Routes
 import com.cargoexpress.app.core.common.UIState
-import com.cargoexpress.app.core.presentation.phoneauth.OtpPhase
-import com.cargoexpress.app.core.presentation.phoneauth.OtpVerificationDialog
-import com.cargoexpress.app.core.presentation.phoneauth.PhoneAuthHelper
+import java.util.Calendar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
     val state by viewModel.state.observeAsState(UIState())
-    val otpPhase by viewModel.otpPhase.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
+    var rawPhone by remember { mutableStateOf("") }
     var dni by remember { mutableStateOf("") }
     var ruc by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
+    var birthDate by remember { mutableStateOf("") }
+    var birthDateDisplay by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var isClient by remember { mutableStateOf(true) }
-
-    // Trigger SMS when phase transitions to Sending or Resending
-    LaunchedEffect(otpPhase) {
-        val activity = context as? Activity ?: return@LaunchedEffect
-        when (otpPhase) {
-            is OtpPhase.Sending -> {
-                val phoneNum = (otpPhase as OtpPhase.Sending).phone
-                PhoneAuthHelper.enviarCodigo(
-                    phoneNumber = phoneNum,
-                    activity = activity,
-                    onCodeSent = { viewModel.onOtpSent() },
-                    onAutoVerified = { viewModel.onOtpAutoVerified() },
-                    onError = { viewModel.onOtpSendError(it) }
-                )
-            }
-            is OtpPhase.Resending -> {
-                val phoneNum = (otpPhase as OtpPhase.Resending).phone
-                PhoneAuthHelper.reenviarCodigo(
-                    phoneNumber = phoneNum,
-                    activity = activity,
-                    onCodeSent = { viewModel.onOtpSent() },
-                    onAutoVerified = { viewModel.onOtpAutoVerified() },
-                    onError = { viewModel.onOtpSendError(it) }
-                )
-            }
-            else -> {}
-        }
-    }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.message) {
         if (state.message.isNotEmpty()) {
@@ -83,12 +55,39 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
         }
     }
 
-    OtpVerificationDialog(
-        otpPhase = otpPhase,
-        onVerify = { code -> viewModel.verifyOtpAndRegister(code) },
-        onResend = { viewModel.resendOtp() },
-        onCancel = { viewModel.cancelOtp() }
-    )
+    if (showDatePicker) {
+        val maxDateMillis = remember {
+            val cal = Calendar.getInstance()
+            cal.add(Calendar.YEAR, -18)
+            cal.timeInMillis
+        }
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = maxDateMillis,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= maxDateMillis
+            }
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val millis = datePickerState.selectedDateMillis ?: return@TextButton
+                    val cal = Calendar.getInstance().apply { timeInMillis = millis }
+                    val year = cal.get(Calendar.YEAR)
+                    val month = cal.get(Calendar.MONTH) + 1
+                    val day = cal.get(Calendar.DAY_OF_MONTH)
+                    birthDate = "$year-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T00:00:00"
+                    birthDateDisplay = "${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/$year"
+                    showDatePicker = false
+                }) { Text("Aceptar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -181,22 +180,31 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                 val isPasswordValid = password.isBlank() || (hasUppercase && hasNumber && hasSpecialChar && hasMinLength)
                 val showPasswordError = password.isNotBlank() && !isPasswordValid
 
+                val isNameValid = name.isBlank() || name.length >= 8
+                val showNameError = name.isNotBlank() && !isNameValid
+
+                val isPhoneValid = phone.length == 9 && phone.all { it.isDigit() }
+                val showPhoneError = phone.isNotBlank() && !isPhoneValid
+
                 val isDniValid = dni.length == 8 && dni.all { it.isDigit() }
                 val showDniError = dni.isNotBlank() && !isDniValid
                 val isRucValid = ruc.length == 11 && ruc.all { it.isDigit() }
                 val showRucError = ruc.isNotBlank() && !isRucValid
-                val isPhoneValid = phone.length == 9 && phone.all { it.isDigit() }
-                val showPhoneError = phone.isNotBlank() && !isPhoneValid
+
                 val idFieldValid = if (isClient) (dni.isNotBlank() && isDniValid) else (ruc.isNotBlank() && isRucValid)
+                val extraFieldValid = if (isClient) birthDate.isNotBlank() else (address.isNotBlank() && address.length <= 200)
 
                 val isFormValid = username.isNotBlank() &&
-                        password.isNotBlank() &&
-                        name.isNotBlank() &&
-                        isPhoneValid &&
                         isEmailValid &&
+                        password.isNotBlank() &&
                         isPasswordValid &&
-                        idFieldValid
+                        name.isNotBlank() &&
+                        isNameValid &&
+                        isPhoneValid &&
+                        idFieldValid &&
+                        extraFieldValid
 
+                // Email
                 OutlinedTextField(
                     value = username,
                     onValueChange = { if (it.length <= 100) username = it },
@@ -233,6 +241,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                     )
                 }
 
+                // Password
                 OutlinedTextField(
                     value = password,
                     onValueChange = { if (it.length <= 100) password = it },
@@ -245,7 +254,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                         }
                     },
                     supportingText = {
-                        if (showPasswordError) Text("La contraseña debe tener mínimo 8 caracteres, una letra mayúscula, un carácter especial y un número", color = Color.Red)
+                        if (showPasswordError) Text("Mínimo 8 caracteres, una mayúscula, un número y un carácter especial", color = Color.Red)
                     },
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
@@ -253,28 +262,39 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                 )
 
+                // Name
                 OutlinedTextField(
                     value = name,
                     onValueChange = { if (it.length <= 60) name = it },
                     label = { Text(if (isClient) "Nombre completo" else "Nombre de la empresa") },
                     leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
+                    isError = showNameError,
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
                     maxLines = 1,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
                     supportingText = {
-                        Text(
-                            text = "${name.length}/60",
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.End,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelSmall
-                        )
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            if (showNameError) {
+                                Text("Mínimo 8 caracteres", color = Color.Red, style = MaterialTheme.typography.labelSmall)
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                            Text(
+                                text = "${name.length}/60",
+                                textAlign = TextAlign.End,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                var rawPhone by remember { mutableStateOf("") }
+                // Phone
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -299,6 +319,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (isClient) {
+                    // DNI
                     OutlinedTextField(
                         value = dni,
                         onValueChange = { dni = it.filter(Char::isDigit).take(8) },
@@ -311,11 +332,43 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                         modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                     )
                     if (showDniError) {
-                        Text("El DNI no es válido", color = Color.Red, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 16.dp, top = 4.dp))
+                        Text(
+                            "El DNI debe tener 8 dígitos",
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                        )
                     } else {
                         Spacer(modifier = Modifier.height(12.dp))
                     }
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Birth date
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showDatePicker = true }
+                    ) {
+                        OutlinedTextField(
+                            value = birthDateDisplay,
+                            onValueChange = {},
+                            label = { Text("Fecha de nacimiento") },
+                            leadingIcon = { Icon(Icons.Filled.CalendarToday, contentDescription = null) },
+                            placeholder = { Text("Debes tener al menos 18 años") },
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                            enabled = false,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
                 } else {
+                    // RUC
                     OutlinedTextField(
                         value = ruc,
                         onValueChange = { ruc = it.filter(Char::isDigit).take(11) },
@@ -328,34 +381,49 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                         modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                     )
                     if (showRucError) {
-                        Text("El RUC no es válido", color = Color.Red, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 16.dp, top = 4.dp))
+                        Text(
+                            "El RUC debe tener 11 dígitos",
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                        )
                     } else {
                         Spacer(modifier = Modifier.height(12.dp))
                     }
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Address
+                    OutlinedTextField(
+                        value = address,
+                        onValueChange = { if (it.length <= 200) address = it },
+                        label = { Text("Dirección") },
+                        leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        maxLines = 1,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                        supportingText = {
+                            Text(
+                                text = "${address.length}/200",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
                     onClick = {
                         if (isClient) {
-                            viewModel.initiateClientRegistration(
-                                username = username,
-                                password = password,
-                                name = name,
-                                phone = phone,
-                                dni = dni
-                            )
+                            viewModel.registerClient(username, password, phone, name, dni, birthDate)
                         } else {
-                            viewModel.initiateEntrepreneurRegistration(
-                                username = username,
-                                password = password,
-                                name = name,
-                                phone = phone,
-                                ruc = ruc
-                            )
+                            viewModel.registerEntrepreneur(username, password, phone, name, ruc, address)
                         }
                     },
-                    enabled = isFormValid && !state.isLoading && otpPhase == OtpPhase.Idle,
+                    enabled = isFormValid && !state.isLoading,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Yellow),
                     modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
@@ -375,7 +443,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { navController.navigate(Routes.TermsAndConditions.routes) },
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
@@ -385,7 +453,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { navController.navigate(Routes.Login.routes) },
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    textAlign = TextAlign.Center
                 )
             }
 

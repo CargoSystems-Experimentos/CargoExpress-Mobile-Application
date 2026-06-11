@@ -9,6 +9,19 @@ import com.cargoexpress.app.core.data.remote.vehicle.VehicleDto
 
 class EntrepreneurRepository(private val entrepreneurService: EntrepreneurService) {
 
+    suspend fun getAllEntrepreneurs(token: String): Result<List<EntrepreneurDto>> {
+        return try {
+            val response = entrepreneurService.getAllEntrepreneurs("Bearer $token")
+            if (response.isSuccessful) {
+                Result.success(response.body() ?: emptyList())
+            } else {
+                Result.failure(Exception("Error obteniendo empresarios: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getEntrepreneurById(entrepreneurId: Int, token: String): Result<EntrepreneurDto> {
         return try {
             val response = entrepreneurService.getEntrepreneurById(entrepreneurId, "Bearer $token")

@@ -21,12 +21,14 @@ import com.cargoexpress.app.core.data.remote.trip.TripService
 import com.cargoexpress.app.core.data.remote.user.ClientService
 import com.cargoexpress.app.core.data.remote.ongoingtrip.OngoingTripService
 import com.cargoexpress.app.core.data.remote.user.EntrepreneurService
+import com.cargoexpress.app.core.data.remote.user.UserService
 import com.cargoexpress.app.core.data.remote.vehicle.VehicleService
 import com.cargoexpress.app.core.data.repository.ClientRepository
 import com.cargoexpress.app.core.data.repository.EntrepreneurRepository
 import com.cargoexpress.app.core.data.repository.LoginRepository
 import com.cargoexpress.app.core.data.repository.RegisterRepository
 import com.cargoexpress.app.core.data.repository.TripRepository
+import com.cargoexpress.app.core.data.repository.UserRepository
 import com.cargoexpress.app.core.data.repository.VehicleRepository
 import com.cargoexpress.app.core.presentation.vehicle.VehicleListViewModel
 import com.cargoexpress.app.core.presentation.login.LoginScreen
@@ -89,6 +91,8 @@ import com.cargoexpress.app.core.presentation.trip.registerTrip.RegisterTripView
 import com.cargoexpress.app.core.presentation.trip.registerTrip.RegisterTripViewModelFactory
 import com.cargoexpress.app.core.presentation.vehicle.registerVehicle.RegisterVehicleScreen
 import com.cargoexpress.app.core.presentation.vehicle.registerVehicle.RegisterVehicleViewModel
+import com.cargoexpress.app.core.presentation.vehicle.editVehicle.EditVehicleScreen
+import com.cargoexpress.app.core.presentation.vehicle.editVehicle.EditVehicleViewModel
 import com.cargoexpress.app.core.presentation.statistics.StatisticsScreen
 import com.cargoexpress.app.core.presentation.terms.TermsAndConditionsScreen
 import androidx.compose.material.icons.filled.BarChart
@@ -129,6 +133,7 @@ class MainActivity : ComponentActivity() {
 
         val loginService = buildService(LoginService::class.java)
         val registerService = buildService(RegisterService::class.java)
+        val userService = buildService(UserService::class.java)
         val clientService = buildService(ClientService::class.java)
         val entrepreneurService = buildService(EntrepreneurService::class.java)
         val vehicleService = buildService(VehicleService::class.java)
@@ -151,15 +156,13 @@ class MainActivity : ComponentActivity() {
                 val loginViewModel = LoginViewModel(
                     navController,
                     LoginRepository(loginService),
+                    UserRepository(userService),
                     EntrepreneurRepository(entrepreneurService),
                     ClientRepository(clientService)
                 )
                 val registerViewModel = RegisterViewModel(
                     navController,
-                    RegisterRepository(registerService),
-                    LoginRepository(loginService),
-                    ClientRepository(clientService),
-                    EntrepreneurRepository(entrepreneurService)
+                    RegisterRepository(registerService)
                 )
 
                 val vehicleRepository = VehicleRepository(vehicleService)
@@ -188,6 +191,7 @@ class MainActivity : ComponentActivity() {
                 val isRegisterOrEditScreen = currentRoute == "register_trip" ||
                     currentRoute == "edit_trip/{tripId}" ||
                     currentRoute == "register_vehicle" ||
+                    currentRoute == "edit_vehicle/{vehicleId}" ||
                     currentRoute == "register_driver"
 
                 val ongoingTripRepository = OngoingTripRepository(ongoingTripService)
@@ -336,6 +340,12 @@ class MainActivity : ComponentActivity() {
                             RegisterVehicleScreen(viewModel = registerVehicleViewModel, navController = navController) { vehicle ->
 
                             }
+                        }
+
+                        composable(route = "edit_vehicle/{vehicleId}") { backStackEntry ->
+                            val vehicleId = backStackEntry.arguments?.getString("vehicleId")?.toInt() ?: 0
+                            val editVehicleViewModel = EditVehicleViewModel(vehicleRepository)
+                            EditVehicleScreen(vehicleId = vehicleId, viewModel = editVehicleViewModel, navController = navController)
                         }
 
                         composable(route = "register_trip") { backStackEntry ->

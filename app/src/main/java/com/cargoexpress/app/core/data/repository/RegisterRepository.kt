@@ -6,6 +6,7 @@ import com.cargoexpress.app.core.data.remote.register.RegisterClientRequestDto
 import com.cargoexpress.app.core.data.remote.register.RegisterEntrepreneurRequestDto
 import com.cargoexpress.app.core.data.remote.register.RegisterResponseDto
 import com.cargoexpress.app.core.data.remote.register.RegisterService
+import com.google.gson.Gson
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -33,9 +34,10 @@ class RegisterRepository(private val registerService: RegisterService) {
                     if (response.isSuccessful) {
                         response.body()?.let {
                             callback(Result.success(it.message))
-                        } ?: callback(Result.failure(Exception("Response body is null")))
+                        } ?: callback(Result.failure(Exception("Respuesta vacía del servidor")))
                     } else {
-                        callback(Result.failure(Exception("Error: ${response.code()}")))
+                        val errorMessage = parseErrorMessage(response.errorBody()?.string())
+                        callback(Result.failure(Exception(errorMessage)))
                     }
                 } catch (e: Exception) {
                     callback(Result.failure(e))
@@ -69,9 +71,10 @@ class RegisterRepository(private val registerService: RegisterService) {
                     if (response.isSuccessful) {
                         response.body()?.let {
                             callback(Result.success(it.message))
-                        } ?: callback(Result.failure(Exception("Response body is null")))
+                        } ?: callback(Result.failure(Exception("Respuesta vacía del servidor")))
                     } else {
-                        callback(Result.failure(Exception("Error: ${response.code()}")))
+                        val errorMessage = parseErrorMessage(response.errorBody()?.string())
+                        callback(Result.failure(Exception(errorMessage)))
                     }
                 } catch (e: Exception) {
                     callback(Result.failure(e))
@@ -82,5 +85,14 @@ class RegisterRepository(private val registerService: RegisterService) {
                 callback(Result.failure(t))
             }
         })
+    }
+
+    private fun parseErrorMessage(errorBody: String?): String {
+        if (errorBody.isNullOrBlank()) return "Error en el registro"
+        return try {
+            Gson().fromJson(errorBody, RegisterResponseDto::class.java)?.message ?: "Error en el registro"
+        } catch (e: Exception) {
+            "Error en el registro"
+        }
     }
 }
