@@ -1,7 +1,5 @@
 package com.cargoexpress.app.core.presentation.trip.editTrip
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cargoexpress.app.core.common.Constants
@@ -27,7 +25,7 @@ class TripEditViewModel(
 
     var name: String = ""
     var type: String = ""
-    var weight: Int = 0
+    var weight: Double = 0.0
     var loadLocation: String = ""
     var loadDate: String = ""
     var unloadLocation: String = ""
@@ -35,7 +33,9 @@ class TripEditViewModel(
     var driverId: Int = 0
     var vehicleId: Int = 0
     var clientId: Int = 0
-    var evidenceImg: String = ""
+
+    private var originalDriverId: Int = 0
+    private var originalVehicleId: Int = 0
 
     private val _uiState = MutableStateFlow(TripEditUiState())
     val uiState: StateFlow<TripEditUiState> = _uiState
@@ -56,7 +56,8 @@ class TripEditViewModel(
                 driverId = trip.driverId
                 vehicleId = trip.vehicleId
                 clientId = trip.clientId
-                evidenceImg = trip.evidenceImg
+                originalDriverId = trip.driverId
+                originalVehicleId = trip.vehicleId
 
                 var preloadedDriverName = ""
                 var preloadedVehicleModel = ""
@@ -99,12 +100,13 @@ class TripEditViewModel(
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun updateTrip(onResult: (Resource<Trip>) -> Unit) {
         viewModelScope.launch {
+            val currentTrip = _uiState.value.trip ?: return@launch
             val trip = Trip(
-                id = _uiState.value.trip?.id ?: 0,
+                id = currentTrip.id,
                 name = name,
+                state = currentTrip.state,
                 type = type,
                 weight = weight,
                 loadLocation = loadLocation,
@@ -114,11 +116,31 @@ class TripEditViewModel(
                 driverId = driverId,
                 vehicleId = vehicleId,
                 clientId = clientId,
-                entrepreneurId = _uiState.value.trip?.entrepreneurId ?: 0,
-                evidenceImg = evidenceImg
+                entrepreneurId = currentTrip.entrepreneurId
             )
-            val result = tripRepository.updateTrip(trip)
-            onResult(result)
+
+            val detailsResult = tripRepository.updateTripDetails(trip)
+            if (detailsResult is Resource.Error) {
+                onResult(detailsResult)
+                return@launch
+            }
+
+            val scheduleResult = tripRepository.updateTripSchedule(trip)
+            if (scheduleResult is Resource.Error) {
+                onResult(scheduleResult)
+                return@launch
+            }
+
+            if (driverId != originalDriverId && originalDriverId > 0) {
+                driverRepository.updateDriverState(originalDriverId, "AVAILABLE")
+                driverRepository.updateDriverState(driverId, "UNAVAILABLE")
+            }
+            if (vehicleId != originalVehicleId && originalVehicleId > 0) {
+                vehicleRepository.updateVehicleState(originalVehicleId, "AVAILABLE")
+                vehicleRepository.updateVehicleState(vehicleId, "UNAVAILABLE")
+            }
+
+            onResult(Resource.Success(data = trip))
         }
     }
 

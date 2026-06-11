@@ -22,7 +22,6 @@ import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Constants
 import com.cargoexpress.app.core.data.repository.OngoingTripRepository
 import com.cargoexpress.app.core.data.repository.TripRepository
-import com.cargoexpress.app.core.domain.OngoingTrip
 import com.cargoexpress.app.core.domain.Trip
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -36,29 +35,16 @@ fun TripManagementScreen(
     val factory = remember { TripManagementViewModelFactory(tripRepository, ongoingTripRepository) }
     val viewModel: TripManagementViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
-    val ongoingTrips by viewModel.ongoingTrips.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("Nombre") }
     var sortAscending by remember { mutableStateOf(true) }
     var selectedStatus by remember { mutableStateOf<String?>(null) }
 
-    val displayedTrips = remember(uiState.data, ongoingTrips, selectedStatus) {
+    val displayedTrips = remember(uiState.data, selectedStatus) {
         val base = uiState.data ?: emptyList()
         if (selectedStatus == null) base
-        else base.filter { trip ->
-            val ongoing = ongoingTrips.find { it.tripId == trip.id }
-            val status = when {
-                ongoing == null -> "SIN INICIAR"
-                ongoing.state == "FINALIZADO" -> "FINALIZADO"
-                else -> "EN PROGRESO"
-            }
-            status == selectedStatus
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.loadOngoingTrips(Constants.TOKEN)
+        else base.filter { tripStateToLabel(it.state) == selectedStatus }
     }
 
     Box(
@@ -162,7 +148,7 @@ fun TripManagementScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                listOf(null, "SIN INICIAR", "EN PROGRESO", "FINALIZADO").forEach { status ->
+                listOf(null, "EN ESPERA", "EN PROGRESO", "FINALIZADO", "CANCELADO").forEach { status ->
                     FilterChip(
                         selected = selectedStatus == status,
                         onClick = { selectedStatus = if (selectedStatus == status) null else status },
@@ -192,7 +178,6 @@ fun TripManagementScreen(
                 else -> {
                     TripList(
                         trips = displayedTrips,
-                        ongoingTrips = ongoingTrips,
                         navController = navController,
                         isDescending = !sortAscending
                     )
@@ -217,7 +202,6 @@ fun TripManagementScreen(
 @Composable
 fun TripList(
     trips: List<Trip>,
-    ongoingTrips: List<OngoingTrip>,
     navController: NavController,
     isDescending: Boolean
 ) {
@@ -250,13 +234,7 @@ fun TripList(
             }
         } else {
             items(sortedTrips) { trip ->
-                val ongoing = ongoingTrips.find { it.tripId == trip.id }
-                val status = when {
-                    ongoing == null -> "SIN INICIAR"
-                    ongoing.state == "FINALIZADO" -> "FINALIZADO"
-                    else -> "EN PROGRESO"
-                }
-                TripCard(trip = trip, navController = navController, tripStatus = status)
+                TripCard(trip = trip, navController = navController)
             }
         }
     }
@@ -265,8 +243,7 @@ fun TripList(
 @Composable
 fun TripCard(
     trip: Trip,
-    navController: NavController,
-    tripStatus: String = "SIN INICIAR"
+    navController: NavController
 ) {
     Card(
         modifier = Modifier
@@ -314,7 +291,7 @@ fun TripCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                TripStatusChip(tripStatus)
+                TripStatusChip(trip.state)
             }
 
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
@@ -359,7 +336,7 @@ fun TripCard(
                     onClick = {
                         navController.navigate("gps/${trip.id}")
                         Constants.TRIP_ID = trip.id
-                              },
+                    },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B))
                 ) {
@@ -371,15 +348,17 @@ fun TripCard(
 }
 
 @Composable
-fun TripStatusChip(status: String) {
-    val (bgColor, textColor) = when (status) {
-        "EN PROGRESO" -> Color(0xFFE3F2FD) to Color(0xFF1565C0)
-        "FINALIZADO" -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
+fun TripStatusChip(state: String) {
+    val label = tripStateToLabel(state)
+    val (bgColor, textColor) = when (state) {
+        "PROGRESS" -> Color(0xFFE3F2FD) to Color(0xFF1565C0)
+        "FINISHED" -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
+        "CANCELED" -> Color(0xFFFFF3E0) to Color(0xFFE65100)
         else -> Color(0xFFF5F5F5) to Color(0xFF616161)
     }
     Surface(shape = RoundedCornerShape(8.dp), color = bgColor) {
         Text(
-            text = status,
+            text = label,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelSmall,
             color = textColor,
@@ -421,6 +400,14 @@ fun TripInfoItem(
             )
         }
     }
+}
+
+fun tripStateToLabel(state: String) = when (state) {
+    "AWAITING" -> "EN ESPERA"
+    "PROGRESS" -> "EN PROGRESO"
+    "FINISHED" -> "FINALIZADO"
+    "CANCELED" -> "CANCELADO"
+    else -> state
 }
 
 private fun formatDateTimeReadable(dateTime: String): String {

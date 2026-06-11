@@ -2,8 +2,6 @@ package com.cargoexpress.app.core.presentation.trip.editTrip
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,7 +34,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripEditScreen(
@@ -129,30 +126,28 @@ fun TripEditScreen(
         bottomBar = {
             Button(
                 onClick = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        isLoading = true
-                        viewModel.name = name
-                        viewModel.type = type
-                        viewModel.weight = weight.toIntOrNull() ?: 0
-                        viewModel.loadLocation = loadLocation
-                        viewModel.loadDate = toBackendDateTime(loadCalendar)
-                        viewModel.unloadLocation = unloadLocation
-                        viewModel.unloadDate = toBackendDateTime(unloadCalendar)
-                        viewModel.driverId = driverId
-                        viewModel.vehicleId = vehicleId
-                        viewModel.clientId = resolvedClientId
-                        viewModel.evidenceImg = ""
-                        viewModel.updateTrip { result ->
-                            isLoading = false
-                            if (result is Resource.Success) {
-                                confirmModalSuccess = true
-                                confirmModalMessage = "Viaje actualizado correctamente"
-                            } else {
-                                confirmModalSuccess = false
-                                confirmModalMessage = "No se pudo actualizar el viaje"
-                            }
-                            showConfirmModal = true
+                    isLoading = true
+                    viewModel.name = name
+                    viewModel.type = type
+                    viewModel.weight = weight.toDoubleOrNull() ?: 0.0
+                    viewModel.loadLocation = loadLocation
+                    viewModel.loadDate = toBackendDateTime(loadCalendar)
+                    viewModel.unloadLocation = unloadLocation
+                    viewModel.unloadDate = toBackendDateTime(unloadCalendar)
+                    viewModel.driverId = driverId
+                    viewModel.vehicleId = vehicleId
+                    viewModel.clientId = resolvedClientId
+                    viewModel.updateTrip { result ->
+                        isLoading = false
+                        if (result is Resource.Success) {
+                            confirmModalSuccess = true
+                            confirmModalMessage = "Viaje actualizado correctamente"
+                        } else {
+                            confirmModalSuccess = false
+                            confirmModalMessage = (result as? Resource.Error)?.message
+                                ?: "No se pudo actualizar el viaje"
                         }
+                        showConfirmModal = true
                     }
                 },
                 modifier = Modifier
@@ -246,8 +241,10 @@ fun TripEditScreen(
                     value = weight,
                     onValueChange = {
                         val filtered = it.filter { c -> c.isDigit() || c == '.' }
-                        val parsed = filtered.toFloatOrNull()
-                        if (filtered.isEmpty() || filtered.endsWith('.') || (parsed != null && parsed <= 50000f)) {
+                        val dotCount = filtered.count { c -> c == '.' }
+                        val parsed = filtered.toDoubleOrNull()
+                        if (dotCount <= 1 && (filtered.isEmpty() || filtered.endsWith('.') ||
+                                    (parsed != null && parsed <= 99999999.99))) {
                             weight = filtered
                         }
                     },
@@ -449,6 +446,7 @@ fun TripEditScreen(
         EditDriverModal(
             viewModel = viewModel,
             entrepreneurId = Constants.ENTREPRENEUR_ID,
+            currentDriverId = driverId,
             onDriverSelected = { id, selectedName ->
                 driverId = id
                 driverName = selectedName
@@ -462,6 +460,7 @@ fun TripEditScreen(
         EditVehicleModal(
             viewModel = viewModel,
             entrepreneurId = Constants.ENTREPRENEUR_ID,
+            currentVehicleId = vehicleId,
             onVehicleSelected = { id, selectedName ->
                 vehicleId = id
                 vehicleName = selectedName
@@ -476,6 +475,7 @@ fun TripEditScreen(
 private fun EditDriverModal(
     viewModel: TripEditViewModel,
     entrepreneurId: Int,
+    currentDriverId: Int,
     onDriverSelected: (Int, String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -484,7 +484,9 @@ private fun EditDriverModal(
 
     LaunchedEffect(Unit) {
         drivers = when (val result = viewModel.getDrivers(entrepreneurId)) {
-            is Resource.Success -> result.data ?: emptyList()
+            is Resource.Success -> result.data?.filter {
+                it.state == "AVAILABLE" || it.id == currentDriverId
+            } ?: emptyList()
             else -> emptyList()
         }
         isLoading = false
@@ -498,6 +500,8 @@ private fun EditDriverModal(
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
+            } else if (drivers.isEmpty()) {
+                Text("No hay conductores disponibles", style = MaterialTheme.typography.bodyMedium)
             } else {
                 LazyColumn {
                     items(drivers) { driver ->
@@ -517,6 +521,7 @@ private fun EditDriverModal(
 private fun EditVehicleModal(
     viewModel: TripEditViewModel,
     entrepreneurId: Int,
+    currentVehicleId: Int,
     onVehicleSelected: (Int, String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -525,7 +530,9 @@ private fun EditVehicleModal(
 
     LaunchedEffect(Unit) {
         vehicles = when (val result = viewModel.getVehicles(entrepreneurId)) {
-            is Resource.Success -> result.data ?: emptyList()
+            is Resource.Success -> result.data?.filter {
+                it.state == "AVAILABLE" || it.id == currentVehicleId
+            } ?: emptyList()
             else -> emptyList()
         }
         isLoading = false
@@ -539,6 +546,8 @@ private fun EditVehicleModal(
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
+            } else if (vehicles.isEmpty()) {
+                Text("No hay vehículos disponibles", style = MaterialTheme.typography.bodyMedium)
             } else {
                 LazyColumn {
                     items(vehicles) { vehicle ->
@@ -561,7 +570,7 @@ private fun isFormValid(
     driverId: Int, vehicleId: Int, resolvedClientId: Int
 ): Boolean =
     name.isNotBlank() && type.isNotBlank() &&
-            weight.toFloatOrNull()?.let { it > 0f } == true &&
+            weight.toDoubleOrNull()?.let { it > 0.0 } == true &&
             loadLocation.isNotBlank() && unloadLocation.isNotBlank() &&
             loadCalendar != null && unloadCalendar != null &&
             driverId > 0 && vehicleId > 0 && resolvedClientId > 0

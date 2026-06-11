@@ -59,7 +59,7 @@ class TripRepository(private val tripService: TripService, private val expenseSe
             if (response.isSuccessful) {
                 Resource.Success(data = response.body()?.toTrip() ?: trip)
             } else {
-                Resource.Error(message = "Failed to add trip")
+                Resource.Error(message = parseBackendError(response.errorBody()?.string()))
             }
         } catch (e: Exception) {
             Resource.Error(message = e.message ?: "An unknown error occurred")
@@ -73,7 +73,7 @@ class TripRepository(private val tripService: TripService, private val expenseSe
             if (response.isSuccessful) {
                 Resource.Success(data = trip)
             } else {
-                Resource.Error(message = "Failed to update trip details")
+                Resource.Error(message = parseBackendError(response.errorBody()?.string()))
             }
         } catch (e: Exception) {
             Resource.Error(message = e.message ?: "An unknown error occurred")
@@ -87,11 +87,18 @@ class TripRepository(private val tripService: TripService, private val expenseSe
             if (response.isSuccessful) {
                 Resource.Success(data = trip)
             } else {
-                Resource.Error(message = "Failed to update trip schedule")
+                Resource.Error(message = parseBackendError(response.errorBody()?.string()))
             }
         } catch (e: Exception) {
             Resource.Error(message = e.message ?: "An unknown error occurred")
         }
+    }
+
+    private fun parseBackendError(body: String?): String {
+        if (body.isNullOrBlank()) return "Error desconocido"
+        return try {
+            org.json.JSONObject(body).optString("message", body)
+        } catch (_: Exception) { body }
     }
 
     suspend fun updateTripState(tripId: Int, state: String): Resource<String> = withContext(Dispatchers.IO) {

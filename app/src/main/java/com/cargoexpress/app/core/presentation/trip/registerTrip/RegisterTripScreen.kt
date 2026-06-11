@@ -3,7 +3,6 @@ package com.cargoexpress.app.core.presentation.trip.registerTrip
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -88,7 +87,7 @@ fun RegisterTripScreen(
     val isTypeValid = type.isNotBlank()
     val showTypeError = typeTouched && !isTypeValid
 
-    val isWeightValid = weight.toFloatOrNull()?.let { it > 0f } == true
+    val isWeightValid = weight.toDoubleOrNull()?.let { it > 0.0 } == true
     val showWeightError = weightTouched && !isWeightValid
 
     val isLoadLocationValid = loadLocation.isNotBlank()
@@ -134,7 +133,7 @@ fun RegisterTripScreen(
                         isLoading = true
                         viewModel.name = name
                         viewModel.type = type
-                        viewModel.weight = weight.toIntOrNull() ?: 0
+                        viewModel.weight = weight.toDoubleOrNull() ?: 0.0
                         viewModel.loadLocation = loadLocation
                         viewModel.loadDate = toBackendDateTime(loadCalendar)
                         viewModel.unloadLocation = unloadLocation
@@ -142,7 +141,6 @@ fun RegisterTripScreen(
                         viewModel.driverId = driverId
                         viewModel.vehicleId = vehicleId
                         viewModel.clientId = resolvedClientId
-                        viewModel.evidenceImg = ""
 
                         viewModel.registerTrip { result ->
                             isLoading = false
@@ -153,7 +151,8 @@ fun RegisterTripScreen(
                                 confirmModalMessage = "Viaje registrado correctamente"
                             } else {
                                 confirmModalSuccess = false
-                                confirmModalMessage = "No se pudo registrar el viaje"
+                                confirmModalMessage = (result as? Resource.Error)?.message
+                                    ?: "No se pudo registrar el viaje"
                             }
                             showConfirmModal = true
                         }
@@ -283,8 +282,10 @@ fun RegisterTripScreen(
                     value = weight,
                     onValueChange = {
                         val filtered = it.filter { char -> char.isDigit() || char == '.' }
-                        val parsed = filtered.toFloatOrNull()
-                        if (filtered.isEmpty() || filtered.endsWith('.') || (parsed != null && parsed <= 50000f)) {
+                        val dotCount = filtered.count { c -> c == '.' }
+                        val parsed = filtered.toDoubleOrNull()
+                        if (dotCount <= 1 && (filtered.isEmpty() || filtered.endsWith('.') ||
+                                    (parsed != null && parsed <= 99999999.99))) {
                             weight = filtered
                             weightTouched = true
                         }
@@ -713,7 +714,7 @@ fun DriverModal(
     LaunchedEffect(Unit) {
         viewModel.getDrivers(entrepreneurId).let { result ->
             drivers = when (result) {
-                is Resource.Success -> result.data ?: emptyList()
+                is Resource.Success -> result.data?.filter { it.state == "AVAILABLE" } ?: emptyList()
                 else -> emptyList()
             }
             isLoading = false
@@ -728,17 +729,16 @@ fun DriverModal(
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
+            } else if (drivers.isEmpty()) {
+                Text("No hay conductores disponibles", style = MaterialTheme.typography.bodyMedium)
             } else {
                 LazyColumn {
-                    items(drivers.size) { index ->
-                        val driver = drivers[index]
+                    items(drivers) { driver ->
                         Text(
                             driver.name,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    onDriverSelected(driver.id, driver.name)
-                                }
+                                .clickable { onDriverSelected(driver.id, driver.name) }
                                 .padding(16.dp)
                         )
                     }
@@ -766,7 +766,7 @@ fun VehicleModal(
     LaunchedEffect(Unit) {
         viewModel.getVehicles(entrepreneurId).let { result ->
             vehicles = when (result) {
-                is Resource.Success -> result.data ?: emptyList()
+                is Resource.Success -> result.data?.filter { it.state == "AVAILABLE" } ?: emptyList()
                 else -> emptyList()
             }
             isLoading = false
@@ -781,17 +781,16 @@ fun VehicleModal(
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
+            } else if (vehicles.isEmpty()) {
+                Text("No hay vehículos disponibles", style = MaterialTheme.typography.bodyMedium)
             } else {
                 LazyColumn {
-                    items(vehicles.size) { index ->
-                        val vehicle = vehicles[index]
+                    items(vehicles) { vehicle ->
                         Text(
                             vehicle.model,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    onVehicleSelected(vehicle.id, vehicle.model)
-                                }
+                                .clickable { onVehicleSelected(vehicle.id, vehicle.model) }
                                 .padding(16.dp)
                         )
                     }

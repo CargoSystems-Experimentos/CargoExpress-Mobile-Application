@@ -1,7 +1,5 @@
 package com.cargoexpress.app.core.presentation.trip.registerTrip
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cargoexpress.app.core.data.remote.user.ClientDto
@@ -24,7 +22,7 @@ class RegisterTripViewModel(
 ) : ViewModel() {
     var name: String = ""
     var type: String = ""
-    var weight: Int = 0
+    var weight: Double = 0.0
     var loadLocation: String = ""
     var loadDate: String = ""
     var unloadLocation: String = ""
@@ -32,14 +30,13 @@ class RegisterTripViewModel(
     var driverId: Int = 0
     var vehicleId: Int = 0
     var clientId: Int = 0
-    var evidenceImg: String = ""
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun registerTrip(onResult: (Resource<Trip>) -> Unit) {
         viewModelScope.launch {
             val trip = Trip(
                 id = 0,
                 name = name,
+                state = "",
                 type = type,
                 weight = weight,
                 loadLocation = loadLocation,
@@ -49,10 +46,13 @@ class RegisterTripViewModel(
                 driverId = driverId,
                 vehicleId = vehicleId,
                 clientId = clientId,
-                entrepreneurId = Constants.ENTREPRENEUR_ID,
-                evidenceImg = evidenceImg
+                entrepreneurId = Constants.ENTREPRENEUR_ID
             )
             val result = tripRepository.addTrip(trip)
+            if (result is Resource.Success) {
+                driverRepository.updateDriverState(driverId, "UNAVAILABLE")
+                vehicleRepository.updateVehicleState(vehicleId, "UNAVAILABLE")
+            }
             onResult(result)
         }
     }
