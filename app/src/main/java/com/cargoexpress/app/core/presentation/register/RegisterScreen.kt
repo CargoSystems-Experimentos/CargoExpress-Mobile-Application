@@ -32,7 +32,11 @@ import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
+fun RegisterScreen(
+    navController: NavController,
+    viewModel: RegisterViewModel,
+    onRegisterSuccess: (username: String, password: String) -> Unit
+) {
     val state by viewModel.state.observeAsState(UIState())
 
     var username by remember { mutableStateOf("") }
@@ -476,7 +480,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel) {
                 showConfirmModal = false
                 viewModel.clearState()
                 if (confirmModalSuccess) {
-                    navController.navigate(Routes.Login.routes)
+                    onRegisterSuccess(username, password)
                 }
             },
             onDismiss = {

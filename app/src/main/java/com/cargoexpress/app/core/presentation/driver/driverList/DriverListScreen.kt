@@ -1,8 +1,10 @@
 package com.cargoexpress.app.core.presentation.driver.driverList
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,11 +19,16 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.cargoexpress.app.core.domain.Driver
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DriverListScreen(viewModel: DriverListViewModel, navController: NavController) {
     var searchQuery by remember { mutableStateOf("") }
-    var filterByName by remember { mutableStateOf(true) }
+    var appliedQuery by remember { mutableStateOf("") }
     var sortAscending by remember { mutableStateOf(true) }
+    var selectedState by remember { mutableStateOf("AVAILABLE") }
+
+    val stateOptions = listOf("AVAILABLE", "UNAVAILABLE", "INACTIVE")
+    val stateLabels = mapOf("AVAILABLE" to "DISPONIBLE", "UNAVAILABLE" to "NO DISPONIBLE", "INACTIVE" to "INACTIVO")
 
     val state by viewModel.state
 
@@ -43,42 +50,36 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
                 text = "Mis Conductores",
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                label = { Text("Buscar conductor") },
-                leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = "Buscar") },
-                shape = RoundedCornerShape(16.dp),
-                singleLine = true,
-                maxLines = 1,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Buscar conductor") },
+                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
+                    shape = RoundedCornerShape(16.dp),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(
+                    onClick = { appliedQuery = searchQuery },
+                    colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFFFFEB3B))
+                ) {
+                    Icon(Icons.Filled.Search, contentDescription = "Buscar", tint = Color.Black)
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FilterChip(
-                    selected = filterByName,
-                    onClick = { filterByName = true },
-                    label = { Text("Nombre") },
-                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                )
-                FilterChip(
-                    selected = !filterByName,
-                    onClick = { filterByName = false },
-                    label = { Text("DNI") },
-                    leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                )
-                Spacer(modifier = Modifier.weight(1f))
                 FilterChip(
                     selected = true,
                     onClick = { sortAscending = !sortAscending },
@@ -89,8 +90,32 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
-                    }
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFFFEB3B)
+                    )
+
                 )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                stateOptions.forEach { s ->
+                    FilterChip(
+                        selected = selectedState == s,
+                        onClick = { selectedState = s },
+                        label = { Text(stateLabels[s] ?: s) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFFFFEB3B)
+                        )
+                    )
+                }
             }
 
             if (state.isLoading) {
@@ -100,24 +125,18 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
             }
 
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val filteredDrivers = state.data?.filter { driver ->
-                    if (filterByName) driver.name.contains(searchQuery, ignoreCase = true)
-                    else driver.dni.contains(searchQuery, ignoreCase = true)
+                val filtered = state.data?.filter { driver ->
+                    val nameMatch = appliedQuery.isBlank() || driver.name.contains(appliedQuery, ignoreCase = true)
+                    driver.state == selectedState && nameMatch
                 } ?: emptyList()
 
-                val sortedDrivers = if (filterByName) {
-                    if (sortAscending) filteredDrivers.sortedBy { it.name }
-                    else filteredDrivers.sortedByDescending { it.name }
-                } else {
-                    filteredDrivers
-                }
+                val sorted = if (sortAscending) filtered.sortedBy { it.name.lowercase() }
+                             else filtered.sortedByDescending { it.name.lowercase() }
 
-                if (sortedDrivers.isEmpty() && !state.isLoading) {
+                if (sorted.isEmpty() && !state.isLoading) {
                     item {
                         Text(
                             text = if (state.message.isNotEmpty()) state.message else "No se encontraron conductores",
@@ -126,8 +145,8 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
                         )
                     }
                 } else {
-                    items(sortedDrivers.size) { index ->
-                        val driver = sortedDrivers[index]
+                    items(sorted.size) { index ->
+                        val driver = sorted[index]
                         DriverItem(
                             driver = driver,
                             onEditClick = { navController.navigate("edit_driver/${driver.id}") }
@@ -139,9 +158,7 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
 
         FloatingActionButton(
             onClick = { navController.navigate("register_driver") },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
             containerColor = Color(0xFFFFEB3B)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Agregar conductor", tint = Color.Black)
@@ -152,29 +169,19 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
 @Composable
 fun DriverItem(driver: Driver, onEditClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
         border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(Color(0xFFFFF8E1), RoundedCornerShape(10.dp)),
+                    modifier = Modifier.size(40.dp).background(Color(0xFFFFF8E1), RoundedCornerShape(10.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -194,11 +201,7 @@ fun DriverItem(driver: Driver, onEditClick: () -> Unit) {
                 DriverStateBadge(driver.state)
                 Spacer(modifier = Modifier.width(8.dp))
                 IconButton(onClick = onEditClick, modifier = Modifier.size(36.dp)) {
-                    Icon(
-                        imageVector = Icons.Filled.Edit,
-                        contentDescription = "Editar conductor",
-                        tint = Color(0xFFF9A825)
-                    )
+                    Icon(imageVector = Icons.Filled.Edit, contentDescription = "Editar conductor", tint = Color(0xFFF9A825))
                 }
             }
 
@@ -220,9 +223,9 @@ fun DriverStateBadge(state: String) {
         else -> Color(0xFFEEEEEE) to Color(0xFF616161)
     }
     val displayText = when (state) {
-        "AVAILABLE" -> "Disponible"
-        "UNAVAILABLE" -> "No disponible"
-        else -> "Inactivo"
+        "AVAILABLE" -> "DISPONIBLE"
+        "UNAVAILABLE" -> "NO DISPONIBLE"
+        else -> "INACTIVO"
     }
     Surface(shape = RoundedCornerShape(8.dp), color = bgColor) {
         Text(
@@ -241,9 +244,7 @@ fun DriverInfoItem(
     value: String
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -254,17 +255,9 @@ fun DriverInfoItem(
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Text(text = value, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }

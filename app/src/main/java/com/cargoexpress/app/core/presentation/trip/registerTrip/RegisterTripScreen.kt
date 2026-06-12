@@ -234,7 +234,7 @@ fun RegisterTripScreen(
             }
 
             item {
-                val cargoTypes = listOf("ESTÁNDAR", "FRÁGIL", "PESADO", "VALIOSO", "URGENTE", "PERECIBLE")
+                val cargoTypes = listOf("STANDARD", "FRAGILE", "HEAVY", "VALUABLE", "URGENT", "PERISHABLE")
                 var typeExpanded by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(
                     expanded = typeExpanded,

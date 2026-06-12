@@ -5,13 +5,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -21,8 +23,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.data.repository.DriverRepository
 import com.cargoexpress.app.core.data.repository.OngoingTripRepository
 import com.cargoexpress.app.core.data.repository.TripRepository
+import com.cargoexpress.app.core.data.repository.VehicleRepository
+import com.cargoexpress.app.core.presentation.common.ConfirmationModal
+import com.cargoexpress.app.core.presentation.trip.TripStatusChip
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapView
@@ -33,38 +39,39 @@ import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
 import com.google.maps.android.SphericalUtil
-import android.view.View
-import androidx.compose.ui.viewinterop.AndroidView
-import com.google.android.gms.maps.OnMapReadyCallback
 
 @Composable
 fun GpsScreen(
     tripId: Int,
     tripRepository: TripRepository,
     navController: NavController,
-    ongoingTripRepository: OngoingTripRepository
+    ongoingTripRepository: OngoingTripRepository,
+    vehicleRepository: VehicleRepository,
+    driverRepository: DriverRepository
 ) {
-    val viewModel: GpsViewModel = viewModel(factory = GpsViewModelFactory(ongoingTripRepository, tripRepository))
+    val viewModel: GpsViewModel = viewModel(factory = GpsViewModelFactory(ongoingTripRepository, tripRepository, vehicleRepository, driverRepository))
     val uiState by viewModel.uiState.collectAsState()
     val ongoingTrips by viewModel.ongoingTrips.collectAsState()
     val simulatedLat by viewModel.simulatedLat.collectAsState()
     val simulatedLng by viewModel.simulatedLng.collectAsState()
     val simulatedSpeed by viewModel.simulatedSpeed.collectAsState()
+    val tripName by viewModel.tripName.collectAsState()
+    val tripState by viewModel.tripState.collectAsState()
+    val actionResult by viewModel.actionResult.collectAsState()
 
-    val isFinalized by viewModel.isFinalized.collectAsState()
     val ongoingTrip = viewModel.getOngoingTripById(tripId)
     val hasOngoingTrip = ongoingTrip != null
     val isEntrepreneur = Constants.USER_ROLE == "ENTREPRENEUR"
-    val tripFinalized = isFinalized
+    val isInProgress = tripState == "PROGRESS"
+    val isAwaiting = tripState == "AWAITING"
 
-    val mapView = rememberMapViewWithLifecycle()
+    var showConfirmFinish by remember { mutableStateOf(false) }
+    var showConfirmCancel by remember { mutableStateOf(false) }
+
     var googleMap by remember { mutableStateOf<GoogleMap?>(null) }
     var vehicleMarker by remember { mutableStateOf<Marker?>(null) }
     var routePolyline by remember { mutableStateOf<Polyline?>(null) }
     var simulationStarted by remember { mutableStateOf(false) }
-    var mapInitialized by remember { mutableStateOf(false) }
-
-    var tripName by remember { mutableStateOf("Viaje") }
 
     val destination = LatLng(
         GpsViewModel.DESTINATION_LAT.toDouble(),
@@ -79,12 +86,7 @@ fun GpsScreen(
     val displaySpeed = if (simulatedSpeed != 0) simulatedSpeed else ongoingTrip?.speed ?: 0
 
     LaunchedEffect(tripId) {
-        val result = tripRepository.getTripById(tripId)
-        if (result is com.cargoexpress.app.core.common.Resource.Success && result.data != null) {
-            tripName = result.data.name
-        } else {
-            tripName = "Viaje"
-        }
+        viewModel.loadTripData(tripId)
     }
 
     LaunchedEffect(ongoingTrips) {
@@ -118,6 +120,67 @@ fun GpsScreen(
                 .width(7f)
                 .color(android.graphics.Color.rgb(66, 133, 244))
                 .geodesic(true)
+        )
+    }
+
+    // Confirmation dialog: Finish
+    if (showConfirmFinish) {
+        AlertDialog(
+            onDismissRequest = { showConfirmFinish = false },
+            title = { Text("Finalizar viaje") },
+            text = { Text("¿Estás seguro de que deseas finalizar el viaje? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirmFinish = false
+                        viewModel.finishTrip(tripId)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+                ) { Text("Sí, finalizar", color = Color.White) }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showConfirmFinish = false }) { Text("No") }
+            }
+        )
+    }
+
+    // Confirmation dialog: Cancel
+    if (showConfirmCancel) {
+        AlertDialog(
+            onDismissRequest = { showConfirmCancel = false },
+            title = { Text("Cancelar viaje") },
+            text = { Text("¿Estás seguro de que deseas cancelar el viaje? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirmCancel = false
+                        viewModel.cancelTrip(tripId)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE65100))
+                ) { Text("Sí, cancelar", color = Color.White) }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showConfirmCancel = false }) { Text("No") }
+            }
+        )
+    }
+
+    // Result modal after finish/cancel
+    val capturedResult = actionResult
+    if (capturedResult != null) {
+        ConfirmationModal(
+            isSuccess = capturedResult.success,
+            message = capturedResult.message,
+            onConfirm = {
+                viewModel.clearActionResult()
+                navController.navigate("trips") {
+                    launchSingleTop = true
+                    popUpTo("trips") { inclusive = false }
+                }
+            },
+            onDismiss = {
+                viewModel.clearActionResult()
+            }
         )
     }
 
@@ -155,8 +218,6 @@ fun GpsScreen(
                         } else {
                             map.moveCamera(CameraUpdateFactory.newLatLngZoom(destination, 12f))
                         }
-
-                        mapInitialized = true
                     }
                 }
             },
@@ -186,19 +247,17 @@ fun GpsScreen(
                 )
             }
 
-            if (hasOngoingTrip && !tripFinalized) {
-                FilledIconButton(
-                    onClick = { navController.navigate("alert/$tripId") },
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.NotificationsActive,
-                        contentDescription = "Ver alertas",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
+            FilledIconButton(
+                onClick = { navController.navigate("alert/$tripId") },
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.NotificationsActive,
+                    contentDescription = "Ver alertas",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             }
         }
 
@@ -218,6 +277,7 @@ fun GpsScreen(
                     .fillMaxWidth()
                     .padding(20.dp)
             ) {
+                // Trip name + state chip
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -226,25 +286,16 @@ fun GpsScreen(
                     Text(
                         text = tripName,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
                     )
-                    if (hasOngoingTrip) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
-                        ) {
-                            Text(
-                                text = "EN PROGRESO",
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                    if (tripState.isNotEmpty()) {
+                        TripStatusChip(tripState)
                     }
                 }
 
-                if (hasOngoingTrip && (currentLat != 0f || currentLng != 0f)) {
+                // GPS metrics when in progress
+                if (isInProgress && (currentLat != 0f || currentLng != 0f)) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -252,14 +303,17 @@ fun GpsScreen(
                     ) {
                         TripInfoItem(label = "Latitud", value = "%.4f°".format(currentLat))
                         TripInfoItem(label = "Longitud", value = "%.4f°".format(currentLng))
-                        TripInfoItem(label = "Velocidad", value = "${displaySpeed} km/h")
+                        TripInfoItem(label = "Velocidad", value = "$displaySpeed km/h")
                         TripInfoItem(
                             label = "Distancia",
                             value = if (distanceMeters >= 1000) "${"%.1f".format(distanceMeters / 1000)} km"
                             else "${distanceMeters.toInt()} m"
                         )
                     }
-                } else if (!hasOngoingTrip) {
+                }
+
+                // "No active trip" message for AWAITING state
+                if (isAwaiting && !hasOngoingTrip) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = if (isEntrepreneur) "No hay viaje activo. Inicia el viaje para rastrear."
@@ -278,7 +332,8 @@ fun GpsScreen(
                     )
                 }
 
-                if (!hasOngoingTrip && isEntrepreneur) {
+                // Start trip button (AWAITING, ENTREPRENEUR only)
+                if (isAwaiting && !hasOngoingTrip && isEntrepreneur) {
                     Spacer(modifier = Modifier.height(12.dp))
                     if (uiState.isLoading) {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -291,6 +346,53 @@ fun GpsScreen(
                             Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(text = "Iniciar Viaje")
+                        }
+                    }
+                }
+
+                // Finish / Cancel buttons (ENTREPRENEUR only, enabled only when PROGRESS)
+                if (isEntrepreneur && tripState.isNotEmpty() && tripState != "AWAITING") {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    if (uiState.isLoading) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { showConfirmFinish = true },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                enabled = isInProgress,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(text = "Finalizar")
+                            }
+                            OutlinedButton(
+                                onClick = { showConfirmCancel = true },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                enabled = isInProgress,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    if (isInProgress) Color(0xFFE65100) else MaterialTheme.colorScheme.outline
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Cancel,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(text = "Cancelar")
+                            }
                         }
                     }
                 }
@@ -317,7 +419,7 @@ private fun TripInfoItem(label: String, value: String) {
 
 @Composable
 fun rememberMapViewWithLifecycle(): MapView {
-    val context = LocalContext.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val mapView = remember { MapView(context) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
@@ -334,7 +436,7 @@ fun rememberMapViewWithLifecycle(): MapView {
             }
         }
         lifecycle.addObserver(observer)
-        onDispose { lifecycle.removeObserver(observer) }
+        onDispose { lifecycle.removeObserver(observer)  }
     }
 
     return mapView

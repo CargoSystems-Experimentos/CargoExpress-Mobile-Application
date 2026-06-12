@@ -98,6 +98,8 @@ import com.cargoexpress.app.core.presentation.driver.driverList.editDriver.EditD
 import com.cargoexpress.app.core.presentation.statistics.StatisticsScreen
 import com.cargoexpress.app.core.presentation.terms.TermsAndConditionsScreen
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.ui.graphics.Color
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseScreen
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseViewModel
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseViewModelFactory
@@ -241,7 +243,10 @@ class MainActivity : ComponentActivity() {
                                             contentDescription = "Viajes"
                                         )
                                     },
-                                    label = { Text("Viajes") }
+                                    label = { Text("Viajes") },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        indicatorColor = Color(0xFFFFEB3B)
+                                    )
                                 )
                                 if (Constants.USER_ROLE == "CLIENT") {
                                     NavigationBarItem(
@@ -253,7 +258,10 @@ class MainActivity : ComponentActivity() {
                                                 contentDescription = "Estadísticas"
                                             )
                                         },
-                                        label = { Text("Estadísticas") }
+                                        label = { Text("Estadísticas") },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            indicatorColor = Color(0xFFFFEB3B)
+                                        )
                                     )
                                 } else {
                                     NavigationBarItem(
@@ -265,7 +273,10 @@ class MainActivity : ComponentActivity() {
                                                 contentDescription = "Vehiculos"
                                             )
                                         },
-                                        label = { Text("Vehiculos") }
+                                        label = { Text("Vehiculos") },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            indicatorColor = Color(0xFFFFEB3B)
+                                        )
                                     )
                                     NavigationBarItem(
                                         selected = currentDestination == "drivers",
@@ -276,7 +287,10 @@ class MainActivity : ComponentActivity() {
                                                 contentDescription = "Conductores"
                                             )
                                         },
-                                        label = { Text("Conductores") }
+                                        label = { Text("Conductores") },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            indicatorColor = Color(0xFFFFEB3B)
+                                        )
                                     )
                                 }
                             }
@@ -293,7 +307,11 @@ class MainActivity : ComponentActivity() {
                             LoginScreen(viewModel = loginViewModel, navController)
                         }
                         composable(route = Routes.Register.routes) {
-                            RegisterScreen(navController, viewModel = registerViewModel)
+                            RegisterScreen(
+                                navController = navController,
+                                viewModel = registerViewModel,
+                                onRegisterSuccess = { u, p -> loginViewModel.signIn(u, p) }
+                            )
                         }
 
                         composable(route = Routes.TripList.routes) {
@@ -402,7 +420,14 @@ class MainActivity : ComponentActivity() {
 
                         composable("gps/{tripId}") { backStackEntry ->
                             val tripId = backStackEntry.arguments?.getString("tripId")?.toInt() ?: 0
-                            GpsScreen(tripId = tripId, tripRepository = tripRepository, navController = navController, ongoingTripRepository = ongoingTripRepository)
+                            GpsScreen(
+                                tripId = tripId,
+                                tripRepository = tripRepository,
+                                navController = navController,
+                                ongoingTripRepository = ongoingTripRepository,
+                                vehicleRepository = vehicleRepository,
+                                driverRepository = driverRepository
+                            )
                         }
 
                         composable("alert/{tripId}"){ backStackEntry ->

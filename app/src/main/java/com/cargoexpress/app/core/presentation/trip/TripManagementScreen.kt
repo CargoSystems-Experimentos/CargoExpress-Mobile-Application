@@ -1,7 +1,6 @@
 package com.cargoexpress.app.core.presentation.trip
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -24,8 +24,10 @@ import com.cargoexpress.app.core.data.repository.OngoingTripRepository
 import com.cargoexpress.app.core.data.repository.TripRepository
 import com.cargoexpress.app.core.domain.Trip
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripManagementScreen(
     tripRepository: TripRepository,
@@ -36,22 +38,70 @@ fun TripManagementScreen(
     val viewModel: TripManagementViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
 
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedFilter by remember { mutableStateOf("Nombre") }
+    var nameQuery by remember { mutableStateOf("") }
+    var appliedNameQuery by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf("") }
+    var typeExpanded by remember { mutableStateOf(false) }
+    var selectedStatus by remember { mutableStateOf("EN PROGRESO") }
     var sortAscending by remember { mutableStateOf(true) }
-    var selectedStatus by remember { mutableStateOf<String?>(null) }
+    var fromDateMillis by remember { mutableStateOf<Long?>(null) }
+    var toDateMillis by remember { mutableStateOf<Long?>(null) }
+    var showFromPicker by remember { mutableStateOf(false) }
+    var showToPicker by remember { mutableStateOf(false) }
+    var showExtraFilters by remember { mutableStateOf(false) }
 
-    val displayedTrips = remember(uiState.data, selectedStatus) {
-        val base = uiState.data ?: emptyList()
-        if (selectedStatus == null) base
-        else base.filter { tripStateToLabel(it.state) == selectedStatus }
+    val tripTypes = listOf("STANDARD", "FRAGILE", "HEAVY", "VALUABLE", "URGENT", "PERISHABLE")
+    val dateDisplayFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
+
+    val allTrips = uiState.data ?: emptyList()
+    val displayedTrips = remember(allTrips, appliedNameQuery, selectedType, selectedStatus, fromDateMillis, toDateMillis, sortAscending) {
+        allTrips
+            .filter { trip ->
+                val nameMatch = appliedNameQuery.isBlank() || trip.name.contains(appliedNameQuery, ignoreCase = true)
+                val typeMatch = selectedType.isBlank() || trip.type == selectedType
+                val statusMatch = tripStateToLabel(trip.state) == selectedStatus
+                val dateMatch = run {
+                    val loadMs = parseIsoToMillis(trip.loadDate)
+                    val from = fromDateMillis
+                    val to = toDateMillis?.plus(86399999L)
+                    when {
+                        from != null && to != null -> loadMs != null && loadMs in from..to
+                        from != null -> loadMs != null && loadMs >= from
+                        to != null -> loadMs != null && loadMs <= to
+                        else -> true
+                    }
+                }
+                nameMatch && typeMatch && statusMatch && dateMatch
+            }
+            .let {
+                if (sortAscending) it.sortedBy { t -> t.name.lowercase() }
+                else it.sortedByDescending { t -> t.name.lowercase() }
+            }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .fillMaxWidth()
-    ) {
+    if (showFromPicker) {
+        val fromPickerState = rememberDatePickerState(initialSelectedDateMillis = fromDateMillis)
+        DatePickerDialog(
+            onDismissRequest = { showFromPicker = false },
+            confirmButton = {
+                TextButton(onClick = { fromDateMillis = fromPickerState.selectedDateMillis; showFromPicker = false }) { Text("Aceptar") }
+            },
+            dismissButton = { TextButton(onClick = { showFromPicker = false }) { Text("Cancelar") } }
+        ) { DatePicker(state = fromPickerState) }
+    }
+
+    if (showToPicker) {
+        val toPickerState = rememberDatePickerState(initialSelectedDateMillis = toDateMillis)
+        DatePickerDialog(
+            onDismissRequest = { showToPicker = false },
+            confirmButton = {
+                TextButton(onClick = { toDateMillis = toPickerState.selectedDateMillis; showToPicker = false }) { Text("Aceptar") }
+            },
+            dismissButton = { TextButton(onClick = { showToPicker = false }) { Text("Cancelar") } }
+        ) { DatePicker(state = toPickerState) }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -62,82 +112,131 @@ fun TripManagementScreen(
                 text = "Mis Viajes",
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = {
-                    searchQuery = it
-                    viewModel.updateSearchQuery(searchQuery, selectedFilter)
-                },
-                label = { Text("Buscar viaje") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Buscar") },
-                shape = RoundedCornerShape(16.dp),
-                singleLine = true,
-                maxLines = 1,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = nameQuery,
+                    onValueChange = { nameQuery = it },
+                    label = { Text("Buscar por nombre") },
+                    leadingIcon = { Icon(Icons.Filled.LocalShipping, contentDescription = null) },
+                    shape = RoundedCornerShape(16.dp),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(
+                    onClick = { appliedNameQuery = nameQuery },
+                    colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFFFFEB3B))
+                ) {
+                    Icon(Icons.Filled.Search, contentDescription = "Buscar", tint = Color.Black)
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FilterChip(
-                    selected = selectedFilter == "Nombre",
-                    onClick = {
-                        selectedFilter = "Nombre"
-                        viewModel.updateSearchQuery(searchQuery, selectedFilter)
-                    },
-                    label = { Text("Nombre") },
-                    leadingIcon = {
-                        Icon(Icons.Filled.Person, contentDescription = null, modifier = Modifier.size(18.dp))
-                    }
-                )
-
-                FilterChip(
-                    selected = selectedFilter == "Tipo",
-                    onClick = {
-                        selectedFilter = "Tipo"
-                        viewModel.updateSearchQuery(searchQuery, selectedFilter)
-                    },
-                    label = { Text("Tipo") },
-                    leadingIcon = {
-                        Icon(Icons.Filled.Category, contentDescription = null, modifier = Modifier.size(18.dp))
-                    }
-                )
-
-                FilterChip(
-                    selected = selectedFilter == "Fecha",
-                    onClick = {
-                        selectedFilter = "Fecha"
-                        viewModel.updateSearchQuery(searchQuery, selectedFilter)
-                    },
-                    label = { Text("Fecha") },
-                    leadingIcon = {
-                        Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.size(18.dp))
-                    }
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
                 FilterChip(
                     selected = true,
                     onClick = { sortAscending = !sortAscending },
                     label = { Text(if (sortAscending) "↑ A-Z" else "↓ Z-A") },
                     leadingIcon = {
                         Icon(
-                            imageVector = if (sortAscending) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                            if (sortAscending) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFFFEB3B)
+                    )
+                )
+                val hasActiveFilters = selectedType.isNotBlank() || fromDateMillis != null || toDateMillis != null
+                FilterChip(
+                    selected = showExtraFilters || hasActiveFilters,
+                    onClick = { showExtraFilters = !showExtraFilters },
+                    label = { Text("Filtros") },
+                    trailingIcon = {
+                        Icon(
+                            if (showExtraFilters) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
                     }
                 )
+            }
+
+            if (showExtraFilters) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ExposedDropdownMenuBox(
+                            expanded = typeExpanded,
+                            onExpandedChange = { typeExpanded = it }
+                        ) {
+                            OutlinedTextField(
+                                value = if (selectedType.isBlank()) "Tipo: Todos" else "Tipo: $selectedType",
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                            )
+                            ExposedDropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
+                                DropdownMenuItem(text = { Text("Todos") }, onClick = { selectedType = ""; typeExpanded = false })
+                                tripTypes.forEach { t ->
+                                    DropdownMenuItem(text = { Text(t) }, onClick = { selectedType = t; typeExpanded = false })
+                                }
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedButton(
+                                onClick = { showFromPicker = true },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    if (fromDateMillis == null) "Desde" else dateDisplayFormat.format(Date(fromDateMillis!!)),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = { showToPicker = true },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    if (toDateMillis == null) "Hasta" else dateDisplayFormat.format(Date(toDateMillis!!)),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1
+                                )
+                            }
+                            if (fromDateMillis != null || toDateMillis != null) {
+                                IconButton(onClick = { fromDateMillis = null; toDateMillis = null }) {
+                                    Icon(Icons.Filled.Clear, contentDescription = "Limpiar fechas")
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             Row(
@@ -148,25 +247,24 @@ fun TripManagementScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                listOf(null, "EN ESPERA", "EN PROGRESO", "FINALIZADO", "CANCELADO").forEach { status ->
+                listOf("EN ESPERA", "EN PROGRESO", "FINALIZADO", "CANCELADO").forEach { status ->
                     FilterChip(
                         selected = selectedStatus == status,
-                        onClick = { selectedStatus = if (selectedStatus == status) null else status },
-                        label = { Text(status ?: "Todos") }
+                        onClick = { selectedStatus = status },
+                        label = { Text(status) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFFFFEB3B)
+                        )
                     )
                 }
             }
 
             when {
                 uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = Color(0xFFFFEB3B))
                     }
                 }
-
                 uiState.message.isNotBlank() -> {
                     Text(
                         text = uiState.message,
@@ -174,13 +272,8 @@ fun TripManagementScreen(
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
-
                 else -> {
-                    TripList(
-                        trips = displayedTrips,
-                        navController = navController,
-                        isDescending = !sortAscending
-                    )
+                    TripList(trips = displayedTrips, navController = navController)
                 }
             }
         }
@@ -188,9 +281,7 @@ fun TripManagementScreen(
         if (Constants.USER_ROLE != "CLIENT") {
             FloatingActionButton(
                 onClick = { navController.navigate("register_trip") },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
                 containerColor = Color(0xFFFFEB3B)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Agregar viaje", tint = Color.Black)
@@ -202,27 +293,16 @@ fun TripManagementScreen(
 @Composable
 fun TripList(
     trips: List<Trip>,
-    navController: NavController,
-    isDescending: Boolean
+    navController: NavController
 ) {
-    val sortedTrips = if (isDescending) {
-        trips.sortedByDescending { it.id }
-    } else {
-        trips.sortedBy { it.id }
-    }
-
     LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        if (sortedTrips.isEmpty()) {
+        if (trips.isEmpty()) {
             item {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 24.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -233,7 +313,7 @@ fun TripList(
                 }
             }
         } else {
-            items(sortedTrips) { trip ->
+            items(trips) { trip ->
                 TripCard(trip = trip, navController = navController)
             }
         }
@@ -246,33 +326,23 @@ fun TripCard(
     navController: NavController
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
         border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(Color(0xFFFFF8E1), RoundedCornerShape(10.dp)),
+                    modifier = Modifier.size(40.dp).background(Color(0xFFFFF8E1), RoundedCornerShape(10.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.LocalShipping,
+                        imageVector = tripTypeIcon(trip.type),
                         contentDescription = null,
                         tint = Color(0xFFF9A825),
                         modifier = Modifier.size(22.dp)
@@ -297,26 +367,10 @@ fun TripCard(
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(modifier = Modifier.height(12.dp))
 
-            TripInfoItem(
-                icon = Icons.Filled.LocationOn,
-                label = "Origen",
-                value = trip.loadLocation
-            )
-            TripInfoItem(
-                icon = Icons.Filled.Place,
-                label = "Destino",
-                value = trip.unloadLocation
-            )
-            TripInfoItem(
-                icon = Icons.Filled.DateRange,
-                label = "Fecha carga",
-                value = formatDateTimeReadable(trip.loadDate)
-            )
-            TripInfoItem(
-                icon = Icons.Filled.DateRange,
-                label = "Fecha descarga",
-                value = formatDateTimeReadable(trip.unloadDate)
-            )
+            TripInfoItem(icon = Icons.Filled.LocationOn, label = "Origen", value = trip.loadLocation)
+            TripInfoItem(icon = Icons.Filled.Place, label = "Destino", value = trip.unloadLocation)
+            TripInfoItem(icon = Icons.Filled.DateRange, label = "Fecha carga", value = formatDateTimeReadable(trip.loadDate))
+            TripInfoItem(icon = Icons.Filled.DateRange, label = "Fecha descarga", value = formatDateTimeReadable(trip.unloadDate))
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -331,7 +385,6 @@ fun TripCard(
                 ) {
                     Text("Detalle", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
-
                 Button(
                     onClick = {
                         navController.navigate("gps/${trip.id}")
@@ -345,6 +398,15 @@ fun TripCard(
             }
         }
     }
+}
+
+private fun tripTypeIcon(type: String): ImageVector = when (type.uppercase()) {
+    "FRAGILE" -> Icons.Filled.Warning
+    "HEAVY" -> Icons.Filled.Scale
+    "VALUABLE" -> Icons.Filled.Star
+    "URGENT" -> Icons.Filled.Notifications
+    "PERISHABLE" -> Icons.Filled.Eco
+    else -> Icons.Filled.LocalShipping
 }
 
 @Composable
@@ -374,9 +436,7 @@ fun TripInfoItem(
     value: String
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -387,17 +447,9 @@ fun TripInfoItem(
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Text(text = value, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -419,4 +471,10 @@ private fun formatDateTimeReadable(dateTime: String): String {
     } catch (e: Exception) {
         dateTime
     }
+}
+
+private fun parseIsoToMillis(isoDate: String): Long? {
+    return try {
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).parse(isoDate)?.time
+    } catch (_: Exception) { null }
 }

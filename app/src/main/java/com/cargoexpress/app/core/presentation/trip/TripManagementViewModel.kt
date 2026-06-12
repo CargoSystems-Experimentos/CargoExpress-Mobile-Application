@@ -20,9 +20,6 @@ class TripManagementViewModel(
     private val _uiState = MutableStateFlow(UIState<List<Trip>>(isLoading = true))
     val uiState: StateFlow<UIState<List<Trip>>> = _uiState
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery
-
     private var allTrips: List<Trip> = emptyList()
     private var allOngoingTrips: List<OngoingTrip> = emptyList()
 
@@ -64,25 +61,6 @@ class TripManagementViewModel(
     }
     fun getOngoingTripById(tripId: Int): OngoingTrip? {
         return allOngoingTrips.find { it.tripId == tripId }
-    }
-
-    fun updateSearchQuery(query: String, selectedFilter: String) {
-        _searchQuery.value = query
-        filterTrips(query, selectedFilter)
-    }
-
-    private fun filterTrips(query: String, selectedFilter: String) {
-        val filteredTrips = allTrips.filter { trip ->
-            when (selectedFilter) {
-                "Nombre" -> trip.name.contains(query, ignoreCase = true)
-                "Tipo" -> trip.type.contains(query, ignoreCase = true)
-                "Fecha" -> trip.loadDate.contains(query, ignoreCase = true) ||
-                        trip.unloadDate.contains(query, ignoreCase = true)
-                else -> false
-            }
-        }
-
-        _uiState.value = _uiState.value.copy(data = filteredTrips, isLoading = false)
     }
 
     fun handleError(exception: Exception) {

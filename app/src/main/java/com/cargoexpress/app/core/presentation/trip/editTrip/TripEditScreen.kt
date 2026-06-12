@@ -121,12 +121,24 @@ fun TripEditScreen(
         return
     }
 
-    val isDetailsFormValid = name.isNotBlank() && type.isNotBlank() &&
-            weight.toDoubleOrNull()?.let { it > 0.0 } == true &&
-            driverId > 0 && vehicleId > 0 && resolvedClientId > 0
+    val tripState = uiState.trip?.state ?: ""
+    val isFinishedOrCanceled = tripState == "FINISHED" || tripState == "CANCELED"
+    val isInProgress = tripState == "PROGRESS"
 
-    val isScheduleFormValid = loadLocation.isNotBlank() && unloadLocation.isNotBlank() &&
-            loadCalendar != null && unloadCalendar != null
+    val isDetailsFormValid = when {
+        isFinishedOrCanceled -> false
+        isInProgress -> name.isNotBlank()
+        else -> name.isNotBlank() && type.isNotBlank() &&
+                weight.toDoubleOrNull()?.let { it > 0.0 } == true &&
+                driverId > 0 && vehicleId > 0 && resolvedClientId > 0
+    }
+
+    val isScheduleFormValid = when {
+        isFinishedOrCanceled -> false
+        isInProgress -> unloadLocation.isNotBlank() && unloadCalendar != null
+        else -> loadLocation.isNotBlank() && unloadLocation.isNotBlank() &&
+                loadCalendar != null && unloadCalendar != null
+    }
 
     Scaffold(
         topBar = {
@@ -148,6 +160,40 @@ fun TripEditScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if (isFinishedOrCanceled) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Este viaje no puede editarse en estado ${editTripStateLabel(tripState)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            } else if (isInProgress) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD).copy(alpha = 0.6f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Info, contentDescription = null, tint = Color(0xFF1565C0), modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Viaje en progreso: solo se puede editar nombre, ubicación y fecha de descarga",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF1565C0)
+                        )
+                    }
+                }
+            }
+
             // — Sección: Detalles del Viaje —
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -164,6 +210,9 @@ fun TripEditScreen(
                     )
                     HorizontalDivider()
 
+                    val detailsLocked = isFinishedOrCanceled
+                    val extraLocked = detailsLocked || isInProgress
+
                     OutlinedTextField(
                         value = name,
                         onValueChange = { if (it.length <= 60) name = it },
@@ -171,6 +220,7 @@ fun TripEditScreen(
                         leadingIcon = { Icon(Icons.Filled.LocalShipping, contentDescription = null) },
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
+                        enabled = !detailsLocked,
                         modifier = Modifier.fillMaxWidth(),
                         supportingText = {
                             Text(
@@ -183,11 +233,11 @@ fun TripEditScreen(
                         }
                     )
 
-                    val cargoTypes = listOf("ESTÁNDAR", "FRÁGIL", "PESADO", "VALIOSO", "URGENTE", "PERECIBLE")
+                    val cargoTypes = listOf("STANDARD", "FRAGILE", "HEAVY", "VALUABLE", "URGENT", "PERISHABLE")
                     var typeExpanded by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(
-                        expanded = typeExpanded,
-                        onExpandedChange = { typeExpanded = it }
+                        expanded = typeExpanded && !extraLocked,
+                        onExpandedChange = { if (!extraLocked) typeExpanded = it }
                     ) {
                         OutlinedTextField(
                             value = type,
@@ -195,13 +245,14 @@ fun TripEditScreen(
                             readOnly = true,
                             label = { Text("Tipo de Carga") },
                             leadingIcon = { Icon(Icons.Filled.Category, contentDescription = null) },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded && !extraLocked) },
                             shape = RoundedCornerShape(12.dp),
                             singleLine = true,
+                            enabled = !extraLocked,
                             modifier = Modifier.fillMaxWidth().menuAnchor()
                         )
                         ExposedDropdownMenu(
-                            expanded = typeExpanded,
+                            expanded = typeExpanded && !extraLocked,
                             onDismissRequest = { typeExpanded = false }
                         ) {
                             cargoTypes.forEach { option ->
@@ -223,12 +274,14 @@ fun TripEditScreen(
                         leadingIcon = { Icon(Icons.Filled.Scale, contentDescription = null) },
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
+                        enabled = !extraLocked,
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     Button(
                         onClick = { showDriverModal = true },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        enabled = !extraLocked,
                         modifier = Modifier.fillMaxWidth().height(50.dp)
                     ) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
@@ -241,6 +294,7 @@ fun TripEditScreen(
                     Button(
                         onClick = { showVehicleModal = true },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        enabled = !extraLocked,
                         modifier = Modifier.fillMaxWidth().height(50.dp)
                     ) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
@@ -253,17 +307,20 @@ fun TripEditScreen(
                     OutlinedTextField(
                         value = clientDni,
                         onValueChange = {
-                            clientDni = it.filter { c -> c.isDigit() }.take(8)
-                            resolvedClientId = 0
-                            clientFoundName = ""
-                            clientDniError = ""
+                            if (!extraLocked) {
+                                clientDni = it.filter { c -> c.isDigit() }.take(8)
+                                resolvedClientId = 0
+                                clientFoundName = ""
+                                clientDniError = ""
+                            }
                         },
                         label = { Text("DNI del Cliente") },
                         leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
+                        enabled = !extraLocked,
                         trailingIcon = {
                             IconButton(
                                 onClick = {
-                                    if (clientDni.isNotBlank()) {
+                                    if (clientDni.isNotBlank() && !extraLocked) {
                                         isDniValidating = true
                                         scope.launch {
                                             val result = viewModel.validateClientDni(clientDni)
@@ -280,7 +337,7 @@ fun TripEditScreen(
                                         }
                                     }
                                 },
-                                enabled = clientDni.isNotBlank() && !isDniValidating
+                                enabled = clientDni.isNotBlank() && !isDniValidating && !extraLocked
                             ) {
                                 if (isDniValidating) {
                                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -357,6 +414,9 @@ fun TripEditScreen(
                     )
                     HorizontalDivider()
 
+                    val scheduleLocked = isFinishedOrCanceled
+                    val loadFieldsLocked = scheduleLocked || isInProgress
+
                     OutlinedTextField(
                         value = loadLocation,
                         onValueChange = { if (it.length <= 100) loadLocation = it },
@@ -364,6 +424,7 @@ fun TripEditScreen(
                         leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
+                        enabled = !loadFieldsLocked,
                         modifier = Modifier.fillMaxWidth(),
                         supportingText = {
                             Text(
@@ -380,6 +441,7 @@ fun TripEditScreen(
                     Button(
                         onClick = { showDateTimePicker(context, loadCalendar) { loadCalendar = it } },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        enabled = !loadFieldsLocked,
                         modifier = Modifier.fillMaxWidth().height(56.dp)
                     ) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
@@ -396,6 +458,7 @@ fun TripEditScreen(
                         leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
+                        enabled = !scheduleLocked,
                         modifier = Modifier.fillMaxWidth(),
                         supportingText = {
                             Text(
@@ -412,6 +475,7 @@ fun TripEditScreen(
                     Button(
                         onClick = { showDateTimePicker(context, unloadCalendar) { unloadCalendar = it } },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        enabled = !scheduleLocked,
                         modifier = Modifier.fillMaxWidth().height(56.dp)
                     ) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
@@ -625,6 +689,14 @@ private fun toBackendDateTime(calendar: Calendar?): String {
     if (calendar == null) return ""
     val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
     return format.format(calendar.time)
+}
+
+private fun editTripStateLabel(state: String) = when (state) {
+    "FINISHED" -> "FINALIZADO"
+    "CANCELED" -> "CANCELADO"
+    "PROGRESS" -> "EN PROGRESO"
+    "AWAITING" -> "EN ESPERA"
+    else -> state
 }
 
 private fun parseIsoToCalendar(isoDate: String): Calendar? {

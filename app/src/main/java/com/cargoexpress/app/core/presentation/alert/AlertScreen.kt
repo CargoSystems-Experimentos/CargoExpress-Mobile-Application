@@ -7,7 +7,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -50,6 +52,7 @@ fun AlertScreen(
     var showDialog by remember { mutableStateOf(false) }
     var alertTitle by remember { mutableStateOf("") }
     var alertType by remember { mutableStateOf("") }
+    var alertTypeExpanded by remember { mutableStateOf(false) }
     var alertDescription by remember { mutableStateOf("") }
     var showConfirmModal by remember { mutableStateOf(false) }
     var confirmModalSuccess by remember { mutableStateOf(false) }
@@ -65,6 +68,7 @@ fun AlertScreen(
             showDialog = false
             alertTitle = ""
             alertType = ""
+            alertTypeExpanded = false
             alertDescription = ""
             viewModel.resetCreateSuccess()
             confirmModalSuccess = true
@@ -181,22 +185,32 @@ fun AlertScreen(
                             )
                         }
                     )
-                    OutlinedTextField(
-                        value = alertType,
-                        onValueChange = { if (it.length <= 60) alertType = it },
-                        label = { Text("Tipo") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        supportingText = {
-                            Text(
-                                text = "${alertType.length}/60",
-                                modifier = Modifier.fillMaxWidth(),
-                                textAlign = TextAlign.End,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.labelSmall
-                            )
+                    val alertTypes = listOf("INCIDENT", "MAINTENANCE", "DRIVER")
+                    ExposedDropdownMenuBox(
+                        expanded = alertTypeExpanded,
+                        onExpandedChange = { alertTypeExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = alertType,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Tipo") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = alertTypeExpanded) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = alertTypeExpanded,
+                            onDismissRequest = { alertTypeExpanded = false }
+                        ) {
+                            alertTypes.forEach { t ->
+                                DropdownMenuItem(
+                                    text = { Text(t) },
+                                    onClick = { alertType = t; alertTypeExpanded = false }
+                                )
+                            }
                         }
-                    )
+                    }
                     OutlinedTextField(
                         value = alertDescription,
                         onValueChange = { if (it.length <= 200) alertDescription = it },
@@ -245,6 +259,11 @@ fun AlertScreen(
 
 @Composable
 private fun AlertItemCard(alert: Alert) {
+    val alertIcon = when (alert.type.uppercase()) {
+        "MAINTENANCE" -> Icons.Default.Build
+        "DRIVER" -> Icons.Default.Person
+        else -> Icons.Default.Warning
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
@@ -266,7 +285,7 @@ private fun AlertItemCard(alert: Alert) {
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Default.Warning,
+                        imageVector = alertIcon,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(20.dp)
