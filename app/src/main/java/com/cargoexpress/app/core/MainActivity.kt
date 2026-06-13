@@ -98,8 +98,11 @@ import com.cargoexpress.app.core.presentation.driver.driverList.editDriver.EditD
 import com.cargoexpress.app.core.presentation.statistics.StatisticsScreen
 import com.cargoexpress.app.core.presentation.terms.TermsAndConditionsScreen
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseScreen
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseViewModel
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseViewModelFactory
@@ -208,14 +211,15 @@ class MainActivity : ComponentActivity() {
                 @Composable
                 fun MyAppBar(onProfileClick: () -> Unit) {
                     TopAppBar(
-                        title = { Text("CargoExpress") },
-                        navigationIcon = {
-                            Image(
-                                painter = painterResource(id = R.drawable.logo),
-                                contentDescription = "App Logo",
-                                modifier = Modifier.size(40.dp)
-                            )
-                        },// Título de la AppBar
+                        title = { Text(
+                            text = "CARGOEXPRESS",
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                letterSpacing = 1.5.sp,
+                                fontSize = 17.sp
+                            ),
+                            color = Color.Yellow,
+                            fontWeight = FontWeight.Bold
+                        ) },
                         actions = {
                             IconButton(onClick = { onProfileClick() }) {
                                 Icon(imageVector = Icons.Filled.AccountCircle, modifier = Modifier.size(100.dp), contentDescription = "Perfil")

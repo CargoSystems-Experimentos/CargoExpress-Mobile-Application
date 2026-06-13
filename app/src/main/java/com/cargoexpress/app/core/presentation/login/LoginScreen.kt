@@ -1,6 +1,7 @@
 package com.cargoexpress.app.core.presentation.login
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -45,77 +46,83 @@ fun LoginScreen(viewModel: LoginViewModel, navController: NavController) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .background(Color(0xFFFFEB3B))
+                .padding(paddingValues),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
+            Card(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Black),
+                shape = RoundedCornerShape(30.dp)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo),
-                    contentDescription = "Logo",
-                    modifier = Modifier
-                        .size(300.dp)
-                        .padding(bottom = 24.dp)
-                )
-
-                Text(
-                    text = "Bienvenido a CargoExpress",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                OutlinedTextField(
-                    value = emailState,
-                    onValueChange = { if (it.length <= 100) emailState = it },
-                    label = { Text("Correo electrónico") },
-                    leadingIcon = { Icon(imageVector = Icons.Filled.Email, contentDescription = "Correo electrónico") },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    maxLines = 1,
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 4.dp)
-                )
-
-                PasswordTextField(password = passwordState, onPasswordChange = { passwordState = it })
-
-                Button(
-                    onClick = { viewModel.signIn(emailState, passwordState) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    colors = ButtonDefaults.buttonColors(Color(0xFFE4D911)),
-                    shape = RoundedCornerShape(16.dp)
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top
                 ) {
-                    Text(text = "Iniciar Sesión", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Image(
+                        painter = painterResource(id = R.drawable.logo),
+                        contentDescription = "Logo",
+                        modifier = Modifier
+                            .size(250.dp)
+                            .padding(bottom = 24.dp)
+                    )
+
+                    Text(
+                        text = "Bienvenido a CargoExpress",
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = emailState,
+                        onValueChange = { if (it.length <= 100) emailState = it },
+                        label = { Text("Correo electrónico") },
+                        leadingIcon = { Icon(imageVector = Icons.Filled.Email, contentDescription = "Correo electrónico") },
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 4.dp)
+                    )
+
+                    PasswordTextField(password = passwordState, onPasswordChange = { passwordState = it })
+
+                    Button(
+                        onClick = { viewModel.signIn(emailState, passwordState) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        colors = ButtonDefaults.buttonColors(Color(0xFFE4D911)),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(text = "Iniciar Sesión", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.height(25.dp))
+
+                    ClickableText(
+                        text = buildAnnotatedString {
+                            pushStyle(SpanStyle(color = Color.White))
+                            append("¿No tienes una cuenta? ")
+                            pushStyle(SpanStyle(color = Color(0xFFE4D911), fontWeight = FontWeight.Bold))
+                            append("Crear una cuenta")
+                            pop()
+                        },
+                        onClick = { navController.navigate(Routes.Register.routes) },
+                        style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                ClickableText(
-                    text = buildAnnotatedString {
-                        pushStyle(SpanStyle(color = Color.White))
-                        append("¿No tienes una cuenta? ")
-                        pushStyle(SpanStyle(color = Color(0xFFE4D911), fontWeight = FontWeight.Bold))
-                        append("Crear una cuenta")
-                        pop()
-                    },
-                    onClick = { navController.navigate(Routes.Register.routes) },
-                    style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
-                )
             }
 
             if (state.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                CircularProgressIndicator()
             }
         }
     }

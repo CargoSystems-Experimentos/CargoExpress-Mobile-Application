@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -105,7 +106,7 @@ fun TripManagementScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(horizontal = 10.dp, vertical = 3.dp),
             horizontalAlignment = Alignment.Start
         ) {
             Text(
@@ -281,8 +282,13 @@ fun TripManagementScreen(
         if (Constants.USER_ROLE != "CLIENT") {
             FloatingActionButton(
                 onClick = { navController.navigate("register_trip") },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                containerColor = Color(0xFFFFEB3B)
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .shadow(elevation = 20.dp)
+                ,
+                containerColor = Color(0xFFFFEB3B),
+
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Agregar viaje", tint = Color.Black)
             }
@@ -380,7 +386,7 @@ fun TripCard(
             ) {
                 Button(
                     onClick = { navController.navigate("trip_details/${trip.id}") },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.width(120.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B))
                 ) {
                     Text("Detalle", color = Color.Black, fontWeight = FontWeight.Bold)
@@ -390,7 +396,7 @@ fun TripCard(
                         navController.navigate("gps/${trip.id}")
                         Constants.TRIP_ID = trip.id
                     },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.width(120.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B))
                 ) {
                     Text("GPS", color = Color.Black, fontWeight = FontWeight.Bold)
