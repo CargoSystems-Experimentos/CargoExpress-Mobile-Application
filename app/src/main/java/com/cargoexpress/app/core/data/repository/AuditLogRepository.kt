@@ -1,6 +1,7 @@
 package com.cargoexpress.app.core.data.repository
 
 import com.cargoexpress.app.core.common.Resource
+import com.cargoexpress.app.core.data.remote.auditlog.AuditLogDto
 import com.cargoexpress.app.core.data.remote.auditlog.AuditLogService
 import com.cargoexpress.app.core.data.remote.auditlog.toAuditLog
 import com.cargoexpress.app.core.domain.AuditLog
@@ -87,6 +88,34 @@ class AuditLogRepository(private val auditLogService: AuditLogService) {
                 Resource.Success(data = response.body()?.map { it.toAuditLog() } ?: emptyList())
             } else {
                 Resource.Error(message = "Failed to fetch vehicle audit logs")
+            }
+        } catch (e: Exception) {
+            Resource.Error(message = e.message ?: "An unknown error occurred")
+        }
+    }
+
+    suspend fun getTripAuditLogDtos(token: String, entrepreneurId: Int): Resource<List<AuditLogDto>> = withContext(Dispatchers.IO) {
+        if (token.isBlank()) return@withContext Resource.Error(message = "Token is required")
+        return@withContext try {
+            val response = auditLogService.getTripAuditLogs(entrepreneurId, "Bearer $token")
+            if (response.isSuccessful) {
+                Resource.Success(data = response.body() ?: emptyList())
+            } else {
+                Resource.Error(message = "Failed to fetch trip audit logs")
+            }
+        } catch (e: Exception) {
+            Resource.Error(message = e.message ?: "An unknown error occurred")
+        }
+    }
+
+    suspend fun getAlertAuditLogDtos(token: String, entrepreneurId: Int): Resource<List<AuditLogDto>> = withContext(Dispatchers.IO) {
+        if (token.isBlank()) return@withContext Resource.Error(message = "Token is required")
+        return@withContext try {
+            val response = auditLogService.getAlertAuditLogs(entrepreneurId, "Bearer $token")
+            if (response.isSuccessful) {
+                Resource.Success(data = response.body() ?: emptyList())
+            } else {
+                Resource.Error(message = "Failed to fetch alert audit logs")
             }
         } catch (e: Exception) {
             Resource.Error(message = e.message ?: "An unknown error occurred")

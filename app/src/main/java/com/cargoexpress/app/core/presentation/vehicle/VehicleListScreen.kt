@@ -13,8 +13,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.cargoexpress.app.core.domain.Vehicle
@@ -51,8 +54,8 @@ fun VehicleListScreen(viewModel: VehicleListViewModel, navController: NavControl
             horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = "Mis Vehículos",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                text = "MIS VEHICULOS",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
@@ -87,7 +90,7 @@ fun VehicleListScreen(viewModel: VehicleListViewModel, navController: NavControl
                 FilterChip(
                     selected = true,
                     onClick = { sortAscending = !sortAscending },
-                    label = { Text(if (sortAscending) "↑ A-Z" else "↓ Z-A") },
+                    label = { Text((if (sortAscending) "↑ A-Z" else "↓ Z-A"), style = MaterialTheme.typography.bodyLarge.copy(fontSize = 12.sp) ) },
                     leadingIcon = {
                         Icon(
                             if (sortAscending) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
@@ -113,7 +116,7 @@ fun VehicleListScreen(viewModel: VehicleListViewModel, navController: NavControl
                     FilterChip(
                         selected = selectedState == s,
                         onClick = { selectedState = s },
-                        label = { Text(stateLabels[s] ?: s) },
+                        label = { Text((stateLabels[s] ?: s), style = MaterialTheme.typography.bodyLarge.copy(fontSize = 12.sp) ) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Color(0xFFFFEB3B)
                         )
@@ -141,11 +144,17 @@ fun VehicleListScreen(viewModel: VehicleListViewModel, navController: NavControl
 
                 if (sorted.isEmpty() && !state.isLoading) {
                     item {
-                        Text(
-                            text = if (state.message.isNotEmpty()) state.message else "No se encontraron vehículos",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                            contentAlignment = Alignment.Center
+                        ){
+                            Text(
+                                text = "No se encontraron vehiculos\nTodo quieto por ahora",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 } else {
                     items(sorted.size) { index ->
@@ -217,10 +226,41 @@ fun VehicleItem(vehicle: Vehicle, onEditClick: () -> Unit) {
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(modifier = Modifier.height(12.dp))
 
-            VehicleInfoItem(icon = Icons.Filled.Info, label = "Placa", value = vehicle.plate)
-            VehicleInfoItem(icon = Icons.Filled.LocalShipping, label = "Placa tractor", value = vehicle.tractorPlate)
-            VehicleInfoItem(icon = Icons.Filled.Scale, label = "Carga máxima", value = "${vehicle.maxLoad} kg")
-            VehicleInfoItem(icon = Icons.Filled.ViewWeek, label = "Volumen", value = "${vehicle.volume} m³")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                VehicleInfoItem(
+                    icon = Icons.Filled.Info,
+                    label = "Placa",
+                    value = vehicle.plate,
+                    modifier = Modifier.weight(1f)
+                )
+                VehicleInfoItem(
+                    icon = Icons.Filled.LocalShipping,
+                    label = "Placa tractor",
+                    value = vehicle.tractorPlate,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                VehicleInfoItem(
+                    icon = Icons.Filled.Scale,
+                    label = "Carga máxima",
+                    value = "${vehicle.maxLoad} kg",
+                    modifier = Modifier.weight(1f)
+                )
+                VehicleInfoItem(
+                    icon = Icons.Filled.ViewWeek,
+                    label = "Volumen",
+                    value = "${vehicle.volume} m³",
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
@@ -240,7 +280,7 @@ fun VehicleStateBadge(state: String) {
     Surface(shape = RoundedCornerShape(8.dp), color = bgColor) {
         Text(
             text = displayText,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.labelSmall,
             color = textColor,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
@@ -249,12 +289,13 @@ fun VehicleStateBadge(state: String) {
 
 @Composable
 fun VehicleInfoItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
-    value: String
+    value: String,
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        modifier = modifier.padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(

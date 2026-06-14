@@ -19,7 +19,7 @@ fun TermsAndConditionsScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Términos y Condiciones") },
+                title = { Text("Términos y Condiciones", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Volver")

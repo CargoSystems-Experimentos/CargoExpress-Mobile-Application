@@ -6,8 +6,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AltRoute
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Dataset
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Warning
@@ -15,9 +18,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Constants
@@ -89,7 +94,19 @@ fun AlertScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Alertas – ${tripName.ifBlank { "Viaje #$tripId" }}") },
+                title = {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "ALERTAS DEL VIAJE",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
+                            )
+                        Text(
+                            text = tripName.ifBlank { "Viaje #$tripId" },
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
+                            color = Color(0xFFFFEB3B)
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigate("gps/$tripId") }) {
                         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Volver al GPS")
@@ -99,6 +116,7 @@ fun AlertScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
+
         },
         floatingActionButton = {
             if (canCreateAlert) {
@@ -128,9 +146,10 @@ fun AlertScreen(
                         tint = MaterialTheme.colorScheme.outlineVariant
                     )
                     Text(
-                        text = "Sin alertas registradas",
+                        text = "No se encontraron alertas\nNada que reportar capitan",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
                     )
                     if (canCreateAlert) {
                         Text(
@@ -185,7 +204,7 @@ fun AlertScreen(
                             )
                         }
                     )
-                    val alertTypes = listOf("INCIDENT", "MAINTENANCE", "DRIVER")
+                    val alertTypes = listOf("INCIDENTE", "MANTENIMIENTO", "CONDUCTOR", "OTRO")
                     ExposedDropdownMenuBox(
                         expanded = alertTypeExpanded,
                         onExpandedChange = { alertTypeExpanded = it }
@@ -260,8 +279,9 @@ fun AlertScreen(
 @Composable
 private fun AlertItemCard(alert: Alert) {
     val alertIcon = when (alert.type.uppercase()) {
-        "MAINTENANCE" -> Icons.Default.Build
-        "DRIVER" -> Icons.Default.Person
+        "MANTENIMIENTO" -> Icons.Default.Build
+        "CONDUCTOR" -> Icons.Default.Person
+        "OTRO" -> Icons.Default.MoreHoriz
         else -> Icons.Default.Warning
     }
     Card(

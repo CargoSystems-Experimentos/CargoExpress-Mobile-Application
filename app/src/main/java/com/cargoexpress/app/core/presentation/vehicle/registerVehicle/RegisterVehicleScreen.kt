@@ -19,6 +19,7 @@ import com.cargoexpress.app.core.domain.Vehicle
 import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 import androidx.navigation.NavController
+import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,7 +74,20 @@ fun RegisterVehicleScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Registrar Vehículo", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)) },
+                title = {
+                    Column {
+                        Text(
+                            "NUEVO VEHICULO",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Una nueva bestia en el garaje",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Normal, fontSize = 15.sp),
+                            color = Color.Gray
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Retroceder")
@@ -82,44 +96,50 @@ fun RegisterVehicleScreen(
             )
         },
         bottomBar = {
-            Button(
-                onClick = {
-                    if (isFormValid) {
-                        isLoading = true
-                        viewModel.name = name
-                        viewModel.model = model
-                        viewModel.plate = plate
-                        viewModel.tractorPlate = tractorPlateFormatted
-                        viewModel.maxLoad = maxLoadValue ?: 0.0
-                        viewModel.volume = volumeValue ?: 0.0
+            Surface(shadowElevation = 8.dp) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Button(
+                        onClick = {
+                            if (isFormValid) {
+                                isLoading = true
+                                viewModel.name = name
+                                viewModel.model = model
+                                viewModel.plate = plate
+                                viewModel.tractorPlate = tractorPlateFormatted
+                                viewModel.maxLoad = maxLoadValue ?: 0.0
+                                viewModel.volume = volumeValue ?: 0.0
 
-                        viewModel.registerVehicle { result ->
-                            isLoading = false
-                            if (result is Resource.Success && result.data != null) {
-                                onVehicleRegistered(result.data)
-                                confirmModalSuccess = true
-                                confirmModalMessage = "Vehículo registrado correctamente"
-                            } else {
-                                confirmModalSuccess = false
-                                confirmModalMessage = (result as? Resource.Error)?.message ?: "No se pudo registrar el vehículo"
+                                viewModel.registerVehicle { result ->
+                                    isLoading = false
+                                    if (result is Resource.Success && result.data != null) {
+                                        onVehicleRegistered(result.data)
+                                        confirmModalSuccess = true
+                                        confirmModalMessage = "Vehículo registrado correctamente"
+                                    } else {
+                                        confirmModalSuccess = false
+                                        confirmModalMessage = (result as? Resource.Error)?.message ?: "No se pudo registrar el vehículo"
+                                    }
+                                    showConfirmModal = true
+                                }
                             }
-                            showConfirmModal = true
-                        }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
+                        enabled = isFormValid && !isLoading
+                    ) {
+                        Text(
+                            "Registrar Vehículo",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(70.dp)
-                    .padding(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
-                enabled = isFormValid && !isLoading
-            ) {
-                Text(
-                    "Registrar Vehículo",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold
-                )
+                }
             }
         }
     ) { paddingValues ->
@@ -144,7 +164,7 @@ fun RegisterVehicleScreen(
                 },
                 label = { Text("Nombre del vehículo") },
                 leadingIcon = { Icon(imageVector = Icons.Filled.Badge, contentDescription = "Nombre") },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 singleLine = true,
                 maxLines = 1,
                 isError = showNameError,
@@ -189,7 +209,7 @@ fun RegisterVehicleScreen(
                 },
                 label = { Text("Modelo") },
                 leadingIcon = { Icon(imageVector = Icons.Filled.DirectionsCar, contentDescription = "Modelo") },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 singleLine = true,
                 maxLines = 1,
                 isError = showModelError,
@@ -233,7 +253,7 @@ fun RegisterVehicleScreen(
                 },
                 label = { Text("Placa (ej: A1B-000)") },
                 leadingIcon = { Icon(imageVector = Icons.Filled.Info, contentDescription = "Placa") },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 singleLine = true,
                 maxLines = 1,
                 isError = showPlateError,
@@ -263,7 +283,7 @@ fun RegisterVehicleScreen(
                 },
                 label = { Text("Placa Tractor (ej: X11-111)") },
                 leadingIcon = { Icon(imageVector = Icons.Filled.LocalShipping, contentDescription = "Placa Tractor") },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 singleLine = true,
                 maxLines = 1,
                 isError = showTractorPlateError,
@@ -303,7 +323,7 @@ fun RegisterVehicleScreen(
                 },
                 label = { Text("Carga Máxima (kg)") },
                 leadingIcon = { Icon(imageVector = Icons.Filled.Scale, contentDescription = "Carga Máxima") },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 singleLine = true,
                 maxLines = 1,
                 isError = showMaxLoadError,
@@ -343,7 +363,7 @@ fun RegisterVehicleScreen(
                 },
                 label = { Text("Volumen (m³)") },
                 leadingIcon = { Icon(imageVector = Icons.Filled.ViewWeek, contentDescription = "Volumen") },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 singleLine = true,
                 maxLines = 1,
                 isError = showVolumeError,

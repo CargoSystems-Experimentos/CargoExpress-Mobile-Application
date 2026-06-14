@@ -18,10 +18,12 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.cargoexpress.app.R
 import com.cargoexpress.app.core.common.Routes
@@ -54,7 +56,7 @@ fun LoginScreen(viewModel: LoginViewModel, navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Black),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
                 shape = RoundedCornerShape(30.dp)
             ) {
                 Column(
@@ -87,22 +89,29 @@ fun LoginScreen(viewModel: LoginViewModel, navController: NavController) {
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         maxLines = 1,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 4.dp)
                     )
 
-                    PasswordTextField(password = passwordState, onPasswordChange = { passwordState = it })
+                    PasswordTextField(
+                        password = passwordState,
+                        onPasswordChange = { passwordState = it })
 
                     Button(
                         onClick = { viewModel.signIn(emailState, passwordState) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 16.dp),
+                            .height(50.dp),
                         colors = ButtonDefaults.buttonColors(Color(0xFFE4D911)),
-                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text(text = "Iniciar Sesión", color = Color.Black, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "Iniciar Sesión",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(25.dp))
@@ -149,6 +158,7 @@ fun PasswordTextField(password: String, onPasswordChange: (String) -> Unit) {
                 Icon(imageVector = image, contentDescription = null)
             }
         },
+        textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 16.dp),

@@ -8,6 +8,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
@@ -98,11 +101,19 @@ import com.cargoexpress.app.core.presentation.driver.driverList.editDriver.EditD
 import com.cargoexpress.app.core.presentation.statistics.StatisticsScreen
 import com.cargoexpress.app.core.presentation.terms.TermsAndConditionsScreen
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import com.cargoexpress.app.core.data.remote.auditlog.AuditLogService
+import com.cargoexpress.app.core.data.repository.AuditLogRepository
+import com.cargoexpress.app.core.presentation.home.HomeScreen
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseScreen
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseViewModel
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseViewModelFactory
@@ -153,9 +164,11 @@ class MainActivity : ComponentActivity() {
         val ongoingTripService = buildService(OngoingTripService::class.java)
 
         val alertService = buildService(AlertService::class.java)
+        val auditLogService = buildService(AuditLogService::class.java)
 
         val tripRepository = TripRepository(tripService, expenseService)
         val clientRepository = ClientRepository(clientService)
+        val auditLogRepository = AuditLogRepository(auditLogService)
 
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -203,7 +216,8 @@ class MainActivity : ComponentActivity() {
                     currentRoute == "edit_vehicle/{vehicleId}" ||
                     currentRoute == "register_driver" ||
                     currentRoute == "edit_driver/{driverId}" ||
-                    currentRoute == "edit_expense/{expenseId}"
+                    currentRoute == "edit_expense/{expenseId}" ||
+                        currentRoute == "register_expense/{tripId}"
 
                 val ongoingTripRepository = OngoingTripRepository(ongoingTripService)
                 val alertRepository = AlertRepository(alertService)
@@ -211,20 +225,27 @@ class MainActivity : ComponentActivity() {
                 @Composable
                 fun MyAppBar(onProfileClick: () -> Unit) {
                     TopAppBar(
-                        title = { Text(
-                            text = "CARGOEXPRESS",
-                            style = MaterialTheme.typography.headlineLarge.copy(
-                                letterSpacing = 1.5.sp,
-                                fontSize = 17.sp
-                            ),
-                            color = Color.Yellow,
-                            fontWeight = FontWeight.Bold
-                        ) },
+                        title = {
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "CARGOEXPRESS",
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 20.sp),
+                                    color = Color(0xFFFFEB3B),
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
+                                },
                         actions = {
                             IconButton(onClick = { onProfileClick() }) {
                                 Icon(imageVector = Icons.Filled.AccountCircle, modifier = Modifier.size(100.dp), contentDescription = "Perfil")
                             }
-                        }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            //containerColor = Color.Black
+                        )
                     )
                 }
                 Scaffold(
@@ -237,7 +258,23 @@ class MainActivity : ComponentActivity() {
                     },
                     bottomBar = {
                         if (currentRoute != Routes.Login.routes && currentRoute != Routes.Register.routes && !isGpsOrAlert && !isRegisterOrEditScreen) {
-                            NavigationBar {
+                            NavigationBar(
+                                containerColor = MaterialTheme.colorScheme.background
+                            ){
+                                NavigationBarItem(
+                                    selected = currentDestination == Routes.Home.routes,
+                                    onClick = { navController.navigate(Routes.Home.routes) },
+                                    icon = {
+                                        Icon(
+                                            imageVector = Icons.Filled.Home,
+                                            contentDescription = "Inicio"
+                                        )
+                                    },
+                                    label = { Text("Inicio", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp)) },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        indicatorColor = Color(0xFFFFEB3B)
+                                    )
+                                )
                                 NavigationBarItem(
                                     selected = currentDestination == "trips",
                                     onClick = { navController.navigate("trips") },
@@ -247,7 +284,7 @@ class MainActivity : ComponentActivity() {
                                             contentDescription = "Viajes"
                                         )
                                     },
-                                    label = { Text("Viajes") },
+                                    label = { Text("Viajes", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp)) },
                                     colors = NavigationBarItemDefaults.colors(
                                         indicatorColor = Color(0xFFFFEB3B)
                                     )
@@ -262,7 +299,7 @@ class MainActivity : ComponentActivity() {
                                                 contentDescription = "Estadísticas"
                                             )
                                         },
-                                        label = { Text("Estadísticas") },
+                                        label = { Text("Estadísticas", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp)) },
                                         colors = NavigationBarItemDefaults.colors(
                                             indicatorColor = Color(0xFFFFEB3B)
                                         )
@@ -277,7 +314,7 @@ class MainActivity : ComponentActivity() {
                                                 contentDescription = "Vehiculos"
                                             )
                                         },
-                                        label = { Text("Vehiculos") },
+                                        label = { Text("Vehiculos", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp)) },
                                         colors = NavigationBarItemDefaults.colors(
                                             indicatorColor = Color(0xFFFFEB3B)
                                         )
@@ -291,7 +328,7 @@ class MainActivity : ComponentActivity() {
                                                 contentDescription = "Conductores"
                                             )
                                         },
-                                        label = { Text("Conductores") },
+                                        label = { Text("Conductores", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp)) },
                                         colors = NavigationBarItemDefaults.colors(
                                             indicatorColor = Color(0xFFFFEB3B)
                                         )
@@ -315,6 +352,17 @@ class MainActivity : ComponentActivity() {
                                 navController = navController,
                                 viewModel = registerViewModel,
                                 onRegisterSuccess = { u, p -> loginViewModel.signIn(u, p) }
+                            )
+                        }
+
+                        composable(route = Routes.Home.routes) {
+                            HomeScreen(
+                                tripRepository = tripRepository,
+                                auditLogRepository = auditLogRepository,
+                                vehicleRepository = vehicleRepository,
+                                driverRepository = driverRepository,
+                                alertRepository = alertRepository,
+                                navController = navController
                             )
                         }
 
@@ -455,12 +503,4 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    fun openImagePicker() {
-        val intent = Intent(Intent.ACTION_PICK)
-        intent.type = "image/*"
-        startActivityForResult(intent, PICK_IMAGE_REQUEST)
-    }
-
-
 }

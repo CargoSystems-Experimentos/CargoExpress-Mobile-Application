@@ -14,7 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.cargoexpress.app.core.domain.Driver
@@ -47,8 +49,8 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
             horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = "Mis Conductores",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                text = "MIS CONDUCTORES",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
@@ -83,7 +85,7 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
                 FilterChip(
                     selected = true,
                     onClick = { sortAscending = !sortAscending },
-                    label = { Text(if (sortAscending) "↑ A-Z" else "↓ Z-A") },
+                    label = { Text((if (sortAscending) "↑ A-Z" else "↓ Z-A"), style = MaterialTheme.typography.bodyLarge.copy(fontSize = 12.sp) ) },
                     leadingIcon = {
                         Icon(
                             if (sortAscending) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
@@ -110,7 +112,7 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
                     FilterChip(
                         selected = selectedState == s,
                         onClick = { selectedState = s },
-                        label = { Text(stateLabels[s] ?: s) },
+                        label = { Text((stateLabels[s] ?: s), style = MaterialTheme.typography.bodyLarge.copy(fontSize = 12.sp) ) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Color(0xFFFFEB3B)
                         )
@@ -138,11 +140,17 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
 
                 if (sorted.isEmpty() && !state.isLoading) {
                     item {
-                        Text(
-                            text = if (state.message.isNotEmpty()) state.message else "No se encontraron conductores",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                            contentAlignment = Alignment.Center
+                        ){
+                            Text(
+                                text = "No se encontraron conductores\nEsto está muy solo",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 } else {
                     items(sorted.size) { index ->
@@ -230,7 +238,7 @@ fun DriverStateBadge(state: String) {
     Surface(shape = RoundedCornerShape(8.dp), color = bgColor) {
         Text(
             text = displayText,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.labelSmall,
             color = textColor,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )

@@ -29,6 +29,7 @@ import com.cargoexpress.app.core.data.repository.VehicleRepository
 import com.cargoexpress.app.core.data.repository.ClientRepository
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.unit.sp
 import com.cargoexpress.app.core.common.Constants
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -86,6 +87,26 @@ fun TripDetailScreen(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "DETALLES DEL VIAJE",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp
+                )
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "De principio a fin",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 15.sp
+                ),
+                color = Color.Gray
+            )
+        }
         trip?.let { t ->
             // Header: nombre + tipo + botones de acción
             Card(
@@ -173,10 +194,25 @@ fun TripDetailScreen(
                         // Aquí mostramos iconos + título + contenido (estilo profile)
                         InfoItem(icon = Icons.Default.Scale, title = "Peso", content = "${t.weight} kg")
                         InfoItem(icon = Icons.Default.LocationOn, title = "Origen", content = t.loadLocation)
-                        InfoItem(icon = Icons.Default.DateRange, title = "Fecha carga", content = formatDateTimeReadable(t.loadDate))
                         InfoItem(icon = Icons.Default.Place, title = "Destino", content = t.unloadLocation)
-                        InfoItem(icon = Icons.Default.DateRange, title = "Fecha descarga", content = formatDateTimeReadable(t.unloadDate))
 
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            InfoItem(
+                                icon = Icons.Default.DateRange,
+                                title = "Fecha carga",
+                                content = formatDateTimeReadable(t.loadDate),
+                                modifier = Modifier.weight(1f)
+                            )
+                            InfoItem(
+                                icon = Icons.Default.DateRange,
+                                title = "Fecha descarga",
+                                content = formatDateTimeReadable(t.unloadDate),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                         // Para mostrar nombres en lugar de IDs: el ViewModel debería exponer driverName/vehicleModel/clientName.
                         // Si no lo hace aún, mostramos fallback con ID.
                         val driverNameState by viewModel.driverName.collectAsState()
@@ -184,7 +220,7 @@ fun TripDetailScreen(
                         val clientNameState by viewModel.clientName.collectAsState()
 
                         InfoItem(icon = Icons.Default.Person, title = "Conductor", content = driverNameState.ifBlank { "Cargando..." })
-                        InfoItem(icon = Icons.Default.DirectionsCar, title = "Vehículo", content = vehicleModelState.ifBlank { "Cargando...}" })
+                        InfoItem(icon = Icons.Default.DirectionsCar, title = "Vehículo", content = vehicleModelState.ifBlank { "Cargando..." })
                         InfoItem(icon = Icons.Default.Person, title = "Cliente", content = clientNameState.ifBlank { "Cargando..." })
                     }
                 }
@@ -233,7 +269,11 @@ fun TripDetailScreen(
 }
 
 @Composable
-fun InfoItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, content: String) {
+fun InfoItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    content: String,
+    modifier: Modifier = Modifier) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(12.dp))

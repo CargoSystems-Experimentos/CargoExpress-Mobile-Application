@@ -17,7 +17,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Constants
@@ -43,7 +45,7 @@ fun TripManagementScreen(
     var appliedNameQuery by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf("") }
     var typeExpanded by remember { mutableStateOf(false) }
-    var selectedStatus by remember { mutableStateOf("EN PROGRESO") }
+    var selectedStatus by remember { mutableStateOf("EN ESPERA") }
     var sortAscending by remember { mutableStateOf(true) }
     var fromDateMillis by remember { mutableStateOf<Long?>(null) }
     var toDateMillis by remember { mutableStateOf<Long?>(null) }
@@ -51,7 +53,7 @@ fun TripManagementScreen(
     var showToPicker by remember { mutableStateOf(false) }
     var showExtraFilters by remember { mutableStateOf(false) }
 
-    val tripTypes = listOf("STANDARD", "FRAGILE", "HEAVY", "VALUABLE", "URGENT", "PERISHABLE")
+    val tripTypes = listOf("ESTANDAR", "FRAGIL", "PESADO", "VALIOSO", "URGENTE", "PERECIBLE")
     val dateDisplayFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
 
     val allTrips = uiState.data ?: emptyList()
@@ -106,12 +108,12 @@ fun TripManagementScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 10.dp, vertical = 3.dp),
+                .padding(16.dp),
             horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = "Mis Viajes",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                text = "MIS VIAJES",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
@@ -146,7 +148,7 @@ fun TripManagementScreen(
                 FilterChip(
                     selected = true,
                     onClick = { sortAscending = !sortAscending },
-                    label = { Text(if (sortAscending) "↑ A-Z" else "↓ Z-A") },
+                    label = { Text((if (sortAscending) "↑ A-Z" else "↓ Z-A"), style = MaterialTheme.typography.bodyLarge.copy(fontSize = 12.sp))},
                     leadingIcon = {
                         Icon(
                             if (sortAscending) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
@@ -162,7 +164,7 @@ fun TripManagementScreen(
                 FilterChip(
                     selected = showExtraFilters || hasActiveFilters,
                     onClick = { showExtraFilters = !showExtraFilters },
-                    label = { Text("Filtros") },
+                    label = { Text("FILTROS", style = MaterialTheme.typography.bodyLarge.copy(fontSize = 12.sp)) },
                     trailingIcon = {
                         Icon(
                             if (showExtraFilters) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
@@ -191,7 +193,8 @@ fun TripManagementScreen(
                                 readOnly = true,
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
                                 singleLine = true,
-                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                                modifier = Modifier.fillMaxWidth().menuAnchor(),
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp)
                             )
                             ExposedDropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
                                 DropdownMenuItem(text = { Text("Todos") }, onClick = { selectedType = ""; typeExpanded = false })
@@ -214,7 +217,7 @@ fun TripManagementScreen(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     if (fromDateMillis == null) "Desde" else dateDisplayFormat.format(Date(fromDateMillis!!)),
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 12.sp),
                                     maxLines = 1
                                 )
                             }
@@ -226,7 +229,7 @@ fun TripManagementScreen(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     if (toDateMillis == null) "Hasta" else dateDisplayFormat.format(Date(toDateMillis!!)),
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 12.sp),
                                     maxLines = 1
                                 )
                             }
@@ -252,10 +255,11 @@ fun TripManagementScreen(
                     FilterChip(
                         selected = selectedStatus == status,
                         onClick = { selectedStatus = status },
-                        label = { Text(status) },
+                        label = { Text(status, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 12.sp)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Color(0xFFFFEB3B)
-                        )
+                        ),
+
                     )
                 }
             }
@@ -312,9 +316,10 @@ fun TripList(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No se encontraron viajes",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "No se encontraron viajes\nNada por aqui...",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -373,10 +378,25 @@ fun TripCard(
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(modifier = Modifier.height(12.dp))
 
-            TripInfoItem(icon = Icons.Filled.LocationOn, label = "Origen", value = trip.loadLocation)
+            //TripInfoItem(icon = Icons.Filled.LocationOn, label = "Origen", value = trip.loadLocation)
             TripInfoItem(icon = Icons.Filled.Place, label = "Destino", value = trip.unloadLocation)
-            TripInfoItem(icon = Icons.Filled.DateRange, label = "Fecha carga", value = formatDateTimeReadable(trip.loadDate))
-            TripInfoItem(icon = Icons.Filled.DateRange, label = "Fecha descarga", value = formatDateTimeReadable(trip.unloadDate))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                TripInfoItem(
+                    icon = Icons.Filled.DateRange,
+                    label = "Fecha carga",
+                    value = formatDateTimeReadable(trip.loadDate),
+                    modifier = Modifier.weight(1f)
+                )
+                TripInfoItem(
+                    icon = Icons.Filled.DateRange,
+                    label = "Fecha descarga",
+                    value = formatDateTimeReadable(trip.unloadDate),
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -387,9 +407,10 @@ fun TripCard(
                 Button(
                     onClick = { navController.navigate("trip_details/${trip.id}") },
                     modifier = Modifier.width(120.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Detalle", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text("Detalle", color = Color.Black, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge.copy(fontSize=15.sp))
                 }
                 Button(
                     onClick = {
@@ -397,9 +418,10 @@ fun TripCard(
                         Constants.TRIP_ID = trip.id
                     },
                     modifier = Modifier.width(120.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("GPS", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text("GPS", color = Color.Black, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge.copy(fontSize=15.sp))
                 }
             }
         }
@@ -407,11 +429,11 @@ fun TripCard(
 }
 
 private fun tripTypeIcon(type: String): ImageVector = when (type.uppercase()) {
-    "FRAGILE" -> Icons.Filled.Warning
-    "HEAVY" -> Icons.Filled.Scale
-    "VALUABLE" -> Icons.Filled.Star
-    "URGENT" -> Icons.Filled.Notifications
-    "PERISHABLE" -> Icons.Filled.Eco
+    "FRAGIL" -> Icons.Filled.Warning
+    "PESADO" -> Icons.Filled.Scale
+    "VALIOSO" -> Icons.Filled.Star
+    "URGENTE" -> Icons.Filled.Notifications
+    "PERECIBLE" -> Icons.Filled.Eco
     else -> Icons.Filled.LocalShipping
 }
 
@@ -439,11 +461,12 @@ fun TripStatusChip(state: String) {
 fun TripInfoItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    value: String
+    value: String,
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = modifier.padding(vertical = 6.dp), // <- usar modifier recibido
+        verticalAlignment = Alignment.Top // mejor para dos columnas con texto de distinto alto
     ) {
         Icon(
             imageVector = icon,
@@ -451,11 +474,21 @@ fun TripInfoItem(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Column {
-            Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
             Spacer(modifier = Modifier.height(2.dp))
-            Text(text = value, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2
+            )
         }
     }
 }

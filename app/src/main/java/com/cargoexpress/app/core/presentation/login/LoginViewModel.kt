@@ -103,6 +103,9 @@ class LoginViewModel(
         Constants.ENTREPRENEUR_ID = entrepreneurId
         Constants.CLIENT_ID = clientId
         _state.value = UIState(isLoading = false)
-        navController.navigate(Routes.TripList.routes)
+        navController.navigate(Routes.Home.routes) {
+            popUpTo(Routes.Login.routes) { inclusive = true }
+            launchSingleTop = true
+        }
     }
 }

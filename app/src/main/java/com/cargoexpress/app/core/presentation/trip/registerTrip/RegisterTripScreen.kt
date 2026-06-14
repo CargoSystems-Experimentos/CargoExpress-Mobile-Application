@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Constants
@@ -124,7 +125,20 @@ fun RegisterTripScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Registrar Viaje", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)) },
+                title = {
+                    Column {
+                        Text(
+                            "NUEVO VIAJE",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Una nueva aventura sobre ruedas",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Normal, fontSize = 15.sp),
+                            color = Color.Gray
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Retroceder")
@@ -234,7 +248,7 @@ fun RegisterTripScreen(
             }
 
             item {
-                val cargoTypes = listOf("STANDARD", "FRAGILE", "HEAVY", "VALUABLE", "URGENT", "PERISHABLE")
+                val cargoTypes = listOf("ESTANDAR", "FRAGIL", "PESADO", "VALIOSO", "URGENTE", "PERECIBLE")
                 var typeExpanded by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(
                     expanded = typeExpanded,

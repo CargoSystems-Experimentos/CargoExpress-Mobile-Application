@@ -15,6 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -55,6 +58,34 @@ fun RegisterScreen(
     var showConfirmModal by remember { mutableStateOf(false) }
     var confirmModalSuccess by remember { mutableStateOf(false) }
     var confirmModalMessage by remember { mutableStateOf("") }
+
+    val isEmailValid = username.isBlank() || Patterns.EMAIL_ADDRESS.matcher(username).matches()
+    val showEmailError = username.isNotBlank() && !isEmailValid
+    val hasUppercase = password.any { it.isUpperCase() }
+    val hasNumber = password.any { it.isDigit() }
+    val hasSpecialChar = password.any { !it.isLetterOrDigit() }
+    val hasMinLength = password.length >= 8
+    val isPasswordValid = password.isBlank() || (hasUppercase && hasNumber && hasSpecialChar && hasMinLength)
+    val showPasswordError = password.isNotBlank() && !isPasswordValid
+    val isNameValid = name.isBlank() || name.length >= 8
+    val showNameError = name.isNotBlank() && !isNameValid
+    val isPhoneValid = phone.length == 9 && phone.all { it.isDigit() }
+    val showPhoneError = phone.isNotBlank() && !isPhoneValid
+    val isDniValid = dni.length == 8 && dni.all { it.isDigit() }
+    val showDniError = dni.isNotBlank() && !isDniValid
+    val isRucValid = ruc.length == 11 && ruc.all { it.isDigit() }
+    val showRucError = ruc.isNotBlank() && !isRucValid
+    val idFieldValid = if (isClient) (dni.isNotBlank() && isDniValid) else (ruc.isNotBlank() && isRucValid)
+    val extraFieldValid = if (isClient) birthDate.isNotBlank() else (address.isNotBlank() && address.length <= 200)
+    val isFormValid = username.isNotBlank() &&
+            isEmailValid &&
+            password.isNotBlank() &&
+            isPasswordValid &&
+            name.isNotBlank() &&
+            isNameValid &&
+            isPhoneValid &&
+            idFieldValid &&
+            extraFieldValid
 
     LaunchedEffect(state.message) {
         if (state.message.isNotEmpty()) {
@@ -98,7 +129,64 @@ fun RegisterScreen(
         }
     }
 
-    Scaffold { paddingValues ->
+    Scaffold(
+        bottomBar = {
+            Surface(shadowElevation = 8.dp) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Button(
+                        onClick = {
+                            if (isClient) {
+                                viewModel.registerClient(username, password, phone, name, dni, birthDate)
+                            } else {
+                                viewModel.registerEntrepreneur(username, password, phone, name, ruc, address)
+                            }
+                        },
+                        enabled = isFormValid && !state.isLoading,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Yellow),
+                        modifier = Modifier.fillMaxWidth().height(50.dp)
+                    ) {
+                        Text(
+                            "Crear Cuenta",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Términos y Condiciones",
+                        color = Color(0xFFE4D911),
+                        style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.Underline),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { navController.navigate(Routes.TermsAndConditions.routes) },
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = buildAnnotatedString {
+                            pushStyle(SpanStyle(color = Color.White))
+                            append("¿Tienes una cuenta? ")
+                            pushStyle(SpanStyle(color = Color(0xFFE4D911), fontWeight = FontWeight.Bold))
+                            append("Accede desde aquí")
+                            pop()
+                        },
+                        color = Color(0xFF2196F3),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { navController.navigate(Routes.Login.routes) },
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -109,38 +197,98 @@ fun RegisterScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp)
                     .verticalScroll(scrollState),
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.Top
+                horizontalAlignment = Alignment.Start
             ) {
+                Text(
+                    text = "Crea tu cuenta",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Únete a nuestra red logística",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Email + Password group
                 Column {
-                    Text(
-                        text = "CARGOEXPRESS",
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            letterSpacing = 1.5.sp,
-                            fontSize = 17.sp
-                        ),
-                        color = Color.Yellow,
-                        fontWeight = FontWeight.Bold
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = { if (it.length <= 60) username = it },
+                        label = { Text("Correo electrónico") },
+                        leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
+                        isError = showEmailError,
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        maxLines = 1,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                     )
-                    Text(
-                        text = "Crea tu cuenta",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Únete a nuestra red logística",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 12.dp, end = 4.dp, bottom = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (showEmailError) {
+                            Text(
+                                text = "El correo electrónico no es válido",
+                                color = Color.Red,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.weight(1f).padding(end = 4.dp),
+                                textAlign = TextAlign.Start
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                        Text(
+                            text = "${username.length}/60",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { if (it.length <= 60) password = it },
+                        label = { Text("Contraseña") },
+                        leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showPassword = !showPassword }) {
+                                Icon(
+                                    if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                    contentDescription = null
+                                )
+                            }
+                        },
+                        supportingText = {
+                            if (showPasswordError) Text(
+                                "Mínimo 8 caracteres, una mayúscula, un número y un carácter especial",
+                                color = Color.Red
+                            )
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        maxLines = 1,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                     )
                 }
 
+                //Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Role selection
                 Text(
                     text = "¿Que función desempeñarás en CargoExpress?",
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 16.dp),
+                    modifier = Modifier.padding(bottom = 12.dp),
                     fontWeight = FontWeight.Bold
                 )
                 Row(
@@ -157,9 +305,19 @@ fun RegisterScreen(
                         modifier = Modifier.weight(1f).height(50.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Person, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.Black)
+                            Icon(
+                                Icons.Filled.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.Black
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Cliente", color = if (isClient) Color.Black else Color.DarkGray, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Cliente",
+                                color = if (isClient) Color.Black else Color.DarkGray,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
                         }
                     }
                     Button(
@@ -170,298 +328,206 @@ fun RegisterScreen(
                         modifier = Modifier.weight(1f).height(50.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.AccountCircle, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.Black)
+                            Icon(
+                                Icons.Filled.AccountCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.Black
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Empresario", color = if (!isClient) Color.Black else Color.DarkGray, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-
-                val isEmailValid = username.isBlank() || Patterns.EMAIL_ADDRESS.matcher(username).matches()
-                val showEmailError = username.isNotBlank() && !isEmailValid
-
-                val hasUppercase = password.any { it.isUpperCase() }
-                val hasNumber = password.any { it.isDigit() }
-                val hasSpecialChar = password.any { !it.isLetterOrDigit() }
-                val hasMinLength = password.length >= 8
-                val isPasswordValid = password.isBlank() || (hasUppercase && hasNumber && hasSpecialChar && hasMinLength)
-                val showPasswordError = password.isNotBlank() && !isPasswordValid
-
-                val isNameValid = name.isBlank() || name.length >= 8
-                val showNameError = name.isNotBlank() && !isNameValid
-
-                val isPhoneValid = phone.length == 9 && phone.all { it.isDigit() }
-                val showPhoneError = phone.isNotBlank() && !isPhoneValid
-
-                val isDniValid = dni.length == 8 && dni.all { it.isDigit() }
-                val showDniError = dni.isNotBlank() && !isDniValid
-                val isRucValid = ruc.length == 11 && ruc.all { it.isDigit() }
-                val showRucError = ruc.isNotBlank() && !isRucValid
-
-                val idFieldValid = if (isClient) (dni.isNotBlank() && isDniValid) else (ruc.isNotBlank() && isRucValid)
-                val extraFieldValid = if (isClient) birthDate.isNotBlank() else (address.isNotBlank() && address.length <= 200)
-
-                val isFormValid = username.isNotBlank() &&
-                        isEmailValid &&
-                        password.isNotBlank() &&
-                        isPasswordValid &&
-                        name.isNotBlank() &&
-                        isNameValid &&
-                        isPhoneValid &&
-                        idFieldValid &&
-                        extraFieldValid
-
-                // Email
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = { if (it.length <= 100) username = it },
-                    label = { Text("Correo electrónico") },
-                    leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
-                    isError = showEmailError,
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    maxLines = 1,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 12.dp, end = 4.dp, bottom = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (showEmailError) {
-                        Text(
-                            text = "El correo electrónico no es válido",
-                            color = Color.Red,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f).padding(end = 4.dp),
-                            textAlign = TextAlign.Start
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                    Text(
-                        text = "${username.length}/100",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                // Password
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { if (it.length <= 100) password = it },
-                    label = { Text("Contraseña") },
-                    leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
-                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { showPassword = !showPassword }) {
-                            Icon(if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, contentDescription = null)
-                        }
-                    },
-                    supportingText = {
-                        if (showPasswordError) Text("Mínimo 8 caracteres, una mayúscula, un número y un carácter especial", color = Color.Red)
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    maxLines = 1,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-                )
-
-                // Name
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { if (it.length <= 60) name = it },
-                    label = { Text(if (isClient) "Nombre completo" else "Nombre de la empresa") },
-                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
-                    isError = showNameError,
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    maxLines = 1,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                    supportingText = {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            if (showNameError) {
-                                Text("Mínimo 8 caracteres", color = Color.Red, style = MaterialTheme.typography.labelSmall)
-                            } else {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
                             Text(
-                                text = "${name.length}/60",
-                                textAlign = TextAlign.End,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.labelSmall
+                                "Empresario",
+                                color = if (!isClient) Color.Black else Color.DarkGray,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyLarge
                             )
                         }
                     }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Phone
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Peru", modifier = Modifier.padding(end = 8.dp), color = Color.Gray)
-                    OutlinedTextField(
-                        value = rawPhone,
-                        onValueChange = { input ->
-                            rawPhone = input.filter { it.isDigit() }.take(9)
-                            phone = rawPhone
-                        },
-                        label = { Text("Número de celular") },
-                        leadingIcon = { Icon(Icons.Filled.Phone, contentDescription = null) },
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true,
-                        maxLines = 1,
-                        isError = showPhoneError,
-                        visualTransformation = PhoneVisualTransformation(),
-                        modifier = Modifier.weight(1f)
-                    )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
 
-                if (isClient) {
-                    // DNI
+                // Name + [Phone + ID/Tax ID] + [Date/Address] group
+                Column {
                     OutlinedTextField(
-                        value = dni,
-                        onValueChange = { dni = it.filter(Char::isDigit).take(8) },
-                        label = { Text("DNI") },
-                        leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null) },
+                        value = name,
+                        onValueChange = { if (it.length <= 60) name = it },
+                        label = { Text(if (isClient) "Nombre completo" else "Nombre de la empresa") },
+                        leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
+                        isError = showNameError,
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true,
                         maxLines = 1,
-                        isError = showDniError,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                    )
-                    if (showDniError) {
-                        Text(
-                            "El DNI debe tener 8 dígitos",
-                            color = Color.Red,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Birth date
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showDatePicker = true }
-                    ) {
-                        OutlinedTextField(
-                            value = birthDateDisplay,
-                            onValueChange = {},
-                            label = { Text("Fecha de nacimiento") },
-                            leadingIcon = { Icon(Icons.Filled.CalendarToday, contentDescription = null) },
-                            placeholder = { Text("Debes tener al menos 18 años") },
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                            enabled = false,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                    }
-                } else {
-                    // RUC
-                    OutlinedTextField(
-                        value = ruc,
-                        onValueChange = { ruc = it.filter(Char::isDigit).take(11) },
-                        label = { Text("RUC") },
-                        leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null) },
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true,
-                        maxLines = 1,
-                        isError = showRucError,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                    )
-                    if (showRucError) {
-                        Text(
-                            "El RUC debe tener 11 dígitos",
-                            color = Color.Red,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Address
-                    OutlinedTextField(
-                        value = address,
-                        onValueChange = { if (it.length <= 200) address = it },
-                        label = { Text("Dirección") },
-                        leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true,
-                        maxLines = 1,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
                         modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
                         supportingText = {
-                            Text(
-                                text = "${address.length}/200",
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                textAlign = TextAlign.End,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.labelSmall
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                if (showNameError) {
+                                    Text(
+                                        "Mínimo 8 caracteres",
+                                        color = Color.Red,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                                Text(
+                                    text = "${name.length}/60",
+                                    textAlign = TextAlign.End,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
+                    )
+
+                    // Phone + DNI/RUC horizontal
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            OutlinedTextField(
+                                value = rawPhone,
+                                onValueChange = { input ->
+                                    rawPhone = input.filter { it.isDigit() }.take(9)
+                                    phone = rawPhone
+                                },
+                                label = { Text("Celular") },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Filled.Phone,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                shape = RoundedCornerShape(16.dp),
+                                singleLine = true,
+                                maxLines = 1,
+                                isError = showPhoneError,
+                                visualTransformation = PhoneVisualTransformation(),
+                                //textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 13.sp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Text(
+                                "Peru",
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
                             )
                         }
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
-                    onClick = {
-                        if (isClient) {
-                            viewModel.registerClient(username, password, phone, name, dni, birthDate)
-                        } else {
-                            viewModel.registerEntrepreneur(username, password, phone, name, ruc, address)
+                        Column(modifier = Modifier.weight(1f)) {
+                            if (isClient) {
+                                OutlinedTextField(
+                                    value = dni,
+                                    onValueChange = { dni = it.filter(Char::isDigit).take(8) },
+                                    label = { Text("DNI") },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Filled.Info,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(16.dp),
+                                    singleLine = true,
+                                    maxLines = 1,
+                                    isError = showDniError,
+                                    //textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 13.sp),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                if (showDniError) {
+                                    Text(
+                                        "8 dígitos requeridos",
+                                        color = Color.Red,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+                                    )
+                                }
+                            } else {
+                                OutlinedTextField(
+                                    value = ruc,
+                                    onValueChange = { ruc = it.filter(Char::isDigit).take(11) },
+                                    label = { Text("RUC") },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Filled.Info,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(16.dp),
+                                    singleLine = true,
+                                    maxLines = 1,
+                                    isError = showRucError,
+                                    //textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 13.sp),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                if (showRucError) {
+                                    Text(
+                                        "11 dígitos requeridos",
+                                        color = Color.Red,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+                                    )
+                                }
+                            }
                         }
-                    },
-                    enabled = isFormValid && !state.isLoading,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Yellow),
-                    modifier = Modifier.fillMaxWidth().height(50.dp)
-                ) {
-                    Text(
-                        "Crear Cuenta",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    }
 
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Términos y Condiciones",
-                    color = Color(0xFF2196F3),
-                    style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.Underline),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { navController.navigate(Routes.TermsAndConditions.routes) },
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "¿Tienes una cuenta? Accede desde aquí",
-                    color = Color(0xFF2196F3),
-                    style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.Underline),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { navController.navigate(Routes.Login.routes) },
-                    textAlign = TextAlign.Center
-                )
+                    // Date of Birth / Address
+                    if (isClient) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showDatePicker = true }
+                        ) {
+                            OutlinedTextField(
+                                value = birthDateDisplay,
+                                onValueChange = {},
+                                label = { Text("Fecha de nacimiento") },
+                                leadingIcon = { Icon(Icons.Filled.CalendarToday, contentDescription = null) },
+                                placeholder = { Text("Debes tener al menos 18 años") },
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                                enabled = false,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                    disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = address,
+                            onValueChange = { if (it.length <= 200) address = it },
+                            label = { Text("Dirección") },
+                            leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
+                            shape = RoundedCornerShape(16.dp),
+                            singleLine = true,
+                            maxLines = 1,
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                            supportingText = {
+                                Text(
+                                    text = "${address.length}/200",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.End,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        )
+                    }
+                }
             }
 
             if (state.isLoading) {

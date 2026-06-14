@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cargoexpress.app.core.domain.Driver
 import com.cargoexpress.app.core.common.Resource
@@ -73,62 +74,82 @@ fun RegisterDriverScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Registrar Conductor", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)) },
+                title = {
+                    Column {
+                        Text(
+                            "NUEVO CONDUCTOR",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Un nuevo par de manos al volante",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Normal, fontSize = 15.sp),
+                            color = Color.Gray
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Retroceder")
                     }
                 }
             )
+
         },
         bottomBar = {
-            Button(
-                onClick = {
-                    nameError = if (name.isBlank()) "El nombre es obligatorio" else null
-                    dniError = if (dni.length != 8 || !dni.all { it.isDigit() }) "El número de DNI no es válido" else null
-                    licenseError = if (license.length != 9 || !license.startsWith("Q") || !license.drop(1).all { it.isDigit() }) "El número de licencia no es válido" else null
-                    contactError = if (contactNumber.length != 9 || !contactNumber.all { it.isDigit() }) "El número de contacto no es válido" else null
+            Surface(shadowElevation = 8.dp) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ){
+                    Button(
+                        onClick = {
+                            nameError = if (name.isBlank()) "El nombre es obligatorio" else null
+                            dniError = if (dni.length != 8 || !dni.all { it.isDigit() }) "El número de DNI no es válido" else null
+                            licenseError = if (license.length != 9 || !license.startsWith("Q") || !license.drop(1).all { it.isDigit() }) "El número de licencia no es válido" else null
+                            contactError = if (contactNumber.length != 9 || !contactNumber.all { it.isDigit() }) "El número de contacto no es válido" else null
 
-                    val valid = listOf(nameError, dniError, licenseError, contactError).all { it == null }
+                            val valid = listOf(nameError, dniError, licenseError, contactError).all { it == null }
 
-                    if (valid) {
-                        isLoading = true
-                        viewModel.name = name
-                        viewModel.dni = dni
-                        viewModel.license = license
-                        viewModel.contactNumber = contactNumber
+                            if (valid) {
+                                isLoading = true
+                                viewModel.name = name
+                                viewModel.dni = dni
+                                viewModel.license = license
+                                viewModel.contactNumber = contactNumber
 
-                        viewModel.registerDriver { result ->
-                            isLoading = false
-                            if (result is Resource.Success && result.data != null) {
-                                onDriverRegistered(result.data)
-                                confirmModalSuccess = true
-                                confirmModalMessage = "Conductor registrado correctamente"
+                                viewModel.registerDriver { result ->
+                                    isLoading = false
+                                    if (result is Resource.Success && result.data != null) {
+                                        onDriverRegistered(result.data)
+                                        confirmModalSuccess = true
+                                        confirmModalMessage = "Conductor registrado correctamente"
+                                    } else {
+                                        confirmModalSuccess = false
+                                        confirmModalMessage = "No se pudo registrar al conductor"
+                                    }
+                                    showConfirmModal = true
+                                }
                             } else {
-                                confirmModalSuccess = false
-                                confirmModalMessage = "No se pudo registrar al conductor"
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Por favor, completa todos los campos correctamente")
+                                }
                             }
-                            showConfirmModal = true
-                        }
-                    } else {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Por favor, completa todos los campos correctamente")
-                        }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
+                        enabled = isFormValid && !isLoading
+                    ) {
+                        Text(
+                            "Registrar Conductor",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(70.dp)
-                    .padding(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
-                enabled = isFormValid && !isLoading
-            ) {
-                Text(
-                    "Registrar Conductor",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold
-                )
+                }
             }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -153,7 +174,7 @@ fun RegisterDriverScreen(
                 },
                 label = { Text("Nombre") },
                 leadingIcon = { Icon(imageVector = Icons.Filled.Person, contentDescription = "Nombre") },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 singleLine = true,
                 maxLines = 1,
                 modifier = Modifier
@@ -199,7 +220,7 @@ fun RegisterDriverScreen(
                 },
                 label = { Text("DNI") },
                 leadingIcon = { Icon(imageVector = Icons.Filled.Info, contentDescription = "DNI") },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 singleLine = true,
                 maxLines = 1,
                 isError = showDniError,
@@ -237,7 +258,7 @@ fun RegisterDriverScreen(
                 },
                 label = { Text("Licencia") },
                 leadingIcon = { Icon(imageVector = Icons.Filled.TimeToLeave, contentDescription = "Licencia") },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 singleLine = true,
                 maxLines = 1,
                 isError = showLicenseError,
@@ -285,7 +306,7 @@ fun RegisterDriverScreen(
                     },
                     label = { Text("Número de contacto") },
                     leadingIcon = { Icon(imageVector = Icons.Filled.Phone, contentDescription = "Número de contacto") },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(8.dp),
                     singleLine = true,
                     maxLines = 1,
                     isError = showContactError,

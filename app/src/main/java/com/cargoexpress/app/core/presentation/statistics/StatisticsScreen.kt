@@ -63,11 +63,19 @@ fun StatisticsScreen(tripRepository: TripRepository) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Mis Estadísticas",
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Column{
+            Text(
+                text = "MIS ESTADISTICAS",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
+
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                "Tus numeros en un vistazo",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Normal, fontSize = 15.sp),
+                color = Color.Gray
+            )
+        }
 
         when {
             uiState.isLoading -> {
@@ -117,7 +125,7 @@ fun StatisticsScreen(tripRepository: TripRepository) {
                             iconBg = Color(0xFFE8F5E9),
                             iconTint = Color(0xFF2E7D32),
                             label = "Total gastos",
-                            value = "S/ ${"%,.2f".format(totalExpenses)}"
+                            value = "$ ${"%,.2f".format(totalExpenses)}"
                         )
                     }
 
