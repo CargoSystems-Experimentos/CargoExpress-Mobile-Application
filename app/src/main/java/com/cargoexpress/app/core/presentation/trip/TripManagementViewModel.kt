@@ -30,7 +30,7 @@ class TripManagementViewModel(
         loadTrips()
     }
 
-    private fun loadTrips() {
+    fun loadTrips() {
         viewModelScope.launch {
             _uiState.value = UIState(isLoading = true)
             val result = if (Constants.USER_ROLE == "CLIENT") {

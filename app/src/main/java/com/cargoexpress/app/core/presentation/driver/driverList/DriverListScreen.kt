@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,7 +20,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.domain.Driver
+import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +31,13 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
     var appliedQuery by remember { mutableStateOf("") }
     var sortAscending by remember { mutableStateOf(true) }
     var selectedState by remember { mutableStateOf("AVAILABLE") }
+
+    var pendingDriver by remember { mutableStateOf<Driver?>(null) }
+    var pendingNewState by remember { mutableStateOf("") }
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    var showResultModal by remember { mutableStateOf(false) }
+    var resultSuccess by remember { mutableStateOf(false) }
+    var resultMessage by remember { mutableStateOf("") }
 
     val stateOptions = listOf("AVAILABLE", "UNAVAILABLE", "INACTIVE")
     val stateLabels = mapOf("AVAILABLE" to "DISPONIBLE", "UNAVAILABLE" to "NO DISPONIBLE", "INACTIVE" to "INACTIVO")
@@ -41,6 +51,64 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
         }
     }
 
+    if (showConfirmDialog && pendingDriver != null) {
+        val isDeactivating = pendingNewState == "INACTIVE"
+        AlertDialog(
+            onDismissRequest = {
+                showConfirmDialog = false
+                pendingDriver = null
+            },
+            title = { Text(if (isDeactivating) "Desactivar conductor" else "Restaurar conductor") },
+            text = {
+                Text(
+                    if (isDeactivating)
+                        "¿Estás seguro de que deseas desactivar a \"${pendingDriver?.name}\"? Podrás restaurarlo más adelante."
+                    else
+                        "¿Estás seguro de que deseas restaurar a \"${pendingDriver?.name}\"? Quedará disponible nuevamente."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val driver = pendingDriver ?: return@Button
+                        showConfirmDialog = false
+                        viewModel.updateDriverState(driver.id, pendingNewState) { result ->
+                            resultSuccess = result is Resource.Success
+                            resultMessage = if (result is Resource.Success)
+                                if (isDeactivating) "Conductor desactivado correctamente"
+                                else "Conductor restaurado correctamente"
+                            else
+                                (result as? Resource.Error)?.message ?: "Error al actualizar el estado"
+                            showResultModal = true
+                        }
+                        pendingDriver = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isDeactivating) Color(0xFFE65100) else Color(0xFF2E7D32)
+                    )
+                ) { Text(if (isDeactivating) "Desactivar" else "Restaurar", color = Color.White) }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = {
+                    showConfirmDialog = false
+                    pendingDriver = null
+                }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    if (showResultModal) {
+        ConfirmationModal(
+            isSuccess = resultSuccess,
+            message = resultMessage,
+            onConfirm = {
+                showResultModal = false
+                viewModel.getDriverList()
+            },
+            onDismiss = { showResultModal = false }
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -48,12 +116,23 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
                 .padding(16.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            Text(
-                text = "MIS CONDUCTORES",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
-                color = MaterialTheme.colorScheme.onSurface,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 12.dp)
-            )
+            ) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Text(
+                    text = "MIS CONDUCTORES",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -96,7 +175,6 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFFFFEB3B)
                     )
-
                 )
             }
 
@@ -157,7 +235,14 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
                         val driver = sorted[index]
                         DriverItem(
                             driver = driver,
-                            onEditClick = { navController.navigate("edit_driver/${driver.id}") }
+                            onEditClick = if (driver.state != "INACTIVE") {
+                                { navController.navigate("edit_driver/${driver.id}") }
+                            } else null,
+                            onStateChangeClick = {
+                                pendingDriver = driver
+                                pendingNewState = if (driver.state == "INACTIVE") "AVAILABLE" else "INACTIVE"
+                                showConfirmDialog = true
+                            }
                         )
                     }
                 }
@@ -175,7 +260,11 @@ fun DriverListScreen(viewModel: DriverListViewModel, navController: NavControlle
 }
 
 @Composable
-fun DriverItem(driver: Driver, onEditClick: () -> Unit) {
+fun DriverItem(
+    driver: Driver,
+    onEditClick: (() -> Unit)?,
+    onStateChangeClick: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
@@ -207,9 +296,26 @@ fun DriverItem(driver: Driver, onEditClick: () -> Unit) {
                     modifier = Modifier.weight(1f)
                 )
                 DriverStateBadge(driver.state)
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = onEditClick, modifier = Modifier.size(36.dp)) {
-                    Icon(imageVector = Icons.Filled.Edit, contentDescription = "Editar conductor", tint = Color(0xFFF9A825))
+                Spacer(modifier = Modifier.width(4.dp))
+                if (onEditClick != null) {
+                    IconButton(onClick = onEditClick, modifier = Modifier.size(36.dp)) {
+                        Icon(imageVector = Icons.Filled.Edit, contentDescription = "Editar conductor", tint = Color(0xFFF9A825))
+                    }
+                }
+                IconButton(onClick = onStateChangeClick, modifier = Modifier.size(36.dp)) {
+                    if (driver.state == "INACTIVE") {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = "Restaurar conductor",
+                            tint = Color(0xFF2E7D32)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Desactivar conductor",
+                            tint = Color(0xFFE65100)
+                        )
+                    }
                 }
             }
 

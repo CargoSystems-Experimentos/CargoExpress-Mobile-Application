@@ -9,8 +9,6 @@ import com.cargoexpress.app.core.data.repository.TripRepository
 import com.cargoexpress.app.core.data.repository.VehicleRepository
 import com.cargoexpress.app.core.domain.Expense
 import com.cargoexpress.app.core.domain.Trip
-import com.cargoexpress.app.core.data.remote.driver.toDriver
-import com.cargoexpress.app.core.data.remote.vehicle.toVehicle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -33,8 +31,8 @@ class TripDetailViewModel(
     private val _driverName = MutableStateFlow("")
     val driverName: StateFlow<String> = _driverName
 
-    private val _vehicleModel = MutableStateFlow("")
-    val vehicleModel: StateFlow<String> = _vehicleModel
+    private val _vehicleName = MutableStateFlow("")
+    val vehicleModel: StateFlow<String> = _vehicleName
 
     private val _clientName = MutableStateFlow("")
     val clientName: StateFlow<String> = _clientName
@@ -66,30 +64,24 @@ class TripDetailViewModel(
 
     private fun loadRelatedNames(trip: Trip) {
         viewModelScope.launch {
-            // Cargar conductor por ID
             try {
-                val driverResult = driverRepository.getDrivers(Constants.TOKEN, trip.id)
+                val driverResult = driverRepository.getDriverById(trip.driverId)
                 if (driverResult is Resource.Success) {
-                    val driver = driverResult.data?.find { it.id == trip.driverId }
-                    _driverName.value = driver?.name ?: ""
+                    _driverName.value = driverResult.data?.name ?: ""
                 }
             } catch (_: Exception) { }
 
-            // Cargar vehículo por ID
             try {
-                val vehicleResult = vehicleRepository.getVehicleList(Constants.TOKEN, trip.id)
+                val vehicleResult = vehicleRepository.getVehicleById(trip.vehicleId)
                 if (vehicleResult is Resource.Success) {
-                    val vehicle = vehicleResult.data?.find { it.id == trip.vehicleId }
-                    _vehicleModel.value = vehicle?.model ?: ""
+                    _vehicleName.value = vehicleResult.data?.name ?: ""
                 }
             } catch (_: Exception) { }
 
-            // Cargar cliente por ID
             try {
                 val clientResult = clientRepository.getClient(trip.clientId, Constants.TOKEN)
                 if (clientResult.isSuccess) {
-                    val clientDto = clientResult.getOrNull()
-                    _clientName.value = clientDto?.name ?: ""
+                    _clientName.value = clientResult.getOrNull()?.name ?: ""
                 }
             } catch (_: Exception) { }
         }

@@ -174,8 +174,7 @@ fun GpsScreen(
             onConfirm = {
                 viewModel.clearActionResult()
                 navController.navigate("trips") {
-                    launchSingleTop = true
-                    popUpTo("trips") { inclusive = false }
+                    popUpTo("home") { inclusive = false }
                 }
             },
             onDismiss = {

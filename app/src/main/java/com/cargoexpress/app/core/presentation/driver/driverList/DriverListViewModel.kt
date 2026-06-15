@@ -46,4 +46,11 @@ class DriverListViewModel(private val navController: NavController, private val 
             }
         }
     }
+
+    fun updateDriverState(driverId: Int, newState: String, onResult: (Resource<*>) -> Unit) {
+        viewModelScope.launch {
+            val result = driverRepository.updateDriverState(driverId, newState)
+            onResult(result)
+        }
+    }
 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,8 +21,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.cargoexpress.app.core.domain.Vehicle
 import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.common.Resource
+import com.cargoexpress.app.core.domain.Vehicle
+import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,6 +33,13 @@ fun VehicleListScreen(viewModel: VehicleListViewModel, navController: NavControl
     var appliedQuery by remember { mutableStateOf("") }
     var sortAscending by remember { mutableStateOf(true) }
     var selectedState by remember { mutableStateOf("AVAILABLE") }
+
+    var pendingVehicle by remember { mutableStateOf<Vehicle?>(null) }
+    var pendingNewState by remember { mutableStateOf("") }
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    var showResultModal by remember { mutableStateOf(false) }
+    var resultSuccess by remember { mutableStateOf(false) }
+    var resultMessage by remember { mutableStateOf("") }
 
     val stateOptions = listOf("AVAILABLE", "UNAVAILABLE", "INACTIVE")
     val stateLabels = mapOf("AVAILABLE" to "DISPONIBLE", "UNAVAILABLE" to "NO DISPONIBLE", "INACTIVE" to "INACTIVO")
@@ -46,6 +56,67 @@ fun VehicleListScreen(viewModel: VehicleListViewModel, navController: NavControl
         }
     }
 
+    if (showConfirmDialog && pendingVehicle != null) {
+        val isDeactivating = pendingNewState == "INACTIVE"
+        AlertDialog(
+            onDismissRequest = {
+                showConfirmDialog = false
+                pendingVehicle = null
+            },
+            title = { Text(if (isDeactivating) "Desactivar vehículo" else "Restaurar vehículo") },
+            text = {
+                Text(
+                    if (isDeactivating)
+                        "¿Estás seguro de que deseas desactivar \"${pendingVehicle?.name}\"? Podrás restaurarlo más adelante."
+                    else
+                        "¿Estás seguro de que deseas restaurar \"${pendingVehicle?.name}\"? Quedará disponible nuevamente."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val vehicle = pendingVehicle ?: return@Button
+                        showConfirmDialog = false
+                        viewModel.updateVehicleState(vehicle.id, pendingNewState) { result ->
+                            resultSuccess = result is Resource.Success
+                            resultMessage = if (result is Resource.Success)
+                                if (isDeactivating) "Vehículo desactivado correctamente"
+                                else "Vehículo restaurado correctamente"
+                            else
+                                (result as? Resource.Error)?.message ?: "Error al actualizar el estado"
+                            showResultModal = true
+                        }
+                        pendingVehicle = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isDeactivating) Color(0xFFE65100) else Color(0xFF2E7D32)
+                    )
+                ) { Text(if (isDeactivating) "Desactivar" else "Restaurar", color = Color.White) }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = {
+                    showConfirmDialog = false
+                    pendingVehicle = null
+                }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    if (showResultModal) {
+        ConfirmationModal(
+            isSuccess = resultSuccess,
+            message = resultMessage,
+            onConfirm = {
+                showResultModal = false
+                viewModel.getVehiclesForEntrepreneur(
+                    entrepreneurId = Constants.ENTREPRENEUR_ID,
+                    token = Constants.TOKEN
+                )
+            },
+            onDismiss = { showResultModal = false }
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -53,12 +124,23 @@ fun VehicleListScreen(viewModel: VehicleListViewModel, navController: NavControl
                 .padding(16.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            Text(
-                text = "MIS VEHICULOS",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
-                color = MaterialTheme.colorScheme.onSurface,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 12.dp)
-            )
+            ) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Text(
+                    text = "MIS VEHÍCULOS",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -161,7 +243,14 @@ fun VehicleListScreen(viewModel: VehicleListViewModel, navController: NavControl
                         val vehicle = sorted[index]
                         VehicleItem(
                             vehicle = vehicle,
-                            onEditClick = { navController.navigate("edit_vehicle/${vehicle.id}") }
+                            onEditClick = if (vehicle.state != "INACTIVE") {
+                                { navController.navigate("edit_vehicle/${vehicle.id}") }
+                            } else null,
+                            onStateChangeClick = {
+                                pendingVehicle = vehicle
+                                pendingNewState = if (vehicle.state == "INACTIVE") "AVAILABLE" else "INACTIVE"
+                                showConfirmDialog = true
+                            }
                         )
                     }
                 }
@@ -179,7 +268,11 @@ fun VehicleListScreen(viewModel: VehicleListViewModel, navController: NavControl
 }
 
 @Composable
-fun VehicleItem(vehicle: Vehicle, onEditClick: () -> Unit) {
+fun VehicleItem(
+    vehicle: Vehicle,
+    onEditClick: (() -> Unit)?,
+    onStateChangeClick: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
@@ -217,9 +310,26 @@ fun VehicleItem(vehicle: Vehicle, onEditClick: () -> Unit) {
                     )
                 }
                 VehicleStateBadge(vehicle.state)
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = onEditClick, modifier = Modifier.size(36.dp)) {
-                    Icon(imageVector = Icons.Filled.Edit, contentDescription = "Editar vehículo", tint = Color(0xFFF9A825))
+                Spacer(modifier = Modifier.width(4.dp))
+                if (onEditClick != null) {
+                    IconButton(onClick = onEditClick, modifier = Modifier.size(36.dp)) {
+                        Icon(imageVector = Icons.Filled.Edit, contentDescription = "Editar vehículo", tint = Color(0xFFF9A825))
+                    }
+                }
+                IconButton(onClick = onStateChangeClick, modifier = Modifier.size(36.dp)) {
+                    if (vehicle.state == "INACTIVE") {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = "Restaurar vehículo",
+                            tint = Color(0xFF2E7D32)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Desactivar vehículo",
+                            tint = Color(0xFFE65100)
+                        )
+                    }
                 }
             }
 

@@ -102,7 +102,7 @@ fun HomeScreen(
                         )
 
                         Text(
-                            text = Constants.USER_NAME,
+                            text = Constants.PROFILE_NAME.ifBlank { Constants.USER_NAME },
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
                             color = Color(0xFFFFEB3B)
                         )

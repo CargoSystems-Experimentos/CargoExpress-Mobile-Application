@@ -195,24 +195,8 @@ fun TripDetailScreen(
                         InfoItem(icon = Icons.Default.Scale, title = "Peso", content = "${t.weight} kg")
                         InfoItem(icon = Icons.Default.LocationOn, title = "Origen", content = t.loadLocation)
                         InfoItem(icon = Icons.Default.Place, title = "Destino", content = t.unloadLocation)
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            InfoItem(
-                                icon = Icons.Default.DateRange,
-                                title = "Fecha carga",
-                                content = formatDateTimeReadable(t.loadDate),
-                                modifier = Modifier.weight(1f)
-                            )
-                            InfoItem(
-                                icon = Icons.Default.DateRange,
-                                title = "Fecha descarga",
-                                content = formatDateTimeReadable(t.unloadDate),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                        InfoItem(icon = Icons.Default.DateRange, title = "Fecha carga", content = formatDateTimeReadable(t.loadDate))
+                        InfoItem(icon = Icons.Default.DateRange, title = "Fecha descarga", content = formatDateTimeReadable(t.unloadDate),)
                         // Para mostrar nombres en lugar de IDs: el ViewModel debería exponer driverName/vehicleModel/clientName.
                         // Si no lo hace aún, mostramos fallback con ID.
                         val driverNameState by viewModel.driverName.collectAsState()

@@ -117,6 +117,7 @@ import com.cargoexpress.app.core.presentation.home.HomeScreen
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseScreen
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseViewModel
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseViewModelFactory
+import com.cargoexpress.app.core.presentation.fleet.FleetScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -217,7 +218,9 @@ class MainActivity : ComponentActivity() {
                     currentRoute == "register_driver" ||
                     currentRoute == "edit_driver/{driverId}" ||
                     currentRoute == "edit_expense/{expenseId}" ||
-                        currentRoute == "register_expense/{tripId}"
+                    currentRoute == "register_expense/{tripId}" ||
+                    currentRoute == "vehicles" ||
+                    currentRoute == "drivers"
 
                 val ongoingTripRepository = OngoingTripRepository(ongoingTripService)
                 val alertRepository = AlertRepository(alertService)
@@ -306,29 +309,15 @@ class MainActivity : ComponentActivity() {
                                     )
                                 } else {
                                     NavigationBarItem(
-                                        selected = currentDestination == "vehicles",
-                                        onClick = { navController.navigate("vehicles") },
+                                        selected = currentDestination == Routes.Fleet.routes,
+                                        onClick = { navController.navigate(Routes.Fleet.routes) },
                                         icon = {
                                             Icon(
                                                 Icons.Filled.DirectionsBusFilled,
-                                                contentDescription = "Vehiculos"
+                                                contentDescription = "Flota"
                                             )
                                         },
-                                        label = { Text("Vehiculos", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp)) },
-                                        colors = NavigationBarItemDefaults.colors(
-                                            indicatorColor = Color(0xFFFFEB3B)
-                                        )
-                                    )
-                                    NavigationBarItem(
-                                        selected = currentDestination == "drivers",
-                                        onClick = { navController.navigate("drivers") },
-                                        icon = {
-                                            Icon(
-                                                Icons.Filled.Groups,
-                                                contentDescription = "Conductores"
-                                            )
-                                        },
-                                        label = { Text("Conductores", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp)) },
+                                        label = { Text("Flota", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp)) },
                                         colors = NavigationBarItemDefaults.colors(
                                             indicatorColor = Color(0xFFFFEB3B)
                                         )
@@ -372,13 +361,14 @@ class MainActivity : ComponentActivity() {
                         composable(route = "trips") {
                             TripManagementScreen(tripRepository = tripRepository, ongoingTripRepository, navController)
                         }
+                        composable(route = Routes.Fleet.routes) {
+                            FleetScreen(navController)
+                        }
                         composable(route = "vehicles") {
                             VehicleListScreen(viewModel = vehicleListViewModel, navController)
-                            // FleetScreen(navController)
                         }
                         composable(route = "drivers") {
                             DriverListScreen(viewModel = driverListViewModel, navController)
-                            // TripManagementScreen(tripRepository = tripRepository)
                         }
                         // MainActivity.kt
                         composable(route = "trip_details/{tripId}") { backStackEntry ->

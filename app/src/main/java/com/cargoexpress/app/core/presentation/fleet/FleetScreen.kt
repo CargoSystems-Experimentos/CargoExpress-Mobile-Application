@@ -1,97 +1,101 @@
-
 package com.cargoexpress.app.core.presentation.fleet
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DirectionsBusFilled
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.cargoexpress.app.core.common.Routes
 
 @Composable
 fun FleetScreen(navController: NavController) {
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        FleetItem(
-            title = "Visualizar Conductores",
-            description = "Ver la lista de conductores registrados en su empresa",
-            visualizarColor = Color(0xFFF1F504),
-            modificarColor = Color(0xFFF1F504),
-            onVisualizarClick = { navController.navigate(Routes.DriverList.routes) }
+        Text(
+            text = "MI FLOTA",
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(bottom = 8.dp)
         )
-        FleetItem(
-            title = "Visualizar Vehículos",
-            description = "Ver la lista de vehículos registrados en su empresa",
-            visualizarColor = Color(0xFFF1F504),
-            modificarColor = Color(0xFFF1F504),
-            onVisualizarClick = { navController.navigate(Routes.VehicleList.routes) }
+
+        FleetCard(
+            icon = Icons.Filled.DirectionsBusFilled,
+            title = "Ver mis vehículos",
+            description = "Consulta y gestiona todos los vehículos registrados en tu empresa.",
+            buttonText = "Ver vehículos",
+            onClick = { navController.navigate("vehicles") }
+        )
+
+        FleetCard(
+            icon = Icons.Filled.Groups,
+            title = "Ver mis conductores",
+            description = "Consulta y gestiona todos los conductores registrados en tu empresa.",
+            buttonText = "Ver conductores",
+            onClick = { navController.navigate("drivers") }
         )
     }
 }
 
 @Composable
-fun FleetItem(
+private fun FleetCard(
+    icon: ImageVector,
     title: String,
     description: String,
-    visualizarColor: Color,
-    modificarColor: Color,
-    onVisualizarClick: () -> Unit
+    buttonText: String,
+    onClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White, shape = RoundedCornerShape(16.dp))
-            .padding(16.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Text(
-            text = title,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
-
-        Text(
-            text = description,
-            fontSize = 14.sp,
-            color = Color.Gray,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-
-        Spacer(modifier = Modifier.padding(8.dp))
-
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Button(
-                onClick = onVisualizarClick,
-                modifier = Modifier.weight(1f).padding(end = 4.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = visualizarColor
-                )
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 8.dp)
             ) {
-                Text(text = "Visualizar", color = Color.Black)
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color(0xFFFFEB3B),
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            Button(
+                onClick = onClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B))
+            ) {
+                Text(text = buttonText, color = Color.Black, fontWeight = FontWeight.SemiBold)
             }
         }
     }
 }
-

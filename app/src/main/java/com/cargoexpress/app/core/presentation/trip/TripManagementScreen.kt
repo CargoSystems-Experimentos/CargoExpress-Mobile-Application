@@ -22,7 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.cargoexpress.app.core.common.Constants
+import com.cargoexpress.app.core.common.Routes
 import com.cargoexpress.app.core.data.repository.OngoingTripRepository
 import com.cargoexpress.app.core.data.repository.TripRepository
 import com.cargoexpress.app.core.domain.Trip
@@ -40,6 +42,14 @@ fun TripManagementScreen(
     val factory = remember { TripManagementViewModelFactory(tripRepository, ongoingTripRepository) }
     val viewModel: TripManagementViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsState()
+
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(navBackStackEntry) {
+        val route = navBackStackEntry?.destination?.route
+        if (route == "trips" || route == Routes.TripList.routes) {
+            viewModel.loadTrips()
+        }
+    }
 
     var nameQuery by remember { mutableStateOf("") }
     var appliedNameQuery by remember { mutableStateOf("") }

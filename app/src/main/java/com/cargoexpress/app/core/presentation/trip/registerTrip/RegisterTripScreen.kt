@@ -1,14 +1,16 @@
 package com.cargoexpress.app.core.presentation.trip.registerTrip
 
-import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -34,6 +36,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+
 private fun isWeightDecimalValid(input: String): Boolean {
     val dotIdx = input.indexOf('.')
     return if (dotIdx == -1) input.length <= 8
@@ -60,6 +63,11 @@ fun RegisterTripScreen(
     var loadCalendar by remember { mutableStateOf<Calendar?>(null) }
     var unloadCalendar by remember { mutableStateOf<Calendar?>(null) }
 
+    var showLoadDatePicker by remember { mutableStateOf(false) }
+    var showUnloadDatePicker by remember { mutableStateOf(false) }
+    var tempLoadDateMillis by remember { mutableStateOf<Long?>(null) }
+    var tempUnloadDateMillis by remember { mutableStateOf<Long?>(null) }
+
     var driverId by remember { mutableStateOf(0) }
     var driverName by remember { mutableStateOf("") }
     var vehicleId by remember { mutableStateOf(0) }
@@ -73,7 +81,6 @@ fun RegisterTripScreen(
     var showConfirmModal by remember { mutableStateOf(false) }
     var confirmModalSuccess by remember { mutableStateOf(false) }
     var confirmModalMessage by remember { mutableStateOf("") }
-    var registeredTrip by remember { mutableStateOf<Trip?>(null) }
 
     var nameTouched by remember { mutableStateOf(false) }
     var typeTouched by remember { mutableStateOf(false) }
@@ -90,37 +97,100 @@ fun RegisterTripScreen(
 
     val isNameValid = name.isNotBlank()
     val showNameError = nameTouched && !isNameValid
-
     val isTypeValid = type.isNotBlank()
     val showTypeError = typeTouched && !isTypeValid
-
     val isWeightValid = weight.toDoubleOrNull()?.let { it > 0.0 } == true
     val showWeightError = weightTouched && !isWeightValid
-
     val isLoadLocationValid = loadLocation.isNotBlank()
     val showLoadLocationError = loadLocationTouched && !isLoadLocationValid
-
     val isUnloadLocationValid = unloadLocation.isNotBlank()
     val showUnloadLocationError = unloadLocationTouched && !isUnloadLocationValid
-
     val isDriverValid = driverId > 0
     val isVehicleValid = vehicleId > 0
     val isClientValid = resolvedClientId > 0
-
     val isLoadValid = loadCalendar != null
     val isUnloadValid = unloadCalendar != null
 
-    val isFormValid =
-        isNameValid &&
-                isTypeValid &&
-                isWeightValid &&
-                isLoadLocationValid &&
-                isUnloadLocationValid &&
-                isDriverValid &&
-                isVehicleValid &&
-                isLoadValid &&
-                isUnloadValid &&
-                isClientValid
+    val isFormValid = isNameValid && isTypeValid && isWeightValid &&
+            isLoadLocationValid && isUnloadLocationValid &&
+            isDriverValid && isVehicleValid &&
+            isLoadValid && isUnloadValid && isClientValid
+
+    // Material3 DatePickerDialog — Carga
+    if (showLoadDatePicker) {
+        val minDateMillis = remember { Calendar.getInstance().timeInMillis }
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = tempLoadDateMillis ?: minDateMillis,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis >= minDateMillis
+            }
+        )
+        DatePickerDialog(
+            onDismissRequest = { showLoadDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val millis = datePickerState.selectedDateMillis ?: return@TextButton
+                    tempLoadDateMillis = millis
+                    showLoadDatePicker = false
+                    val cal = Calendar.getInstance().apply { timeInMillis = millis }
+                    TimePickerDialog(
+                        context,
+                        { _, hour, minute ->
+                            cal.set(Calendar.HOUR_OF_DAY, hour)
+                            cal.set(Calendar.MINUTE, minute)
+                            cal.set(Calendar.SECOND, 0)
+                            cal.set(Calendar.MILLISECOND, 0)
+                            loadCalendar = cal
+                        },
+                        cal.get(Calendar.HOUR_OF_DAY),
+                        cal.get(Calendar.MINUTE),
+                        true
+                    ).show()
+                }) { Text("Aceptar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLoadDatePicker = false }) { Text("Cancelar") }
+            }
+        ) { DatePicker(state = datePickerState) }
+    }
+
+    // Material3 DatePickerDialog — Descarga
+    if (showUnloadDatePicker) {
+        val minDateMillis = remember { Calendar.getInstance().timeInMillis }
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = tempUnloadDateMillis ?: minDateMillis,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis >= minDateMillis
+            }
+        )
+        DatePickerDialog(
+            onDismissRequest = { showUnloadDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val millis = datePickerState.selectedDateMillis ?: return@TextButton
+                    tempUnloadDateMillis = millis
+                    showUnloadDatePicker = false
+                    val cal = Calendar.getInstance().apply { timeInMillis = millis }
+                    TimePickerDialog(
+                        context,
+                        { _, hour, minute ->
+                            cal.set(Calendar.HOUR_OF_DAY, hour)
+                            cal.set(Calendar.MINUTE, minute)
+                            cal.set(Calendar.SECOND, 0)
+                            cal.set(Calendar.MILLISECOND, 0)
+                            unloadCalendar = cal
+                        },
+                        cal.get(Calendar.HOUR_OF_DAY),
+                        cal.get(Calendar.MINUTE),
+                        true
+                    ).show()
+                }) { Text("Aceptar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUnloadDatePicker = false }) { Text("Cancelar") }
+            }
+        ) { DatePicker(state = datePickerState) }
+    }
 
     Scaffold(
         topBar = {
@@ -165,7 +235,6 @@ fun RegisterTripScreen(
                         viewModel.registerTrip { result ->
                             isLoading = false
                             if (result is Resource.Success && result.data != null) {
-                                registeredTrip = result.data
                                 onTripRegistered(result.data)
                                 confirmModalSuccess = true
                                 confirmModalMessage = "Viaje registrado correctamente"
@@ -194,468 +263,299 @@ fun RegisterTripScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(bottom = 90.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = {
-                        if (it.length <= 60) {
-                            name = it
-                            nameTouched = true
-                        }
-                    },
-                    label = { Text("Nombre del Viaje") },
-                    leadingIcon = { Icon(Icons.Filled.LocalShipping, contentDescription = "Nombre") },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    maxLines = 1,
-                    isError = showNameError,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 4.dp)
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 4.dp, bottom = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (showNameError) {
-                        Text(
-                            text = "El nombre del viaje es obligatorio",
-                            color = Color.Red,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f).padding(end = 4.dp),
-                            textAlign = TextAlign.Start
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
+            // ── Sección 1: DATOS DE CARGA ──
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.LocalShipping, contentDescription = null, tint = Color(0xFFFFEB3B), modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Datos de Carga", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                     }
-                    Text(
-                        text = "${name.length}/60",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall
+
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = {
+                            if (it.length <= 60) { name = it; nameTouched = true }
+                        },
+                        label = { Text("Nombre del Viaje") },
+                        leadingIcon = { Icon(Icons.Filled.LocalShipping, contentDescription = null) },
+                        shape = RoundedCornerShape(8.dp),
+                        singleLine = true,
+                        isError = showNameError,
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                if (showNameError) Text("El nombre es obligatorio", color = Color.Red, style = MaterialTheme.typography.labelSmall)
+                                else Spacer(Modifier.weight(1f))
+                                Text("${name.length}/60", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     )
+
+                    val cargoTypes = listOf("ESTANDAR", "FRAGIL", "PESADO", "VALIOSO", "URGENTE", "PERECIBLE")
+                    var typeExpanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(expanded = typeExpanded, onExpandedChange = { typeExpanded = it }) {
+                        OutlinedTextField(
+                            value = type,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Tipo de Carga") },
+                            leadingIcon = { Icon(Icons.Filled.Category, contentDescription = null) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
+                            shape = RoundedCornerShape(8.dp),
+                            singleLine = true,
+                            isError = showTypeError,
+                            modifier = Modifier.fillMaxWidth().menuAnchor()
+                        )
+                        ExposedDropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
+                            cargoTypes.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = { type = option; typeTouched = true; typeExpanded = false }
+                                )
+                            }
+                        }
+                    }
+                    if (showTypeError) Text("El tipo de carga es obligatorio", color = Color.Red, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 4.dp))
+
+                    OutlinedTextField(
+                        value = weight,
+                        onValueChange = { input ->
+                            val filtered = input.filter { it.isDigit() || it == '.' }
+                            if (filtered.isEmpty() || isWeightDecimalValid(filtered)) { weight = filtered; weightTouched = true }
+                        },
+                        label = { Text("Peso (kg)") },
+                        leadingIcon = { Icon(Icons.Filled.Scale, contentDescription = null) },
+                        shape = RoundedCornerShape(8.dp),
+                        singleLine = true,
+                        isError = showWeightError,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (showWeightError) Text("El peso es obligatorio y debe ser mayor a 0", color = Color.Red, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 4.dp))
                 }
             }
 
-            item {
-                val cargoTypes = listOf("ESTANDAR", "FRAGIL", "PESADO", "VALIOSO", "URGENTE", "PERECIBLE")
-                var typeExpanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = typeExpanded,
-                    onExpandedChange = { typeExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = type,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Tipo de Carga") },
-                        leadingIcon = { Icon(Icons.Filled.Category, contentDescription = "Tipo") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true,
-                        isError = showTypeError,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 4.dp)
-                            .menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = typeExpanded,
-                        onDismissRequest = { typeExpanded = false }
+            // ── Sección 2: PARTES RESPONSABLES ──
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.People, contentDescription = null, tint = Color(0xFFFFEB3B), modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Partes Responsables", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                    }
+
+                    OutlinedButton(
+                        onClick = { showDriverModal = true },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, if (isDriverValid) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outline)
                     ) {
-                        cargoTypes.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option) },
-                                onClick = {
-                                    type = option
-                                    typeTouched = true
-                                    typeExpanded = false
-                                }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Person, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                if (driverName.isBlank()) "Seleccionar Conductor" else driverName,
+                                color = if (driverName.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
-                }
-                if (showTypeError) {
-                    Text(
-                        text = "El tipo de carga es obligatorio",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
-                    )
-                } else {
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
+                    if (!isDriverValid) Text("Debes seleccionar un conductor", color = Color.Red, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 4.dp))
 
-            item {
-                OutlinedTextField(
-                    value = weight,
-                    onValueChange = { input ->
-                        val filtered = input.filter { it.isDigit() || it == '.' }
-                        if (filtered.isEmpty() || isWeightDecimalValid(filtered)) {
-                            weight = filtered
-                            weightTouched = true
-                        }
-                    },
-                    label = { Text("Peso (kg)") },
-                    leadingIcon = { Icon(Icons.Filled.Scale, contentDescription = "Peso") },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    maxLines = 1,
-                    isError = showWeightError,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 4.dp)
-                )
-                if (showWeightError) {
-                    Text(
-                        text = "El peso es obligatorio y debe ser mayor a 0",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
-                    )
-                } else {
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
-
-            item {
-                OutlinedTextField(
-                    value = loadLocation,
-                    onValueChange = {
-                        if (it.length <= 100) {
-                            loadLocation = it
-                            loadLocationTouched = true
-                        }
-                    },
-                    label = { Text("Ubicación de Carga") },
-                    leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = "Ubicación") },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    maxLines = 1,
-                    isError = showLoadLocationError,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 4.dp)
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 4.dp, bottom = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (showLoadLocationError) {
-                        Text(
-                            text = "La ubicación de carga es obligatoria",
-                            color = Color.Red,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f).padding(end = 4.dp),
-                            textAlign = TextAlign.Start
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                    Text(
-                        text = "${loadLocation.length}/100",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-
-            item {
-                Text(
-                    text = "Fecha y hora de Carga",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                Button(
-                    onClick = {
-                        showDateTimePicker(
-                            context = context,
-                            initial = loadCalendar
-                        ) { selected ->
-                            loadCalendar = selected
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .padding(bottom = 8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
+                    OutlinedButton(
+                        onClick = { showVehicleModal = true },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
-                        Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            if (loadDateText.isBlank()) "Seleccionar carga" else loadDateText,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-
-                if (!isLoadValid) {
-                    Text(
-                        text = "Debes seleccionar la fecha y hora de carga",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
-                    )
-                } else {
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
-
-            item {
-                OutlinedTextField(
-                    value = unloadLocation,
-                    onValueChange = {
-                        if (it.length <= 100) {
-                            unloadLocation = it
-                            unloadLocationTouched = true
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.DirectionsCar, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                if (vehicleName.isBlank()) "Seleccionar Vehículo" else vehicleName,
+                                color = if (vehicleName.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+                            )
                         }
-                    },
-                    label = { Text("Ubicación de Descarga") },
-                    leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = "Ubicación") },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    maxLines = 1,
-                    isError = showUnloadLocationError,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 4.dp)
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 4.dp, bottom = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (showUnloadLocationError) {
-                        Text(
-                            text = "La ubicación de descarga es obligatoria",
-                            color = Color.Red,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f).padding(end = 4.dp),
-                            textAlign = TextAlign.Start
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
                     }
-                    Text(
-                        text = "${unloadLocation.length}/100",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
+                    if (!isVehicleValid) Text("Debes seleccionar un vehículo", color = Color.Red, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 4.dp))
 
-            item {
-                Text(
-                    text = "Fecha y hora de Descarga",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                Button(
-                    onClick = {
-                        showDateTimePicker(
-                            context = context,
-                            initial = unloadCalendar
-                        ) { selected ->
-                            unloadCalendar = selected
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .padding(bottom = 8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            if (unloadDateText.isBlank()) "Seleccionar descarga" else unloadDateText,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-
-                if (!isUnloadValid) {
-                    Text(
-                        text = "Debes seleccionar la fecha y hora de descarga",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
-                    )
-                } else {
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
-
-            item {
-                Button(
-                    onClick = { showDriverModal = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .padding(bottom = 12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Filled.Person, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            if (driverName.isBlank()) "Seleccionar Conductor" else driverName,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-                if (!isDriverValid) {
-                    Text(
-                        text = "Debes seleccionar un conductor",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
-                    )
-                }
-            }
-
-            item {
-                Button(
-                    onClick = { showVehicleModal = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .padding(bottom = 12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Filled.DirectionsCar, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            if (vehicleName.isBlank()) "Seleccionar Vehículo" else vehicleName,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-                if (!isVehicleValid) {
-                    Text(
-                        text = "Debes seleccionar un vehículo",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
-                    )
-                }
-            }
-
-            item {
-                OutlinedTextField(
-                    value = clientDni,
-                    onValueChange = {
-                        clientDni = it.filter { c -> c.isDigit() }.take(8)
-                        resolvedClientId = 0
-                        clientFoundName = ""
-                        clientDniError = ""
-                    },
-                    label = { Text("DNI del Cliente") },
-                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = "DNI") },
-                    trailingIcon = {
-                        IconButton(
-                            onClick = {
-                                if (clientDni.isNotBlank()) {
-                                    isDniValidating = true
-                                    scope.launch {
-                                        val result = viewModel.validateClientDni(clientDni)
-                                        isDniValidating = false
-                                        result.onSuccess { client ->
-                                            resolvedClientId = client.id
-                                            clientFoundName = client.name
-                                            clientDniError = ""
-                                        }.onFailure {
-                                            resolvedClientId = 0
-                                            clientFoundName = ""
-                                            clientDniError = "Cliente no encontrado"
+                    OutlinedTextField(
+                        value = clientDni,
+                        onValueChange = {
+                            clientDni = it.filter { c -> c.isDigit() }.take(8)
+                            resolvedClientId = 0
+                            clientFoundName = ""
+                            clientDniError = ""
+                        },
+                        label = { Text("DNI del Cliente") },
+                        leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = {
+                                    if (clientDni.isNotBlank()) {
+                                        isDniValidating = true
+                                        scope.launch {
+                                            val result = viewModel.validateClientDni(clientDni)
+                                            isDniValidating = false
+                                            result.onSuccess { client ->
+                                                resolvedClientId = client.id
+                                                clientFoundName = client.name
+                                                clientDniError = ""
+                                            }.onFailure {
+                                                resolvedClientId = 0
+                                                clientFoundName = ""
+                                                clientDniError = "Cliente no encontrado"
+                                            }
                                         }
                                     }
-                                }
-                            },
-                            enabled = clientDni.isNotBlank() && !isDniValidating
-                        ) {
-                            if (isDniValidating) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                            } else {
-                                Icon(Icons.Filled.Search, contentDescription = "Verificar DNI")
+                                },
+                                enabled = clientDni.isNotBlank() && !isDniValidating
+                            ) {
+                                if (isDniValidating) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                else Icon(Icons.Filled.Search, contentDescription = "Verificar DNI")
                             }
-                        }
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    maxLines = 1,
-                    isError = clientDniError.isNotBlank(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 4.dp)
-                )
-                when {
-                    clientFoundName.isNotBlank() -> Text(
-                        text = "Cliente: $clientFoundName",
-                        color = Color(0xFF2E7D32),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        singleLine = true,
+                        isError = clientDniError.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    clientDniError.isNotBlank() -> Text(
-                        text = clientDniError,
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
-                    )
-                    else -> Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
-
-            item {
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = Color(0xFFFFEB3B))
+                    when {
+                        clientFoundName.isNotBlank() -> Text(
+                            "Cliente: $clientFoundName",
+                            color = Color(0xFF2E7D32),
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                        clientDniError.isNotBlank() -> Text(
+                            clientDniError,
+                            color = Color.Red,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
                     }
                 }
             }
+
+            // ── Sección 3: RUTA Y FECHAS ──
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Map, contentDescription = null, tint = Color(0xFFFFEB3B), modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Ruta y Fechas", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                    }
+
+                    OutlinedTextField(
+                        value = loadLocation,
+                        onValueChange = {
+                            if (it.length <= 100) { loadLocation = it; loadLocationTouched = true }
+                        },
+                        label = { Text("Ubicación de Carga") },
+                        leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
+                        shape = RoundedCornerShape(8.dp),
+                        singleLine = true,
+                        isError = showLoadLocationError,
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                if (showLoadLocationError) Text("Obligatorio", color = Color.Red, style = MaterialTheme.typography.labelSmall)
+                                else Spacer(Modifier.weight(1f))
+                                Text("${loadLocation.length}/100", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    )
+
+                    Box(modifier = Modifier.fillMaxWidth().clickable { showLoadDatePicker = true }) {
+                        OutlinedTextField(
+                            value = loadDateText,
+                            onValueChange = {},
+                            label = { Text("Fecha y hora de Carga") },
+                            leadingIcon = { Icon(Icons.Filled.CalendarToday, contentDescription = null) },
+                            placeholder = { Text("Seleccionar fecha y hora") },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = false,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledBorderColor = if (!isLoadValid) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
+                    if (!isLoadValid) Text("Debes seleccionar la fecha y hora de carga", color = Color.Red, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 4.dp))
+
+                    OutlinedTextField(
+                        value = unloadLocation,
+                        onValueChange = {
+                            if (it.length <= 100) { unloadLocation = it; unloadLocationTouched = true }
+                        },
+                        label = { Text("Ubicación de Descarga") },
+                        leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
+                        shape = RoundedCornerShape(8.dp),
+                        singleLine = true,
+                        isError = showUnloadLocationError,
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                if (showUnloadLocationError) Text("Obligatorio", color = Color.Red, style = MaterialTheme.typography.labelSmall)
+                                else Spacer(Modifier.weight(1f))
+                                Text("${unloadLocation.length}/100", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    )
+
+                    Box(modifier = Modifier.fillMaxWidth().clickable { showUnloadDatePicker = true }) {
+                        OutlinedTextField(
+                            value = unloadDateText,
+                            onValueChange = {},
+                            label = { Text("Fecha y hora de Descarga") },
+                            leadingIcon = { Icon(Icons.Filled.CalendarToday, contentDescription = null) },
+                            placeholder = { Text("Seleccionar fecha y hora") },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = false,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledBorderColor = if (!isUnloadValid) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
+                    if (!isUnloadValid) Text("Debes seleccionar la fecha y hora de descarga", color = Color.Red, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 4.dp))
+                }
+            }
+
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Color(0xFFFFEB3B))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 
@@ -666,26 +566,6 @@ fun RegisterTripScreen(
             onConfirm = {
                 showConfirmModal = false
                 if (confirmModalSuccess) {
-                    name = ""
-                    type = ""
-                    weight = ""
-                    loadLocation = ""
-                    unloadLocation = ""
-                    loadCalendar = null
-                    unloadCalendar = null
-                    driverId = 0
-                    driverName = ""
-                    vehicleId = 0
-                    vehicleName = ""
-                    clientDni = ""
-                    resolvedClientId = 0
-                    clientFoundName = ""
-                    clientDniError = ""
-                    nameTouched = false
-                    typeTouched = false
-                    weightTouched = false
-                    loadLocationTouched = false
-                    unloadLocationTouched = false
                     navController.navigate("trips")
                 }
             },
@@ -763,9 +643,7 @@ fun DriverModal(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
         }
     )
 }
@@ -804,10 +682,10 @@ fun VehicleModal(
                 LazyColumn {
                     items(vehicles) { vehicle ->
                         Text(
-                            vehicle.model,
+                            vehicle.name,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onVehicleSelected(vehicle.id, vehicle.model) }
+                                .clickable { onVehicleSelected(vehicle.id, vehicle.name) }
                                 .padding(16.dp)
                         )
                     }
@@ -815,51 +693,9 @@ fun VehicleModal(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
         }
     )
-}
-
-private fun showDateTimePicker(
-    context: android.content.Context,
-    initial: Calendar?,
-    onSelected: (Calendar) -> Unit
-) {
-    val start = initial ?: Calendar.getInstance()
-
-    val dateDialog = DatePickerDialog(
-        context,
-        { _, year, month, dayOfMonth ->
-            val current = Calendar.getInstance().apply {
-                timeInMillis = start.timeInMillis
-                set(Calendar.YEAR, year)
-                set(Calendar.MONTH, month)
-                set(Calendar.DAY_OF_MONTH, dayOfMonth)
-            }
-
-            TimePickerDialog(
-                context,
-                { _, hourOfDay, minute ->
-                    current.set(Calendar.HOUR_OF_DAY, hourOfDay)
-                    current.set(Calendar.MINUTE, minute)
-                    current.set(Calendar.SECOND, 0)
-                    current.set(Calendar.MILLISECOND, 0)
-                    onSelected(current)
-                },
-                current.get(Calendar.HOUR_OF_DAY),
-                current.get(Calendar.MINUTE),
-                true
-            ).show()
-        },
-        start.get(Calendar.YEAR),
-        start.get(Calendar.MONTH),
-        start.get(Calendar.DAY_OF_MONTH)
-    )
-
-    dateDialog.datePicker.minDate = Calendar.getInstance().timeInMillis
-    dateDialog.show()
 }
 
 private fun toBackendDateTime(calendar: Calendar?): String {

@@ -19,13 +19,6 @@ import androidx.navigation.NavController
 import com.cargoexpress.app.core.common.Resource
 import com.cargoexpress.app.core.presentation.common.ConfirmationModal
 
-private val vehicleStates = listOf("AVAILABLE", "UNAVAILABLE", "INACTIVE")
-private val vehicleStateDisplayMap = mapOf(
-    "AVAILABLE" to "Disponible",
-    "UNAVAILABLE" to "No disponible",
-    "INACTIVE" to "Inactivo"
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditVehicleScreen(
@@ -39,10 +32,6 @@ fun EditVehicleScreen(
     var nameTouched by remember { mutableStateOf(false) }
     var isNameLoading by remember { mutableStateOf(false) }
 
-    var selectedState by remember { mutableStateOf("") }
-    var stateExpanded by remember { mutableStateOf(false) }
-    var isStateLoading by remember { mutableStateOf(false) }
-
     var showModal by remember { mutableStateOf(false) }
     var modalSuccess by remember { mutableStateOf(false) }
     var modalMessage by remember { mutableStateOf("") }
@@ -54,7 +43,6 @@ fun EditVehicleScreen(
     LaunchedEffect(vehicleState.data) {
         vehicleState.data?.let { vehicle ->
             if (!nameTouched) name = vehicle.name
-            if (selectedState.isEmpty()) selectedState = vehicle.state
         }
     }
 
@@ -225,104 +213,6 @@ fun EditVehicleScreen(
                         }
                     }
 
-                    // — Sección: actualizar estado —
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                text = "Actualizar Estado",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                            HorizontalDivider()
-
-                            ExposedDropdownMenuBox(
-                                expanded = stateExpanded,
-                                onExpandedChange = { stateExpanded = !stateExpanded },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                OutlinedTextField(
-                                    value = vehicleStateDisplayMap[selectedState] ?: selectedState,
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    label = { Text("Estado") },
-                                    leadingIcon = {
-                                        Icon(Icons.Filled.Settings, contentDescription = "Estado")
-                                    },
-                                    trailingIcon = {
-                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = stateExpanded)
-                                    },
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .menuAnchor()
-                                )
-                                ExposedDropdownMenu(
-                                    expanded = stateExpanded,
-                                    onDismissRequest = { stateExpanded = false }
-                                ) {
-                                    vehicleStates.forEach { option ->
-                                        DropdownMenuItem(
-                                            text = { Text(vehicleStateDisplayMap[option] ?: option) },
-                                            onClick = {
-                                                selectedState = option
-                                                stateExpanded = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-
-                            Button(
-                                onClick = {
-                                    if (selectedState.isNotBlank()) {
-                                        isStateLoading = true
-                                        viewModel.updateVehicleState(vehicleId, selectedState) { result ->
-                                            isStateLoading = false
-                                            when (result) {
-                                                is Resource.Success -> {
-                                                    modalSuccess = true
-                                                    modalMessage = "Estado actualizado correctamente"
-                                                    viewModel.loadVehicle(vehicleId)
-                                                }
-                                                is Resource.Error -> {
-                                                    modalSuccess = false
-                                                    modalMessage = result.message ?: "No se pudo actualizar el estado"
-                                                }
-                                            }
-                                            showModal = true
-                                        }
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEB3B)),
-                                enabled = selectedState.isNotBlank() && !isStateLoading
-                            ) {
-                                if (isStateLoading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        color = Color.Black,
-                                        strokeWidth = 2.dp
-                                    )
-                                } else {
-                                    Text(
-                                        "Actualizar Estado",
-                                        color = Color.Black,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }

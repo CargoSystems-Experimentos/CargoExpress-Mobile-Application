@@ -94,31 +94,25 @@ class HomeViewModel(
         _progressTrips.value = progressTrips
         _tripsEmpty.value = progressTrips.isEmpty()
 
-        val alertAuditLogDtos = when (val r = auditLogRepository.getAlertAuditLogDtos(token, entrepreneurId)) {
-            is Resource.Success -> r.data ?: emptyList()
-            is Resource.Error -> emptyList()
-        }
-
-        val progressTripIdSet = allTrips.filter { it.state == "PROGRESS" }.map { it.id }.toSet()
-        val tripNameMap = allTrips.associate { it.id to it.name }
-
-        val alertSummaries = alertAuditLogDtos
-            .mapNotNull { dto ->
-                val tripId = extractTripId(dto.modifiedFields) ?: return@mapNotNull null
-                if (tripId !in progressTripIdSet) return@mapNotNull null
-                val title = dto.modifiedFields["title"]?.toString() ?: return@mapNotNull null
-                val type = dto.modifiedFields["type"]?.toString() ?: ""
-                val date = dto.modifiedFields["date"]?.toString() ?: dto.timestamp
-                HomeAlertSummary(
-                    tripName = tripNameMap[tripId] ?: "Viaje #$tripId",
-                    alertTitle = title,
-                    alertType = type,
-                    alertDate = date,
-                    tripId = tripId
-                )
+        val progressTripItems = allTrips.filter { it.state == "PROGRESS" }
+        val allAlerts = mutableListOf<HomeAlertSummary>()
+        for (trip in progressTripItems) {
+            when (val r = alertRepository.getAlertsByTripId(token, trip.id)) {
+                is Resource.Success -> r.data?.forEach { alert ->
+                    allAlerts.add(
+                        HomeAlertSummary(
+                            tripName = trip.name,
+                            alertTitle = alert.title,
+                            alertType = alert.type,
+                            alertDate = alert.date,
+                            tripId = trip.id
+                        )
+                    )
+                }
+                is Resource.Error -> {}
             }
-            .sortedByDescending { it.alertDate }
-            .take(3)
+        }
+        val alertSummaries = allAlerts.sortedByDescending { it.alertDate }.take(3)
 
         _alertSummaries.value = alertSummaries
         _alertsEmpty.value = alertSummaries.isEmpty()

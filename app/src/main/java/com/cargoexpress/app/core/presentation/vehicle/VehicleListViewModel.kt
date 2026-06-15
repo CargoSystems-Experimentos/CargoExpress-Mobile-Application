@@ -29,4 +29,11 @@ class VehicleListViewModel(
             }
         }
     }
+
+    fun updateVehicleState(vehicleId: Int, newState: String, onResult: (Resource<*>) -> Unit) {
+        viewModelScope.launch {
+            val result = vehicleRepository.updateVehicleState(vehicleId, newState)
+            onResult(result)
+        }
+    }
 }

@@ -69,7 +69,7 @@ class LoginViewModel(
             entrepreneurRepository.getAllEntrepreneurs(token).onSuccess { entrepreneurs ->
                 val entrepreneur = entrepreneurs.find { it.userId == userId }
                 if (entrepreneur != null) {
-                    commitSessionAndNavigate("ENTREPRENEUR", entrepreneur.id, 0)
+                    commitSessionAndNavigate("ENTREPRENEUR", entrepreneur.id, 0, entrepreneur.name)
                 } else {
                     _state.value = UIState(isLoading = false, message = "No se encontró perfil de empresario")
                 }
@@ -84,7 +84,7 @@ class LoginViewModel(
             clientRepository.getAllClients(token).onSuccess { clients ->
                 val client = clients.find { it.userId == userId }
                 if (client != null) {
-                    commitSessionAndNavigate("CLIENT", 0, client.id)
+                    commitSessionAndNavigate("CLIENT", 0, client.id, client.name)
                 } else {
                     _state.value = UIState(isLoading = false, message = "No se encontró perfil de cliente")
                 }
@@ -94,10 +94,11 @@ class LoginViewModel(
         }
     }
 
-    private fun commitSessionAndNavigate(role: String, entrepreneurId: Int, clientId: Int) {
+    private fun commitSessionAndNavigate(role: String, entrepreneurId: Int, clientId: Int, profileName: String) {
         Constants.USER_ID = pendingUserId
         Constants.TOKEN = pendingToken
         Constants.USER_NAME = pendingUsername
+        Constants.PROFILE_NAME = profileName
         Constants.USER_PHONE = pendingUserPhone
         Constants.USER_ROLE = role
         Constants.ENTREPRENEUR_ID = entrepreneurId
