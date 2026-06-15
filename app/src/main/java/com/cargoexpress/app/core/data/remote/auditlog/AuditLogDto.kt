@@ -16,6 +16,6 @@ fun AuditLogDto.toAuditLog() = AuditLog(
     entityType = entityType,
     action = action,
     timestamp = timestamp,
-    modifiedFields = modifiedFields.toString(),
+    modifiedFields = modifiedFields,
     entrepreneurId = entrepreneurId
 )

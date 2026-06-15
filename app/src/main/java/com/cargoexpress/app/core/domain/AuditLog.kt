@@ -5,6 +5,6 @@ data class AuditLog(
     val entityType: String,
     val action: String,
     val timestamp: String,
-    val modifiedFields: String,
+    val modifiedFields: Map<String, Any?>,
     val entrepreneurId: Int
 )

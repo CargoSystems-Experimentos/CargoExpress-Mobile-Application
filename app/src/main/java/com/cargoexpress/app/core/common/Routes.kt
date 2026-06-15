@@ -10,4 +10,5 @@ sealed class Routes(val routes: String) {
     data object TermsAndConditions: Routes("TermsAndConditions")
     data object Home: Routes("home")
     data object Fleet: Routes("fleet")
+    data object History: Routes("history")
 }

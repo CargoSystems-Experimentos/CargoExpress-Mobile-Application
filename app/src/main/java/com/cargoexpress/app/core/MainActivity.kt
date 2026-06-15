@@ -101,6 +101,7 @@ import com.cargoexpress.app.core.presentation.driver.driverList.editDriver.EditD
 import com.cargoexpress.app.core.presentation.statistics.StatisticsScreen
 import com.cargoexpress.app.core.presentation.terms.TermsAndConditionsScreen
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarDefaults
@@ -118,6 +119,8 @@ import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseScreen
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseViewModel
 import com.cargoexpress.app.core.presentation.trip.editExpense.EditExpenseViewModelFactory
 import com.cargoexpress.app.core.presentation.fleet.FleetScreen
+import com.cargoexpress.app.core.presentation.history.HistoryScreen
+import com.cargoexpress.app.core.presentation.history.HistoryDetailScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -210,7 +213,7 @@ class MainActivity : ComponentActivity() {
                 val entrepreneurRepository = EntrepreneurRepository(entrepreneurService)
                 val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
                 val currentRoute = navController.currentBackStackEntry?.destination?.route
-                val isGpsOrAlert = currentRoute == "gps/{tripId}" || currentRoute == "alert/{tripId}" || currentRoute == Routes.TermsAndConditions.routes
+                val isGpsOrAlert = currentRoute == "gps/{tripId}" || currentRoute == "alert/{tripId}" || currentRoute == Routes.TermsAndConditions.routes || currentRoute == "history_detail"
                 val isRegisterOrEditScreen = currentRoute == "register_trip" ||
                     currentRoute == "edit_trip/{tripId}" ||
                     currentRoute == "register_vehicle" ||
@@ -318,6 +321,20 @@ class MainActivity : ComponentActivity() {
                                             )
                                         },
                                         label = { Text("Flota", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp)) },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            indicatorColor = Color(0xFFFFEB3B)
+                                        )
+                                    )
+                                    NavigationBarItem(
+                                        selected = currentDestination == Routes.History.routes,
+                                        onClick = { navController.navigate(Routes.History.routes) },
+                                        icon = {
+                                            Icon(
+                                                Icons.Filled.History,
+                                                contentDescription = "Historial"
+                                            )
+                                        },
+                                        label = { Text("Historial", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 12.sp)) },
                                         colors = NavigationBarItemDefaults.colors(
                                             indicatorColor = Color(0xFFFFEB3B)
                                         )
@@ -479,6 +496,17 @@ class MainActivity : ComponentActivity() {
 
                         composable(route = "statistics") {
                             StatisticsScreen(tripRepository = tripRepository)
+                        }
+
+                        composable(route = Routes.History.routes) {
+                            HistoryScreen(
+                                auditLogRepository = auditLogRepository,
+                                navController = navController
+                            )
+                        }
+
+                        composable(route = "history_detail") {
+                            HistoryDetailScreen(navController = navController)
                         }
 
                         composable(route = "profile") {
